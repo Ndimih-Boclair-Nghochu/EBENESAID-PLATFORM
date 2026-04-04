@@ -1,0 +1,42 @@
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function isAdmin() { return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid)); }
+
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if false;
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+    }
+
+    match /housingAgents/{agentId} {
+      allow get, list: if true;
+      allow write: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+    }
+
+    match /housingListings/{listingId} {
+      allow get, list: if true;
+      allow write: if isAdmin() || (isSignedIn() && exists(/databases/$(database)/documents/housingAgents/$(request.auth.uid)));
+    }
+
+    match /foodSuppliers/{supplierId} {
+      allow get, list: if true;
+      allow write: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+    }
+
+    match /foodOrders/{orderId} {
+      allow get: if isSignedIn() && (resource.data.studentId == request.auth.uid || resource.data.supplierUserId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && (resource.data.supplierUserId == request.auth.uid || resource.data.studentId == request.auth.uid || isAdmin());
+    }
+    
+    match /roles_admin/{adminUid} {
+      allow read, write: if false;
+    }
+  }
+}

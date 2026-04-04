@@ -1,0 +1,40 @@
+{
+  "placeholderImages": [
+    {
+      "id": "hero-bg",
+      "description": "Professional minimal airport scene with a student and a suitcase",
+      "imageUrl": "https://picsum.photos/seed/airport-minimal-99/1920/1080",
+      "imageHint": "person airport suitcase"
+    },
+    {
+      "id": "hero-students",
+      "description": "Diverse international students walking in a modern European city",
+      "imageUrl": "https://picsum.photos/seed/students-relocation/1200/800",
+      "imageHint": "international students"
+    },
+    {
+      "id": "apt-verified-1",
+      "description": "Modern student studio apartment in Riga center",
+      "imageUrl": "https://picsum.photos/seed/apt-verified-1/600/400",
+      "imageHint": "modern studio"
+    },
+    {
+      "id": "apt-verified-2",
+      "description": "Shared student apartment living room",
+      "imageUrl": "https://picsum.photos/seed/apt-verified-2/600/400",
+      "imageHint": "shared apartment"
+    },
+    {
+      "id": "student-profile-1",
+      "description": "International student smiling",
+      "imageUrl": "https://picsum.photos/seed/student-1/200/200",
+      "imageHint": "smiling student"
+    },
+    {
+      "id": "riga-city",
+      "description": "Scenic view of Riga Old Town",
+      "imageUrl": "https://picsum.photos/seed/riga-view/1200/600",
+      "imageHint": "Riga city"
+    }
+  ]
+}

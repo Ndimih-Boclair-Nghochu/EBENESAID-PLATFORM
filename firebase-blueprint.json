@@ -1,0 +1,204 @@
+
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user account on the EBENESAID platform.",
+      "properties": {
+        "id": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "firstName": { "type": "string" },
+        "lastName": { "type": "string" },
+        "userType": { "type": "string", "enum": ["Student", "Admin", "University", "Supplier", "Agent", "Transport"] },
+        "registrationDate": { "type": "string", "format": "date-time" },
+        "isActive": { "type": "boolean" },
+        "address": {
+          "type": "object",
+          "properties": {
+            "street": { "type": "string" },
+            "building": { "type": "string" },
+            "apartment": { "type": "string" },
+            "city": { "type": "string", "default": "Riga" },
+            "postalCode": { "type": "string" }
+          }
+        }
+      },
+      "required": ["id", "email", "firstName", "lastName", "userType", "registrationDate", "isActive"]
+    },
+    "TransportAgent": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "TransportAgent",
+      "type": "object",
+      "description": "Verified logistics provider for student transfers.",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "companyName": { "type": "string" },
+        "isVerified": { "type": "boolean" },
+        "vehicleType": { "type": "string" },
+        "licensePlate": { "type": "string" }
+      },
+      "required": ["id", "userId", "companyName", "isVerified"]
+    },
+    "TransportJob": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "TransportJob",
+      "type": "object",
+      "description": "An airport pickup assignment.",
+      "properties": {
+        "id": { "type": "string" },
+        "studentId": { "type": "string" },
+        "agentId": { "type": "string" },
+        "pickupTime": { "type": "string", "format": "date-time" },
+        "flightNumber": { "type": "string" },
+        "status": { "type": "string", "enum": ["Pending", "Assigned", "In Transit", "Completed", "Cancelled"] },
+        "destination": { "type": "string" }
+      },
+      "required": ["id", "studentId", "status", "pickupTime"]
+    },
+    "HousingAgent": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "HousingAgent",
+      "type": "object",
+      "description": "Verified property manager or agency.",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "agencyName": { "type": "string" },
+        "isVerified": { "type": "boolean" },
+        "totalListings": { "type": "number" },
+        "trustLevel": { "type": "number", "minimum": 1, "maximum": 5 }
+      },
+      "required": ["id", "userId", "agencyName", "isVerified"]
+    },
+    "HousingListing": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "HousingListing",
+      "type": "object",
+      "description": "A student accommodation listing.",
+      "properties": {
+        "id": { "type": "string" },
+        "agentId": { "type": "string" },
+        "title": { "type": "string" },
+        "location": { "type": "string" },
+        "price": { "type": "number" },
+        "type": { "type": "string", "enum": ["Studio", "Shared Room", "Whole Apartment"] },
+        "status": { "type": "string", "enum": ["Verified", "Pending", "Hidden"] },
+        "description": { "type": "string" },
+        "images": { 
+          "type": "array", 
+          "items": { "type": "string" },
+          "description": "Array of image URLs or base64 data strings."
+        }
+      },
+      "required": ["id", "agentId", "title", "price", "status"]
+    },
+    "FoodSupplier": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "FoodSupplier",
+      "type": "object",
+      "description": "Represents a verified food provider on the platform.",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "kitchenName": { "type": "string" },
+        "cuisineType": { "type": "string" },
+        "isVerified": { "type": "boolean" },
+        "location": { "type": "string" }
+      },
+      "required": ["id", "userId", "kitchenName", "cuisineType", "isVerified"]
+    },
+    "FoodOrder": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "FoodOrder",
+      "type": "object",
+      "description": "Represents a food order placed by a user.",
+      "properties": {
+        "id": { "type": "string" },
+        "studentId": { "type": "string" },
+        "supplierId": { "type": "string" },
+        "items": { "type": "array", "items": { "type": "object" } },
+        "totalAmount": { "type": "number" },
+        "fulfillmentMethod": { "type": "string", "enum": ["Delivery", "Pickup"] },
+        "status": { "type": "string", "enum": ["Pending", "Preparing", "Out for Delivery", "Delivered", "Ready for Pickup", "Cancelled"] },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "deliveryAddress": {
+          "type": "object",
+          "properties": {
+            "street": { "type": "string" },
+            "building": { "type": "string" },
+            "apartment": { "type": "string" },
+            "city": { "type": "string" },
+            "note": { "type": "string" }
+          }
+        }
+      },
+      "required": ["id", "studentId", "supplierId", "items", "totalAmount", "status", "timestamp", "fulfillmentMethod"]
+    }
+  },
+  "auth": {
+    "providers": ["password", "anonymous"]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": { "$ref": "#/backend/entities/User" },
+          "description": "Core user data including verified address."
+        }
+      },
+      {
+        "path": "/transportAgents/{agentId}",
+        "definition": {
+          "entityName": "TransportAgent",
+          "schema": { "$ref": "#/backend/entities/TransportAgent" },
+          "description": "Verified pickup provider profiles."
+        }
+      },
+      {
+        "path": "/transportJobs/{jobId}",
+        "definition": {
+          "entityName": "TransportJob",
+          "schema": { "$ref": "#/backend/entities/TransportJob" },
+          "description": "Assigned airport transfers."
+        }
+      },
+      {
+        "path": "/housingAgents/{agentId}",
+        "definition": {
+          "entityName": "HousingAgent",
+          "schema": { "$ref": "#/backend/entities/HousingAgent" },
+          "description": "Verified property manager profiles."
+        }
+      },
+      {
+        "path": "/housingListings/{listingId}",
+        "definition": {
+          "entityName": "HousingListing",
+          "schema": { "$ref": "#/backend/entities/HousingListing" },
+          "description": "Verified student accommodation inventory."
+        }
+      },
+      {
+        "path": "/foodSuppliers/{supplierId}",
+        "definition": {
+          "entityName": "FoodSupplier",
+          "schema": { "$ref": "#/backend/entities/FoodSupplier" },
+          "description": "Verified kitchen registry."
+        }
+      },
+      {
+        "path": "/foodOrders/{orderId}",
+        "definition": {
+          "entityName": "FoodOrder",
+          "schema": { "$ref": "#/backend/entities/FoodOrder" },
+          "description": "Platform-wide food orders."
+        }
+      }
+    ]
+  }
+}
