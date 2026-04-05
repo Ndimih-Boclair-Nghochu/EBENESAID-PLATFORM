@@ -26,8 +26,8 @@ export const roleProfiles = {
     sub: "RTU Riga · Class of 2025",
     avatar: "https://picsum.photos/seed/user-louis/200/200",
     initials: "LD",
-    badgeClass: "bg-sky-50 text-sky-700 border-sky-200",
-    accentClass: "bg-sky-600",
+    badgeClass: "bg-green-50 text-green-700 border-green-200",
+    accentClass: "bg-green-700",
     settingsHref: "/settings",
   },
   admin: {
@@ -70,8 +70,8 @@ export const roleProfiles = {
     sub: "Riga Properties · Verified Agent",
     avatar: "https://picsum.photos/seed/agent-mark-prop/200/200",
     initials: "ME",
-    badgeClass: "bg-sky-50 text-sky-700 border-sky-200",
-    accentClass: "bg-sky-700",
+    badgeClass: "bg-green-50 text-green-700 border-green-200",
+    accentClass: "bg-green-700",
     settingsHref: "/settings",
   },
   transport: {
@@ -172,7 +172,7 @@ export function PageHeader({
             <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-xl hover:bg-slate-100 text-slate-500 transition-colors">
               <Bell className="h-4 w-4" />
               {unreadCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 h-2 w-2 bg-sky-500 rounded-full shadow-sm" />
+                <span className="absolute top-1.5 right-1.5 h-2 w-2 bg-green-500 rounded-full shadow-sm" />
               )}
             </Button>
           </DropdownMenuTrigger>
@@ -180,15 +180,15 @@ export function PageHeader({
             <div className="px-4 py-3 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
               <p className="text-xs font-black text-slate-900 uppercase tracking-wide">Notifications</p>
               {unreadCount > 0 && (
-                <Badge className="bg-sky-100 text-sky-700 border-none text-[10px] font-bold px-2 py-0.5">
+                <Badge className="bg-green-100 text-green-700 border-none text-[10px] font-bold px-2 py-0.5">
                   {unreadCount} new
                 </Badge>
               )}
             </div>
             <div className="divide-y divide-slate-50">
               {notifications.map(n => (
-                <div key={n.id} className={`px-4 py-3.5 flex gap-3 hover:bg-slate-50 transition-colors cursor-pointer ${n.unread ? 'bg-sky-50/30' : ''}`}>
-                  <div className={`h-2 w-2 rounded-full mt-1.5 shrink-0 ${n.unread ? 'bg-sky-500' : 'bg-slate-200'}`} />
+                <div key={n.id} className={`px-4 py-3.5 flex gap-3 hover:bg-slate-50 transition-colors cursor-pointer ${n.unread ? 'bg-green-50/30' : ''}`}>
+                  <div className={`h-2 w-2 rounded-full mt-1.5 shrink-0 ${n.unread ? 'bg-green-500' : 'bg-slate-200'}`} />
                   <div className="min-w-0">
                     <p className="text-xs font-bold text-slate-900 leading-tight">{n.title}</p>
                     <p className="text-[11px] text-slate-500 font-medium mt-0.5 leading-snug">{n.desc}</p>
@@ -198,7 +198,7 @@ export function PageHeader({
               ))}
             </div>
             <div className="px-4 py-3 border-t border-slate-50 text-center">
-              <Link href="/support" className="text-xs font-bold text-sky-600 hover:text-sky-700 transition-colors">
+              <Link href="/support" className="text-xs font-bold text-green-700 hover:text-green-700 transition-colors">
                 View all notifications
               </Link>
             </div>
@@ -241,7 +241,7 @@ export function PageHeader({
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
                   <p className="text-sm font-black text-slate-900 leading-none truncate">{profile.name}</p>
-                  <CheckCircle2 className="h-3.5 w-3.5 text-sky-500 shrink-0" />
+                  <CheckCircle2 className="h-3.5 w-3.5 text-green-600 shrink-0" />
                 </div>
                 <Badge className={`mt-1.5 text-[9px] font-bold border px-2 py-0 rounded-full ${profile.badgeClass}`}>
                   {profile.role}
@@ -251,17 +251,17 @@ export function PageHeader({
 
             <DropdownMenuSeparator className="my-1 bg-slate-50" />
 
-            <DropdownMenuItem asChild className="rounded-xl px-3 py-2.5 cursor-pointer gap-2.5 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-sky-600 focus:bg-slate-50 focus:text-sky-600">
+            <DropdownMenuItem asChild className="rounded-xl px-3 py-2.5 cursor-pointer gap-2.5 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-green-700 focus:bg-slate-50 focus:text-green-700">
               <Link href="/settings">
                 <User className="h-3.5 w-3.5 text-slate-400" /> My Profile & Settings
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem asChild className="rounded-xl px-3 py-2.5 cursor-pointer gap-2.5 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-sky-600 focus:bg-slate-50 focus:text-sky-600">
+            <DropdownMenuItem asChild className="rounded-xl px-3 py-2.5 cursor-pointer gap-2.5 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-green-700 focus:bg-slate-50 focus:text-green-700">
               <Link href="/messages">
                 <MessageSquare className="h-3.5 w-3.5 text-slate-400" /> Messages
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem asChild className="rounded-xl px-3 py-2.5 cursor-pointer gap-2.5 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-sky-600 focus:bg-slate-50 focus:text-sky-600">
+            <DropdownMenuItem asChild className="rounded-xl px-3 py-2.5 cursor-pointer gap-2.5 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-green-700 focus:bg-slate-50 focus:text-green-700">
               <Link href="/support">
                 <LifeBuoy className="h-3.5 w-3.5 text-slate-400" /> Support
               </Link>

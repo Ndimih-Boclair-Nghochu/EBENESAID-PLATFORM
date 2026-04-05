@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from "next/link";
 import { 
   ShieldCheck, 
@@ -30,6 +30,20 @@ export default function HowItWorksPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [selectedService, setSelectedService] = useState("");
+  const [headerVisible, setHeaderVisible] = useState(true);
+  const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      if (currentScrollY < 80) setHeaderVisible(true);
+      else if (currentScrollY > lastScrollY.current) setHeaderVisible(false);
+      else setHeaderVisible(true);
+      lastScrollY.current = currentScrollY;
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
   const { user } = useUser();
 
   const handleProtectedLink = (e: React.MouseEvent, title: string, href: string) => {
@@ -66,11 +80,11 @@ export default function HowItWorksPage() {
       </Dialog>
 
       {/* Header - Unified Professional Sky Blue */}
-      <header className="fixed top-0 z-50 w-full border-b border-sky-400/30 bg-sky-600 backdrop-blur-xl">
+      <header className={`fixed top-0 z-50 w-full border-b border-green-400/30 bg-green-900 backdrop-blur-xl transition-transform duration-300 ${headerVisible ? 'translate-y-0' : '-translate-y-full'}`}>
         <div className="container mx-auto flex h-16 md:h-20 items-center justify-between px-4 sm:px-6 max-w-7xl">
           <Link href="/" className="flex items-center gap-2 group">
             <div className="bg-white p-1.5 md:p-2 rounded-lg md:rounded-xl shadow-lg group-hover:scale-110 transition-transform">
-              <ShieldCheck className="h-5 w-5 md:h-6 md:w-6 text-sky-600" />
+              <ShieldCheck className="h-5 w-5 md:h-6 md:w-6 text-green-800" />
             </div>
             <span className="text-lg md:text-xl font-black tracking-tighter text-white font-headline uppercase italic">EBENESAID</span>
           </Link>
@@ -84,7 +98,7 @@ export default function HowItWorksPage() {
 
           <div className="flex items-center gap-3 md:gap-6">
             <Link href="/login" className="text-sm font-bold text-white hidden sm:block hover:text-white/80">Log In</Link>
-            <Button asChild className="rounded-full px-6 md:px-8 h-10 md:h-12 font-black shadow-xl bg-white text-sky-600 hover:bg-sky-50 border-none text-xs md:text-sm">
+            <Button asChild className="rounded-full px-6 md:px-8 h-10 md:h-12 font-black shadow-xl bg-white text-green-800 hover:bg-green-50 border-none text-xs md:text-sm">
               <Link href="/register">Get Started</Link>
             </Button>
             
@@ -94,7 +108,7 @@ export default function HowItWorksPage() {
                   <Menu className="h-6 w-6" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="bg-sky-600 border-none text-white p-0 w-72">
+              <SheetContent side="right" className="bg-green-900 border-none text-white p-0 w-72">
                 <SheetHeader className="p-8 border-b border-white/10 text-left">
                   <SheetTitle className="text-white flex items-center gap-2 font-black italic tracking-tighter uppercase">
                     <ShieldCheck className="h-6 w-6" />
@@ -174,7 +188,7 @@ export default function HowItWorksPage() {
             {/* CTA Section */}
             <div className="bg-slate-900 rounded-[3.5rem] p-12 md:p-24 text-white relative overflow-hidden shadow-2xl border border-white/5">
               <div className="absolute top-0 right-0 w-80 h-80 bg-primary/20 rounded-full -translate-y-1/2 translate-x-1/2 blur-[120px]" />
-              <div className="absolute bottom-0 left-0 w-64 h-64 bg-sky-500/10 rounded-full translate-y-1/2 -translate-x-1/2 blur-[100px]" />
+              <div className="absolute bottom-0 left-0 w-64 h-64 bg-green-500/10 rounded-full translate-y-1/2 -translate-x-1/2 blur-[100px]" />
               
               <div className="relative z-10 flex flex-col items-center text-center space-y-10">
                 <div className="h-24 w-24 bg-primary/20 rounded-[2rem] flex items-center justify-center text-primary shadow-2xl shadow-primary/20 animate-pulse">

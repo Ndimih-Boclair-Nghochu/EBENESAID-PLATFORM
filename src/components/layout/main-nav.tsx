@@ -157,19 +157,19 @@ export function MainNav() {
   return (
     <nav className="flex flex-col h-full gap-4 px-4 py-8">
       <div className="flex items-center gap-3 pb-8 pt-2 px-2">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white shadow-xl shadow-sky-900/20 shrink-0">
-          <ShieldCheck className="h-6 w-6 text-sky-600" />
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white shadow-xl shadow-green-900/20 shrink-0">
+          <ShieldCheck className="h-6 w-6 text-green-700" />
         </div>
         <div className="flex flex-col">
           <span className="text-lg font-black tracking-tighter text-white font-headline italic uppercase leading-none">EBENESAID</span>
-          <span className="text-[8px] font-black text-sky-200 uppercase tracking-[0.4em] mt-1">
+          <span className="text-[8px] font-black text-green-200 uppercase tracking-[0.4em] mt-1">
             {roleLabel}
           </span>
         </div>
       </div>
       
       <div className="space-y-1 flex-1">
-        <p className="px-4 text-[9px] font-black text-sky-200/50 uppercase tracking-[0.4em] mb-4">
+        <p className="px-4 text-[9px] font-black text-green-200/50 uppercase tracking-[0.4em] mb-4">
           {sectionLabel}
         </p>
         {navItems.map((item) => {
@@ -181,11 +181,11 @@ export function MainNav() {
               className={cn(
                 "group flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold transition-all duration-200",
                 isActive
-                  ? "bg-white text-sky-600 shadow-lg shadow-sky-900/20"
+                  ? "bg-white text-green-700 shadow-lg shadow-green-900/20"
                   : "text-white/70 hover:bg-white/10 hover:text-white"
               )}
             >
-              <item.icon className={cn("h-5 w-5 transition-colors", isActive ? "text-sky-600" : "text-white/40 group-hover:text-white")} />
+              <item.icon className={cn("h-5 w-5 transition-colors", isActive ? "text-green-700" : "text-white/40 group-hover:text-white")} />
               {item.name}
             </Link>
           );
@@ -193,13 +193,13 @@ export function MainNav() {
       </div>
 
       <div className="pt-6 space-y-1 border-t border-white/10">
-        <p className="px-4 text-[9px] font-black text-sky-200/50 uppercase tracking-[0.4em] mb-4 mt-2">Preferences</p>
+        <p className="px-4 text-[9px] font-black text-green-200/50 uppercase tracking-[0.4em] mb-4 mt-2">Preferences</p>
         <Link
           href="/settings"
           className={cn(
             "group flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold transition-all",
             pathname === "/settings"
-              ? "bg-white text-sky-600"
+              ? "bg-white text-green-700"
               : "text-white/70 hover:bg-white/10 hover:text-white"
           )}
         >

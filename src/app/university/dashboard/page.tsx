@@ -45,7 +45,7 @@ const complianceModules = [
 
 const statusColor: Record<string, string> = {
   Arrived: 'bg-emerald-50 text-emerald-700',
-  'In Transit': 'bg-sky-50 text-sky-700',
+  'In Transit': 'bg-green-50 text-green-700',
   'Pre-Arrival': 'bg-amber-50 text-amber-700',
 };
 
@@ -72,7 +72,7 @@ export default function UniversityDashboardPage() {
         {/* KPI Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <KpiCard icon={<Users className="h-5 w-5" />} label="Total Students" value="1,240" delta="+12%" positive href="/university/students" bg="bg-indigo-50" color="text-indigo-600" />
-          <KpiCard icon={<Clock className="h-5 w-5" />} label="In Transit" value="412" delta="+8%" positive href="/university/students" bg="bg-sky-50" color="text-sky-600" />
+          <KpiCard icon={<Clock className="h-5 w-5" />} label="In Transit" value="412" delta="+8%" positive href="/university/students" bg="bg-green-50" color="text-green-700" />
           <KpiCard icon={<CheckCircle2 className="h-5 w-5" />} label="Arrived & Settled" value="828" delta="+4%" positive href="/university/students" bg="bg-emerald-50" color="text-emerald-600" />
           <KpiCard icon={<ShieldCheck className="h-5 w-5" />} label="Compliance Rate" value="94.2%" delta="+1.4%" positive href="/university/verification" bg="bg-violet-50" color="text-violet-600" />
         </div>

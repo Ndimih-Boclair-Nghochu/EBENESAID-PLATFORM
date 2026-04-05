@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from "next/link";
 import { 
   ShieldCheck, 
@@ -31,6 +31,20 @@ export default function AboutPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [selectedService, setSelectedService] = useState("");
+  const [headerVisible, setHeaderVisible] = useState(true);
+  const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      if (currentScrollY < 80) setHeaderVisible(true);
+      else if (currentScrollY > lastScrollY.current) setHeaderVisible(false);
+      else setHeaderVisible(true);
+      lastScrollY.current = currentScrollY;
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
   const { user } = useUser();
 
   const handleProtectedLink = (e: React.MouseEvent, title: string, href: string) => {
@@ -67,11 +81,11 @@ export default function AboutPage() {
       </Dialog>
 
       {/* Header - Unified Professional Sky Blue */}
-      <header className="fixed top-0 z-50 w-full border-b border-sky-400/30 bg-sky-600 backdrop-blur-xl">
+      <header className={`fixed top-0 z-50 w-full border-b border-green-400/30 bg-green-900 backdrop-blur-xl transition-transform duration-300 ${headerVisible ? 'translate-y-0' : '-translate-y-full'}`}>
         <div className="container mx-auto flex h-16 md:h-20 items-center justify-between px-4 sm:px-6 max-w-7xl">
           <Link href="/" className="flex items-center gap-2 group">
             <div className="bg-white p-1.5 md:p-2 rounded-lg md:rounded-xl shadow-lg group-hover:scale-110 transition-transform">
-              <ShieldCheck className="h-5 w-5 md:h-6 md:w-6 text-sky-600" />
+              <ShieldCheck className="h-5 w-5 md:h-6 md:w-6 text-green-800" />
             </div>
             <span className="text-lg md:text-xl font-black tracking-tighter text-white font-headline uppercase italic">EBENESAID</span>
           </Link>
@@ -85,7 +99,7 @@ export default function AboutPage() {
 
           <div className="flex items-center gap-3 md:gap-6">
             <Link href="/login" className="text-sm font-bold text-white hidden sm:block hover:text-white/80">Log In</Link>
-            <Button asChild className="rounded-full px-6 md:px-8 h-10 md:h-12 font-black shadow-xl bg-white text-sky-600 hover:bg-sky-50 border-none text-xs md:text-sm">
+            <Button asChild className="rounded-full px-6 md:px-8 h-10 md:h-12 font-black shadow-xl bg-white text-green-800 hover:bg-green-50 border-none text-xs md:text-sm">
               <Link href="/register">Get Started</Link>
             </Button>
             
@@ -95,7 +109,7 @@ export default function AboutPage() {
                   <Menu className="h-6 w-6" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="bg-sky-600 border-none text-white p-0 w-72">
+              <SheetContent side="right" className="bg-green-900 border-none text-white p-0 w-72">
                 <SheetHeader className="p-8 border-b border-white/10 text-left">
                   <SheetTitle className="text-white flex items-center gap-2 font-black italic tracking-tighter uppercase">
                     <ShieldCheck className="h-6 w-6" />

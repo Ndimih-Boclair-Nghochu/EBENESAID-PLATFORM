@@ -70,14 +70,14 @@ export default function BookingLeadsPage() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-slate-100 pb-5">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="border-sky-400/20 bg-sky-50 text-sky-600 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5">
+              <Badge variant="outline" className="border-green-400/20 bg-green-50 text-green-700 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5">
                 Lead Node • Active Inquiries
               </Badge>
               <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 text-[8px] font-black uppercase tracking-widest">
                 <Activity className="h-2.5 w-2.5" /> Funnel: Healthy
               </div>
             </div>
-            <h1 className="text-xl font-black text-slate-900 tracking-tight leading-none uppercase italic">Booking <span className="text-sky-600">Leads</span></h1>
+            <h1 className="text-xl font-black text-slate-900 tracking-tight leading-none uppercase italic">Booking <span className="text-green-700">Leads</span></h1>
             <p className="text-slate-400 text-[10px] font-medium max-w-lg uppercase tracking-widest">Manage student inquiries and coordinate verified housing transitions.</p>
           </div>
           <div className="flex items-center gap-2 w-full md:w-auto">
@@ -101,9 +101,9 @@ export default function BookingLeadsPage() {
         {/* Leads Matrix */}
         <Tabs defaultValue="all" className="w-full">
           <TabsList className="bg-white p-1 rounded-xl border border-slate-100 shadow-sm mb-6 h-auto">
-            <TabsTrigger value="all" className="rounded-lg data-[state=active]:bg-sky-600 data-[state=active]:text-white font-black text-[10px] uppercase h-8 px-6">All Inquiries</TabsTrigger>
-            <TabsTrigger value="pending" className="rounded-lg data-[state=active]:bg-sky-600 data-[state=active]:text-white font-black text-[10px] uppercase h-8 px-6">Action Required</TabsTrigger>
-            <TabsTrigger value="confirmed" className="rounded-lg data-[state=active]:bg-sky-600 data-[state=active]:text-white font-black text-[10px] uppercase h-8 px-6">Converted Leads</TabsTrigger>
+            <TabsTrigger value="all" className="rounded-lg data-[state=active]:bg-green-700 data-[state=active]:text-white font-black text-[10px] uppercase h-8 px-6">All Inquiries</TabsTrigger>
+            <TabsTrigger value="pending" className="rounded-lg data-[state=active]:bg-green-700 data-[state=active]:text-white font-black text-[10px] uppercase h-8 px-6">Action Required</TabsTrigger>
+            <TabsTrigger value="confirmed" className="rounded-lg data-[state=active]:bg-green-700 data-[state=active]:text-white font-black text-[10px] uppercase h-8 px-6">Converted Leads</TabsTrigger>
           </TabsList>
 
           <TabsContent value="all" className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
@@ -141,7 +141,7 @@ function LeadCard({ lead }: any) {
               {lead.status}
             </Badge>
             <Badge variant="outline" className="border-slate-100 text-[7px] font-black uppercase tracking-widest gap-1 py-0 h-5">
-              <Home className="h-3 w-3 text-sky-600" /> {lead.listing}
+              <Home className="h-3 w-3 text-green-700" /> {lead.listing}
             </Badge>
             <span className="text-[9px] font-bold text-slate-300 uppercase tracking-widest flex items-center gap-1.5">
               <Clock className="h-3 w-3" /> {lead.time}
@@ -153,7 +153,7 @@ function LeadCard({ lead }: any) {
             <div className="flex items-center gap-4">
               <Avatar className="h-12 w-12 rounded-xl border-2 border-slate-50 shadow-sm">
                 <AvatarImage src={`https://picsum.photos/seed/${lead.id}/100/100`} />
-                <AvatarFallback className="bg-sky-600 text-white font-black text-xs">{lead.student.charAt(0)}</AvatarFallback>
+                <AvatarFallback className="bg-green-700 text-white font-black text-xs">{lead.student.charAt(0)}</AvatarFallback>
               </Avatar>
               <div className="min-w-0">
                 <p className="text-sm font-black text-slate-900 leading-none">{lead.student}</p>
@@ -174,7 +174,7 @@ function LeadCard({ lead }: any) {
             </div>
 
             <div className="space-y-1.5 p-3 bg-slate-50 rounded-xl border border-slate-100">
-              <div className="flex items-center gap-2 text-sky-600">
+              <div className="flex items-center gap-2 text-green-700">
                 <MessageSquare className="h-3.5 w-3.5" />
                 <p className="text-[9px] font-black uppercase tracking-widest">Lead Intent</p>
               </div>
@@ -186,13 +186,13 @@ function LeadCard({ lead }: any) {
         </div>
 
         <div className="flex flex-row lg:flex-col gap-2 shrink-0 lg:w-48 lg:border-l lg:border-slate-50 lg:pl-6">
-          <Button className="flex-1 h-10 rounded-xl text-[10px] font-black uppercase tracking-widest bg-sky-600 hover:bg-sky-700 shadow-lg shadow-sky-600/20">
+          <Button className="flex-1 h-10 rounded-xl text-[10px] font-black uppercase tracking-widest bg-green-700 hover:bg-green-800 shadow-lg shadow-green-700/20">
             Accept Lead
           </Button>
           <Button variant="ghost" className="flex-1 h-10 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:bg-slate-50 border border-transparent hover:border-slate-100">
             Archive Inactive
           </Button>
-          <Button variant="ghost" size="icon" className="h-10 w-10 lg:w-full rounded-xl text-slate-300 hover:text-sky-600">
+          <Button variant="ghost" size="icon" className="h-10 w-10 lg:w-full rounded-xl text-slate-300 hover:text-green-700">
             <ArrowUpRight className="h-4 w-4" />
           </Button>
         </div>

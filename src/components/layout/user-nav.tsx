@@ -59,14 +59,14 @@ export function UserNav() {
           <div className="flex items-center gap-3 overflow-hidden text-left">
             <Avatar className="h-9 w-9 rounded-xl border border-white/20 shadow-sm transition-transform group-hover:scale-105 shrink-0">
               <AvatarImage src="https://picsum.photos/seed/user-louis/100/100" alt="@user" />
-              <AvatarFallback className="bg-white text-sky-600 font-black text-xs">LD</AvatarFallback>
+              <AvatarFallback className="bg-white text-green-700 font-black text-xs">LD</AvatarFallback>
             </Avatar>
             <div className="flex flex-col items-start overflow-hidden">
               <span className="text-xs font-black text-white leading-none">Louis D.</span>
-              <span className="text-[8px] font-bold text-sky-200 truncate w-full mt-1.5 uppercase tracking-widest">louis@ebenesaid.com</span>
+              <span className="text-[8px] font-bold text-green-200 truncate w-full mt-1.5 uppercase tracking-widest">louis@ebenesaid.com</span>
             </div>
           </div>
-          <ChevronUp className="h-3 w-3 text-sky-200 group-hover:text-white transition-colors shrink-0" />
+          <ChevronUp className="h-3 w-3 text-green-200 group-hover:text-white transition-colors shrink-0" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-64 rounded-2xl p-2 shadow-2xl border-none mb-2 animate-in slide-in-from-bottom-2 duration-300" align="end" forceMount>

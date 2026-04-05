@@ -40,7 +40,7 @@ const initialTasks = [
 ];
 
 const categoryColors: Record<string, string> = {
-  Housing: "bg-sky-50 text-sky-700 border-sky-100",
+  Housing: "bg-green-50 text-green-700 border-green-100",
   Logistics: "bg-violet-50 text-violet-700 border-violet-100",
   Academic: "bg-emerald-50 text-emerald-700 border-emerald-100",
   Legal: "bg-amber-50 text-amber-700 border-amber-100",
@@ -75,7 +75,7 @@ export default function DashboardPage() {
               <Button size="sm" variant="outline" className="rounded-xl font-bold h-9 px-4 gap-2 text-xs border-slate-200" asChild>
                 <Link href="/arrival"><PlaneTakeoff className="h-3.5 w-3.5" /> Arrival</Link>
               </Button>
-              <Button size="sm" className="rounded-xl font-bold h-9 px-4 shadow-md shadow-sky-600/20 gap-2 text-xs bg-sky-600 hover:bg-sky-700 text-white border-none" asChild>
+              <Button size="sm" className="rounded-xl font-bold h-9 px-4 shadow-md shadow-green-700/20 gap-2 text-xs bg-green-700 hover:bg-green-800 text-white border-none" asChild>
                 <Link href="/docs"><Wallet className="h-3.5 w-3.5" /> My Wallet</Link>
               </Button>
             </>
@@ -85,7 +85,7 @@ export default function DashboardPage() {
         {/* Stats Row */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <StatCard label="Tasks Done" value={`${completedCount}/${tasks.length}`} icon={<CheckCircle2 className="h-4 w-4" />} color="text-emerald-600" bg="bg-emerald-50" />
-          <StatCard label="Days Until Start" value="47" icon={<Clock className="h-4 w-4" />} color="text-sky-600" bg="bg-sky-50" />
+          <StatCard label="Days Until Start" value="47" icon={<Clock className="h-4 w-4" />} color="text-green-700" bg="bg-green-50" />
           <StatCard label="Compliance" value={`${progressPercent}%`} icon={<TrendingUp className="h-4 w-4" />} color="text-violet-600" bg="bg-violet-50" />
           <StatCard label="Modules Active" value="4/9" icon={<Zap className="h-4 w-4" />} color="text-amber-600" bg="bg-amber-50" />
         </div>
@@ -275,7 +275,7 @@ function QuickLauncher({
   return (
     <Link href={href}>
       <div className="group p-4 rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-md hover:border-primary/20 transition-all flex flex-col items-center text-center gap-2.5 cursor-pointer">
-        <div className="h-11 w-11 rounded-xl bg-slate-50 text-slate-400 group-hover:bg-sky-600 group-hover:text-white transition-all flex items-center justify-center shadow-inner">
+        <div className="h-11 w-11 rounded-xl bg-slate-50 text-slate-400 group-hover:bg-green-700 group-hover:text-white transition-all flex items-center justify-center shadow-inner">
           {icon}
         </div>
         <div>

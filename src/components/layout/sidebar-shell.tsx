@@ -24,7 +24,7 @@ export function SidebarShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen bg-slate-50/50 overflow-x-hidden">
       {/* Desktop Sidebar - Professional Sky Blue Slim Profile */}
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 border-r border-sky-700/30 bg-sky-600 lg:block shadow-[10px_0_40px_rgba(0,0,0,0.1)]">
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 border-r border-green-900/30 bg-green-900 lg:block shadow-[10px_0_40px_rgba(0,0,0,0.1)]">
         <div className="flex h-full flex-col">
           <div className="flex-1 overflow-y-auto custom-scrollbar">
             <MainNav />
@@ -38,7 +38,7 @@ export function SidebarShell({ children }: { children: React.ReactNode }) {
       {/* Mobile Header - Compact Brand Alignment */}
       <header className="fixed top-0 left-0 right-0 z-50 flex h-14 items-center justify-between border-b border-slate-200 bg-white/80 px-4 lg:hidden shadow-sm backdrop-blur-xl">
         <div className="flex items-center gap-2">
-          <div className="bg-sky-600 p-1.5 rounded-lg shadow-lg shadow-sky-600/20">
+          <div className="bg-green-900 p-1.5 rounded-lg shadow-lg shadow-green-700/20">
             <ShieldCheck className="h-4 w-4 text-white" />
           </div>
           <span className="text-sm font-black tracking-tighter text-slate-900 font-headline italic uppercase leading-none">EBENESAID</span>
@@ -51,7 +51,7 @@ export function SidebarShell({ children }: { children: React.ReactNode }) {
                 <Menu className="h-5 w-5 text-slate-900" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="p-0 w-64 border-none bg-sky-600">
+            <SheetContent side="left" className="p-0 w-64 border-none bg-green-900">
               <SheetHeader className="p-6 border-b border-white/10 text-left shrink-0">
                 <SheetTitle className="text-white flex items-center gap-2 font-black italic tracking-tighter uppercase">
                   <ShieldCheck className="h-5 w-5 text-white" />

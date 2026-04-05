@@ -31,7 +31,7 @@ const enrollmentData = [
 
 const recentActivity = [
   { type: 'verification', msg: 'Kofi Mensah · Residence permit approved', time: '2m ago', icon: ShieldCheck, color: 'text-emerald-500 bg-emerald-50' },
-  { type: 'housing', msg: 'New verified listing added · K. Valdemāra iela', time: '14m ago', icon: Home, color: 'text-sky-500 bg-sky-50' },
+  { type: 'housing', msg: 'New verified listing added · K. Valdemāra iela', time: '14m ago', icon: Home, color: 'text-green-600 bg-green-50' },
   { type: 'alert', msg: 'Verification queue · 12 pending documents', time: '1h ago', icon: AlertTriangle, color: 'text-amber-500 bg-amber-50' },
   { type: 'career', msg: 'Printful internship posted · 3 applicants', time: '2h ago', icon: Briefcase, color: 'text-violet-500 bg-violet-50' },
   { type: 'report', msg: 'Incident report filed · Housing dispute resolved', time: '4h ago', icon: Flag, color: 'text-rose-500 bg-rose-50' },
@@ -68,7 +68,7 @@ export default function AdminDashboardPage() {
               <Button variant="outline" size="sm" className="h-9 px-4 rounded-xl border-slate-200 font-bold gap-2 text-xs hover:bg-slate-50" asChild>
                 <Link href="/admin/reports"><HardDrive className="h-3.5 w-3.5" /> System Logs</Link>
               </Button>
-              <Button size="sm" className="h-9 px-4 rounded-xl font-bold shadow-md gap-2 text-xs bg-sky-600 hover:bg-sky-700 text-white border-none" asChild>
+              <Button size="sm" className="h-9 px-4 rounded-xl font-bold shadow-md gap-2 text-xs bg-green-700 hover:bg-green-800 text-white border-none" asChild>
                 <Link href="/admin/verification"><Zap className="h-3.5 w-3.5" /> Verification Queue</Link>
               </Button>
             </>
@@ -77,7 +77,7 @@ export default function AdminDashboardPage() {
 
         {/* Top KPI Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <KpiCard icon={<Users className="h-5 w-5" />} label="Total Students" value="2,840" delta="+14%" positive href="/admin/users" bg="bg-sky-50" color="text-sky-600" />
+          <KpiCard icon={<Users className="h-5 w-5" />} label="Total Students" value="2,840" delta="+14%" positive href="/admin/users" bg="bg-green-50" color="text-green-700" />
           <KpiCard icon={<Home className="h-5 w-5" />} label="Verified Listings" value="412" delta="+8%" positive href="/accommodation" bg="bg-emerald-50" color="text-emerald-600" />
           <KpiCard icon={<Briefcase className="h-5 w-5" />} label="Active Jobs" value="86" delta="+22%" positive href="/jobs" bg="bg-violet-50" color="text-violet-600" />
           <KpiCard icon={<Building2 className="h-5 w-5" />} label="Partner Unis" value="12" delta="+2" positive href="/admin/institutions" bg="bg-amber-50" color="text-amber-600" />
@@ -141,7 +141,7 @@ export default function AdminDashboardPage() {
               {platformModules.map((mod) => (
                 <Link key={mod.name} href={mod.href} className="block group">
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-xs font-bold text-slate-700 group-hover:text-sky-600 transition-colors">{mod.name}</span>
+                    <span className="text-xs font-bold text-slate-700 group-hover:text-green-700 transition-colors">{mod.name}</span>
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] font-bold text-slate-400">{mod.active}/{mod.total}</span>
                       <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${mod.status === 'healthy' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
@@ -232,7 +232,7 @@ export default function AdminDashboardPage() {
           </div>
           <div className="lg:col-span-4 flex flex-col gap-4">
             <Card className="rounded-2xl border-slate-100 shadow-sm bg-slate-900 text-white p-5 flex-1">
-              <div className="flex items-center gap-2 text-sky-400 mb-4">
+              <div className="flex items-center gap-2 text-green-400 mb-4">
                 <Globe className="h-4 w-4" />
                 <p className="text-[10px] font-black uppercase tracking-widest">Admin Quick Access</p>
               </div>
@@ -247,7 +247,7 @@ export default function AdminDashboardPage() {
                 ].map(link => (
                   <Link key={link.label} href={link.href}>
                     <div className="flex items-center gap-2 p-3 bg-white/8 hover:bg-white/15 rounded-xl transition-all cursor-pointer group">
-                      <link.icon className="h-3.5 w-3.5 text-sky-400 group-hover:text-white transition-colors shrink-0" />
+                      <link.icon className="h-3.5 w-3.5 text-green-400 group-hover:text-white transition-colors shrink-0" />
                       <span className="text-[10px] font-bold text-slate-300 group-hover:text-white transition-colors leading-tight">{link.label}</span>
                     </div>
                   </Link>
@@ -267,7 +267,7 @@ function KpiCard({ icon, label, value, delta, positive, href, bg, color }: {
 }) {
   return (
     <Link href={href}>
-      <Card className="rounded-2xl border-slate-100 shadow-sm bg-white p-5 hover:shadow-md hover:border-sky-100 transition-all group cursor-pointer">
+      <Card className="rounded-2xl border-slate-100 shadow-sm bg-white p-5 hover:shadow-md hover:border-green-100 transition-all group cursor-pointer">
         <div className={`h-10 w-10 rounded-xl ${bg} ${color} flex items-center justify-center mb-3 group-hover:scale-105 transition-transform`}>
           {icon}
         </div>

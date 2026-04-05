@@ -42,7 +42,7 @@ const recentLeads = [
 
 const statusStyle: Record<string, string> = {
   Occupied: 'bg-emerald-50 text-emerald-700',
-  Available: 'bg-sky-50 text-sky-700',
+  Available: 'bg-green-50 text-green-700',
   Pending: 'bg-amber-50 text-amber-700',
 };
 
@@ -59,7 +59,7 @@ export default function AgentDashboardPage() {
               <Button variant="outline" size="sm" className="h-9 px-4 rounded-xl border-slate-200 font-bold gap-2 text-xs hover:bg-slate-50" asChild>
                 <Link href="/agent/listings"><Home className="h-3.5 w-3.5" /> Listings</Link>
               </Button>
-              <Button size="sm" className="h-9 px-4 rounded-xl font-bold shadow-md gap-2 text-xs bg-sky-600 hover:bg-sky-700 text-white border-none" asChild>
+              <Button size="sm" className="h-9 px-4 rounded-xl font-bold shadow-md gap-2 text-xs bg-green-700 hover:bg-green-800 text-white border-none" asChild>
                 <Link href="/agent/listings"><Plus className="h-3.5 w-3.5" /> Add Listing</Link>
               </Button>
             </>
@@ -68,7 +68,7 @@ export default function AgentDashboardPage() {
 
         {/* KPI Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <KpiCard icon={<Home className="h-5 w-5" />} label="Active Listings" value="12" delta="+2 this month" positive href="/agent/listings" bg="bg-sky-50" color="text-sky-600" />
+          <KpiCard icon={<Home className="h-5 w-5" />} label="Active Listings" value="12" delta="+2 this month" positive href="/agent/listings" bg="bg-green-50" color="text-green-700" />
           <KpiCard icon={<Users className="h-5 w-5" />} label="Booking Leads" value="48" delta="+12 this week" positive href="/agent/leads" bg="bg-violet-50" color="text-violet-600" />
           <KpiCard icon={<ShieldCheck className="h-5 w-5" />} label="Verified Units" value="10/12" delta="83% verified" positive href="/agent/verification" bg="bg-emerald-50" color="text-emerald-600" />
           <KpiCard icon={<DollarSign className="h-5 w-5" />} label="Monthly Revenue" value="€4.8k" delta="+14%" positive href="/agent/listings" bg="bg-green-50" color="text-green-600" />
@@ -85,7 +85,7 @@ export default function AgentDashboardPage() {
                   <CardTitle className="text-sm font-black text-slate-900 leading-none">Occupancy & Lead Velocity</CardTitle>
                   <p className="text-xs text-slate-400 font-medium mt-1">Occupancy rate vs. inbound leads — 2025</p>
                 </div>
-                <Badge className="bg-sky-50 text-sky-700 border-sky-100 border font-bold text-[10px] px-2.5 py-1">
+                <Badge className="bg-green-50 text-green-700 border-green-100 border font-bold text-[10px] px-2.5 py-1">
                   +14% MoM
                 </Badge>
               </div>
@@ -158,7 +158,7 @@ export default function AgentDashboardPage() {
               <div className="divide-y divide-slate-50">
                 {activeListings.map((listing) => (
                   <div key={listing.id} className="flex items-center gap-3 px-5 py-3.5 hover:bg-slate-50/60 transition-colors">
-                    <div className="h-9 w-9 rounded-xl bg-sky-50 flex items-center justify-center text-sky-600 shrink-0">
+                    <div className="h-9 w-9 rounded-xl bg-green-50 flex items-center justify-center text-green-700 shrink-0">
                       <Home className="h-4 w-4" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -189,7 +189,7 @@ export default function AgentDashboardPage() {
           {/* Quick Access */}
           <div className="lg:col-span-4 flex flex-col gap-4">
             <Card className="rounded-2xl border-slate-100 shadow-sm bg-slate-900 text-white p-5 flex-1">
-              <div className="flex items-center gap-2 text-sky-400 mb-4">
+              <div className="flex items-center gap-2 text-green-400 mb-4">
                 <BarChart3 className="h-4 w-4" />
                 <p className="text-[10px] font-black uppercase tracking-widest">Quick Access</p>
               </div>
@@ -204,7 +204,7 @@ export default function AgentDashboardPage() {
                 ].map(link => (
                   <Link key={link.label} href={link.href}>
                     <div className="flex items-center gap-2 p-3 bg-white/8 hover:bg-white/15 rounded-xl transition-all cursor-pointer group">
-                      <link.icon className="h-3.5 w-3.5 text-sky-400 group-hover:text-white transition-colors shrink-0" />
+                      <link.icon className="h-3.5 w-3.5 text-green-400 group-hover:text-white transition-colors shrink-0" />
                       <span className="text-[10px] font-bold text-slate-300 group-hover:text-white transition-colors leading-tight">{link.label}</span>
                     </div>
                   </Link>
@@ -233,7 +233,7 @@ function KpiCard({ icon, label, value, delta, positive, href, bg, color }: {
 }) {
   return (
     <Link href={href}>
-      <Card className="rounded-2xl border-slate-100 shadow-sm bg-white p-5 hover:shadow-md hover:border-sky-100 transition-all group cursor-pointer">
+      <Card className="rounded-2xl border-slate-100 shadow-sm bg-white p-5 hover:shadow-md hover:border-green-100 transition-all group cursor-pointer">
         <div className={`h-10 w-10 rounded-xl ${bg} ${color} flex items-center justify-center mb-3 group-hover:scale-105 transition-transform`}>
           {icon}
         </div>

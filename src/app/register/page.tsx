@@ -80,12 +80,12 @@ export default function RegisterPage() {
       <div className="lg:w-[42%] xl:w-[46%] bg-slate-900 relative p-8 md:p-12 xl:p-16 flex flex-col justify-between overflow-hidden shrink-0">
         {/* Background glow */}
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/8 rounded-full translate-x-1/2 -translate-y-1/3 blur-[120px] pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-72 h-72 bg-sky-500/5 rounded-full -translate-x-1/2 translate-y-1/3 blur-[100px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-72 h-72 bg-green-500/5 rounded-full -translate-x-1/2 translate-y-1/3 blur-[100px] pointer-events-none" />
 
         <div className="relative z-10 space-y-10">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 group w-fit">
-            <div className="bg-sky-600 p-2 rounded-xl shadow-lg shadow-sky-600/20 group-hover:scale-105 transition-transform">
+            <div className="bg-green-700 p-2 rounded-xl shadow-lg shadow-green-700/20 group-hover:scale-105 transition-transform">
               <ShieldCheck className="h-5 w-5 text-white" />
             </div>
             <span className="text-lg font-black tracking-tighter text-white uppercase italic">EBENESAID</span>
@@ -223,7 +223,7 @@ export default function RegisterPage() {
 
                 <Button
                   onClick={handleRegister}
-                  className="w-full h-12 rounded-xl text-sm font-black shadow-lg shadow-primary/20 hover:-translate-y-0.5 active:translate-y-0 transition-all bg-sky-600 hover:bg-sky-700 text-white border-none group mt-2"
+                  className="w-full h-12 rounded-xl text-sm font-black shadow-lg shadow-primary/20 hover:-translate-y-0.5 active:translate-y-0 transition-all bg-green-700 hover:bg-green-800 text-white border-none group mt-2"
                 >
                   Create Account
                   <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-0.5 transition-transform" />

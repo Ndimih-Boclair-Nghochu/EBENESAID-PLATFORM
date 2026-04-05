@@ -66,7 +66,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 via-white to-sky-50/30 p-4 sm:p-6 overflow-x-hidden">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 via-white to-green-50/30 p-4 sm:p-6 overflow-x-hidden">
 
       {/* Back Button */}
       <div className="fixed top-4 left-4 sm:top-6 sm:left-6 z-50">
@@ -83,7 +83,7 @@ export default function LoginPage() {
         {/* Brand Header */}
         <div className="text-center space-y-3">
           <Link href="/" className="inline-flex items-center gap-2.5 group">
-            <div className="bg-sky-600 p-2.5 rounded-xl shadow-lg shadow-sky-600/20 group-hover:scale-105 transition-transform">
+            <div className="bg-green-700 p-2.5 rounded-xl shadow-lg shadow-green-700/20 group-hover:scale-105 transition-transform">
               <ShieldCheck className="h-6 w-6 text-white" />
             </div>
             <span className="text-xl font-black tracking-tighter text-slate-900 uppercase italic">EBENESAID</span>
@@ -149,7 +149,7 @@ export default function LoginPage() {
             <Button
               onClick={handleSignIn}
               disabled={isLoading}
-              className="w-full h-12 rounded-xl font-black text-sm shadow-lg shadow-primary/20 hover:-translate-y-0.5 active:translate-y-0 transition-all bg-sky-600 hover:bg-sky-700 text-white border-none"
+              className="w-full h-12 rounded-xl font-black text-sm shadow-lg shadow-primary/20 hover:-translate-y-0.5 active:translate-y-0 transition-all bg-green-700 hover:bg-green-800 text-white border-none"
             >
               {isLoading && loadingRole === 'student' ? (
                 <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Signing in...</>
@@ -203,7 +203,7 @@ export default function LoginPage() {
               <DemoButton
                 label="Agent"
                 icon={<Hotel className="h-3.5 w-3.5" />}
-                colorClass="bg-sky-50 hover:bg-sky-100 text-sky-700 border-sky-200"
+                colorClass="bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
                 onClick={() => handleDemoLogin('agent')}
                 isLoading={isLoading && loadingRole === 'agent'}
               />

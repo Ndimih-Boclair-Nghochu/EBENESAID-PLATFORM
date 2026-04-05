@@ -44,7 +44,7 @@ const topItems = [
 const statusStyle: Record<string, string> = {
   Pending: 'bg-amber-50 text-amber-700',
   Preparing: 'bg-orange-50 text-orange-700',
-  'Out for Delivery': 'bg-sky-50 text-sky-700',
+  'Out for Delivery': 'bg-green-50 text-green-700',
 };
 
 export default function SupplierDashboardPage() {
@@ -72,7 +72,7 @@ export default function SupplierDashboardPage() {
           <KpiCard icon={<ShoppingBag className="h-5 w-5" />} label="Active Orders" value="12" delta="+4 today" positive href="/supplier/orders" bg="bg-orange-50" color="text-orange-600" />
           <KpiCard icon={<DollarSign className="h-5 w-5" />} label="Daily Revenue" value="€412" delta="+18%" positive href="/supplier/orders" bg="bg-green-50" color="text-green-600" />
           <KpiCard icon={<CheckCircle2 className="h-5 w-5" />} label="Completed Today" value="86" delta="+12" positive href="/supplier/orders" bg="bg-emerald-50" color="text-emerald-600" />
-          <KpiCard icon={<Clock className="h-5 w-5" />} label="Avg. Prep Time" value="18m" delta="-2m" positive href="/supplier/orders" bg="bg-sky-50" color="text-sky-600" />
+          <KpiCard icon={<Clock className="h-5 w-5" />} label="Avg. Prep Time" value="18m" delta="-2m" positive href="/supplier/orders" bg="bg-green-50" color="text-green-700" />
         </div>
 
         {/* Chart + Live Orders */}

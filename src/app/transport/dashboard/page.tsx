@@ -68,7 +68,7 @@ export default function TransportDashboardPage() {
 
         {/* KPI Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <KpiCard icon={<PlaneTakeoff className="h-5 w-5" />} label="Pickups Today" value="8" delta="+2 from yesterday" positive href="/transport/pickups" bg="bg-sky-50" color="text-sky-600" />
+          <KpiCard icon={<PlaneTakeoff className="h-5 w-5" />} label="Pickups Today" value="8" delta="+2 from yesterday" positive href="/transport/pickups" bg="bg-green-50" color="text-green-700" />
           <KpiCard icon={<Users className="h-5 w-5" />} label="Arriving Students" value="14" delta="+4 this week" positive href="/transport/pickups" bg="bg-emerald-50" color="text-emerald-600" />
           <KpiCard icon={<DollarSign className="h-5 w-5" />} label="Daily Revenue" value="€240" delta="+15%" positive href="/transport/pickups" bg="bg-green-50" color="text-green-600" />
           <KpiCard icon={<Star className="h-5 w-5" />} label="Driver Rating" value="4.9★" delta="High Trust" positive href="/transport/pickups" bg="bg-amber-50" color="text-amber-600" />
@@ -118,7 +118,7 @@ export default function TransportDashboardPage() {
           <Card className="lg:col-span-4 rounded-2xl border-slate-100 shadow-sm bg-white flex flex-col">
             <CardHeader className="p-5 border-b border-slate-50 flex flex-row items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-xl bg-sky-50 flex items-center justify-center text-sky-600">
+                <div className="h-8 w-8 rounded-xl bg-green-50 flex items-center justify-center text-green-700">
                   <PlaneTakeoff className="h-4 w-4" />
                 </div>
                 <CardTitle className="text-sm font-black text-slate-900">Upcoming Pickups</CardTitle>
