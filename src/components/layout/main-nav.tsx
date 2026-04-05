@@ -52,7 +52,7 @@ const studentNavigation = [
 ];
 
 const adminNavigation = [
-  { name: "Ops Command", href: "/admin/dashboard", icon: BarChart3 },
+  { name: "Ops Dashboard", href: "/admin/dashboard", icon: BarChart3 },
   { name: "Statistics", href: "/admin/statistics", icon: PieChart },
   { name: "Financial Analysis", href: "/admin/finance", icon: Landmark },
   { name: "Messages", href: "/messages", icon: MessagesSquare },
@@ -61,18 +61,16 @@ const adminNavigation = [
   { name: "User Directory", href: "/admin/users", icon: Users },
   { name: "Institutions", href: "/admin/institutions", icon: Building2 },
   { name: "Incident Reports", href: "/admin/reports", icon: Flag },
-  { name: "Order Food", href: "/food", icon: Utensils },
 ];
 
 const universityNavigation = [
-  { name: "University Node", href: "/university/dashboard", icon: LayoutDashboard },
+  { name: "Partner Dashboard", href: "/university/dashboard", icon: LayoutDashboard },
   { name: "Student Registry", href: "/university/students", icon: GraduationCap },
   { name: "Messages", href: "/messages", icon: MessagesSquare },
   { name: "Admissions Sync", href: "/university/sync", icon: RefreshCw },
   { name: "Verification", href: "/university/verification", icon: ShieldCheck },
-  { name: "Messaging", href: "/university/chat", icon: MessageSquare },
-  { name: "Order Food", href: "/food", icon: Utensils },
-  { name: "System Support", href: "/support", icon: LifeBuoy },
+  { name: "Institutional Chat", href: "/university/chat", icon: MessageSquare },
+  { name: "Support", href: "/support", icon: LifeBuoy },
 ];
 
 const supplierNavigation = [
@@ -85,12 +83,11 @@ const supplierNavigation = [
 ];
 
 const agentNavigation = [
-  { name: "Agent Command", href: "/agent/dashboard", icon: BarChart3 },
+  { name: "Agent Dashboard", href: "/agent/dashboard", icon: BarChart3 },
   { name: "My Listings", href: "/agent/listings", icon: Hotel },
   { name: "Booking Leads", href: "/agent/leads", icon: Users },
   { name: "Messages", href: "/messages", icon: MessagesSquare },
-  { name: "Order Food", href: "/food", icon: Utensils },
-  { name: "System Support", href: "/support", icon: LifeBuoy },
+  { name: "Support", href: "/support", icon: LifeBuoy },
 ];
 
 const transportNavigation = [
@@ -132,29 +129,29 @@ export function MainNav() {
   };
 
   let navItems = studentNavigation;
-  let roleLabel = 'Global OS';
-  let sectionLabel = 'System Modules';
+  let roleLabel = 'Student Portal';
+  let sectionLabel = 'Main Menu';
 
   if (isAdmin) {
     navItems = adminNavigation;
-    roleLabel = 'System Admin';
-    sectionLabel = 'System Control';
+    roleLabel = 'Administrator';
+    sectionLabel = 'Admin Controls';
   } else if (isUniversity) {
     navItems = universityNavigation;
-    roleLabel = 'Partner Hub';
-    sectionLabel = 'Institutional Nodes';
+    roleLabel = 'University Partner';
+    sectionLabel = 'Partner Menu';
   } else if (isSupplier) {
     navItems = supplierNavigation;
-    roleLabel = 'Food Node';
-    sectionLabel = 'Kitchen Protocol';
+    roleLabel = 'Food Supplier';
+    sectionLabel = 'Kitchen Menu';
   } else if (isAgent) {
     navItems = agentNavigation;
-    roleLabel = 'Housing Node';
-    sectionLabel = 'Property Protocol';
+    roleLabel = 'Housing Agent';
+    sectionLabel = 'Agent Menu';
   } else if (isTransport) {
     navItems = transportNavigation;
-    roleLabel = 'Transport Service';
-    sectionLabel = 'Logistics Protocol';
+    roleLabel = 'Transport Partner';
+    sectionLabel = 'Logistics Menu';
   }
 
   return (

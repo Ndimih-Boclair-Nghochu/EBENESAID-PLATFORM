@@ -24,6 +24,11 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 199 89% 48%;
     --radius: 1.5rem;
+
+    /* Sidebar */
+    --sidebar-background: 199 80% 42%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-border: 199 70% 50% / 30%;
   }
 }
 
@@ -39,31 +44,66 @@
   }
 }
 
+/* Utility Classes */
 .premium-shadow {
   box-shadow: 0 20px 50px -12px rgb(0 0 0 / 0.05);
 }
 
+.card-shadow {
+  box-shadow: 0 4px 24px -6px rgb(0 0 0 / 0.06), 0 1px 4px -1px rgb(0 0 0 / 0.04);
+}
+
+.glow-primary {
+  box-shadow: 0 0 40px -8px hsl(var(--primary) / 0.4);
+}
+
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  @apply bg-slate-200 rounded-full hover:bg-slate-300 transition-colors;
+  @apply bg-slate-200 rounded-full;
+  transition: background-color 0.2s;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-slate-300;
+}
+
+/* Focus visible ring */
+:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
 }
 
 /* Animations */
 @keyframes float {
   0% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
+  50% { transform: translateY(-8px); }
   100% { transform: translateY(0px); }
 }
 
 @keyframes marquee {
   0% { transform: translateX(0); }
   100% { transform: translateX(-50%); }
+}
+
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 .animate-float {
@@ -76,4 +116,46 @@
 
 .animate-marquee:hover {
   animation-play-state: paused;
+}
+
+.animate-fade-up {
+  animation: fade-up 0.6s ease-out both;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.5s ease-out both;
+}
+
+/* Section spacing */
+.section-padding {
+  @apply py-16 md:py-24 lg:py-32;
+}
+
+/* Gradient text */
+.text-gradient-primary {
+  background: linear-gradient(135deg, hsl(var(--primary)), hsl(199 89% 32%));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Input focus ring override */
+.focus-ring {
+  @apply focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50;
+}
+
+/* Status dot */
+.status-dot-active {
+  @apply h-2 w-2 bg-emerald-500 rounded-full;
+  box-shadow: 0 0 6px 1px rgb(16 185 129 / 0.5);
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Badge label style */
+.label-xs {
+  @apply text-[10px] font-black uppercase tracking-widest;
+}
+
+.label-xxs {
+  @apply text-[9px] font-black uppercase tracking-widest;
 }

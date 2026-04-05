@@ -201,9 +201,9 @@ export default function LandingPage() {
         <div className="container mx-auto px-4 sm:px-6 max-w-4xl relative z-10 text-center">
           <div className="space-y-6 md:space-y-10 animate-in fade-in zoom-in-95 duration-1000">
             <div className="flex flex-col items-center gap-6">
-              <div className="inline-flex items-center gap-2 rounded-full bg-primary/20 border border-primary/30 px-4 py-2 md:px-6 md:py-2.5 text-[9px] md:text-[10px] font-black text-white uppercase tracking-[0.3em] backdrop-blur-md">
+              <div className="inline-flex items-center gap-2 rounded-full bg-primary/20 border border-primary/30 px-4 py-2 md:px-6 md:py-2.5 text-[10px] md:text-xs font-black text-white uppercase tracking-[0.25em] backdrop-blur-md">
                 <Sparkles className="h-3 w-3 md:h-4 md:w-4 text-primary" />
-                <span>The Architecture of Global Mobility</span>
+                <span>The Smart Relocation Platform</span>
               </div>
 
               {/* Student Presence Node */}
@@ -224,7 +224,7 @@ export default function LandingPage() {
                     <span className="text-sm md:text-lg font-black text-white leading-none">2,840+ Students</span>
                     <div className="h-2 w-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
                   </div>
-                  <p className="text-[8px] md:text-[9px] font-black text-primary uppercase tracking-[0.2em]">Live Mobility Nodes</p>
+                  <p className="text-[9px] md:text-[10px] font-black text-primary uppercase tracking-[0.2em]">Active Students</p>
                 </div>
               </div>
             </div>
@@ -252,9 +252,9 @@ export default function LandingPage() {
 
       {/* Partners Marquee - Universities */}
       <section className="py-16 md:py-24 bg-white border-b border-slate-100 overflow-hidden">
-        <div className="container mx-auto px-4 mb-12 text-center">
-          <p className="text-xs md:text-sm font-black text-primary uppercase tracking-[0.5em] mb-3">Official University Partners</p>
-          <div className="h-1 w-16 bg-primary/20 mx-auto rounded-full" />
+        <div className="container mx-auto px-4 mb-10 text-center">
+          <p className="text-xs font-bold text-primary uppercase tracking-widest mb-2">Trusted by Students at These Universities</p>
+          <div className="h-0.5 w-12 bg-primary/20 mx-auto rounded-full" />
         </div>
         <div className="flex overflow-hidden">
           <div className="animate-marquee flex items-center gap-16 md:gap-32 whitespace-nowrap">
@@ -272,9 +272,9 @@ export default function LandingPage() {
 
       {/* Ecosystem Partners Marquee - Housing & Jobs */}
       <section className="py-12 md:py-20 bg-slate-50 border-b border-slate-100 overflow-hidden">
-        <div className="container mx-auto px-4 mb-10 text-center">
-          <p className="text-[10px] md:text-xs font-black text-primary uppercase tracking-[0.4em] mb-2">Verified Ecosystem Partners</p>
-          <p className="text-[8px] md:text-[9px] font-bold text-primary uppercase tracking-widest">Housing • Careers • Logistics</p>
+        <div className="container mx-auto px-4 mb-8 text-center">
+          <p className="text-xs font-bold text-primary uppercase tracking-widest mb-1.5">Verified Ecosystem Partners</p>
+          <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Housing · Careers · Logistics</p>
         </div>
         <div className="flex overflow-hidden">
           <div className="animate-marquee flex items-center gap-12 md:gap-24 whitespace-nowrap">
@@ -294,17 +294,17 @@ export default function LandingPage() {
       </section>
 
       {/* Visa & Transit Protocols Section */}
-      <section className="py-24 md:py-32 lg:py-48 bg-white relative overflow-hidden">
+      <section className="py-20 md:py-28 lg:py-36 bg-white relative overflow-hidden">
         <div className="container mx-auto px-4 sm:px-6 max-w-7xl relative z-10">
-          <div className="text-center mb-16 md:mb-24">
-            <Badge className="bg-primary/10 text-primary font-black px-6 py-2 rounded-full border-none uppercase tracking-[0.4em] text-[10px] mb-6">
-              Institutional Intelligence
+          <div className="text-center mb-14 md:mb-20">
+            <Badge className="bg-primary/10 text-primary font-bold px-5 py-1.5 rounded-full border-none uppercase tracking-widest text-xs mb-5">
+              Visa & Travel Guidance
             </Badge>
-            <h2 className="text-3xl sm:text-4xl md:text-6xl font-black text-slate-900 tracking-tight leading-tight mb-6">
-              Visa & Transit <span className="text-primary italic">Protocols.</span>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight mb-5">
+              Understand Your <span className="text-primary italic">Visa Requirements.</span>
             </h2>
-            <p className="text-slate-500 font-medium text-lg max-w-2xl mx-auto">
-              Precise navigation through international borders. Understand the requirements based on your intended stay.
+            <p className="text-slate-500 font-medium text-base md:text-lg max-w-2xl mx-auto">
+              Clear guidance on travel and visa requirements based on how long you plan to stay in Latvia.
             </p>
           </div>
 
@@ -318,8 +318,8 @@ export default function LandingPage() {
                       <Globe className="h-6 w-6" />
                     </div>
                     <div>
-                      <p className="text-[10px] font-black text-primary uppercase tracking-widest leading-none">Category 01</p>
-                      <h3 className="text-xl font-black text-slate-900 uppercase">Short-Term Node</h3>
+                      <p className="text-[10px] font-black text-primary uppercase tracking-widest leading-none">Option 01</p>
+                      <h3 className="text-xl font-black text-slate-900 uppercase">Short-Term Stay</h3>
                     </div>
                   </div>
                   <Badge className="bg-emerald-50 text-emerald-600 border-none font-black text-[10px] px-3 py-1 uppercase tracking-widest">&lt; 3 Months</Badge>
@@ -368,8 +368,8 @@ export default function LandingPage() {
                       <ArrowRightLeft className="h-6 w-6" />
                     </div>
                     <div>
-                      <p className="text-[10px] font-black text-primary uppercase tracking-widest leading-none">Category 02</p>
-                      <h3 className="text-xl font-black text-white uppercase">Long-Term Node</h3>
+                      <p className="text-[10px] font-black text-primary uppercase tracking-widest leading-none">Option 02</p>
+                      <h3 className="text-xl font-black text-white uppercase">Long-Term Stay</h3>
                     </div>
                   </div>
                   <Badge className="bg-primary text-white border-none font-black text-[10px] px-3 py-1 uppercase tracking-widest animate-pulse">3+ Months</Badge>
@@ -420,14 +420,14 @@ export default function LandingPage() {
       </section>
 
       {/* How to Get Started Section */}
-      <section className="py-24 md:py-32 lg:py-48 bg-slate-50 relative overflow-hidden border-y border-slate-100">
+      <section className="py-20 md:py-28 lg:py-36 bg-slate-50 relative overflow-hidden border-y border-slate-100">
         <div className="container mx-auto px-4 sm:px-6 max-w-7xl relative z-10">
-          <div className="text-center mb-16 md:mb-24">
-            <Badge className="bg-primary/10 text-primary font-black px-6 py-2 rounded-full border-none uppercase tracking-[0.4em] text-[10px] mb-6">
-              The Mobility Protocol
+          <div className="text-center mb-14 md:mb-20">
+            <Badge className="bg-primary/10 text-primary font-bold px-5 py-1.5 rounded-full border-none uppercase tracking-widest text-xs mb-5">
+              How It Works
             </Badge>
-            <h2 className="text-3xl sm:text-4xl md:text-6xl font-black text-slate-900 tracking-tight leading-tight">
-              How to <span className="text-primary italic">Get Started.</span>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight">
+              Get Started in <span className="text-primary italic">Two Steps.</span>
             </h2>
           </div>
 
@@ -471,9 +471,9 @@ export default function LandingPage() {
                   <div className="h-16 w-16 bg-white text-slate-900 rounded-2xl flex items-center justify-center font-black text-2xl shadow-xl">
                     02
                   </div>
-                  <h3 className="text-2xl md:text-3xl font-black text-white leading-tight italic">Initialize Your <br /><span className="text-primary">Mobility Node</span></h3>
+                  <h3 className="text-2xl md:text-3xl font-black text-white leading-tight italic">Set Up Your <br /><span className="text-primary">EBENESAID Account</span></h3>
                   <p className="text-slate-400 font-medium leading-relaxed">
-                    Once your admission is secured, register on the platform to unlock your personalized relocation Operating System and manage your traveling process.
+                    Once your admission is confirmed, register on EBENESAID to unlock your personalized relocation plan and manage every step of your move.
                   </p>
                 </div>
                 <div className="lg:w-2/3 flex justify-center lg:justify-end">
@@ -490,17 +490,17 @@ export default function LandingPage() {
       </section>
 
       {/* Settled Benefits Section */}
-      <section className="py-24 md:py-32 lg:py-48 bg-white relative overflow-hidden">
+      <section className="py-20 md:py-28 lg:py-36 bg-white relative overflow-hidden">
         <div className="container mx-auto px-4 sm:px-6 max-w-7xl relative z-10">
-          <div className="text-center mb-16 md:mb-24">
-            <Badge className="bg-primary/10 text-primary font-black px-6 py-2 rounded-full border-none uppercase tracking-[0.4em] text-[10px] mb-6">
-              Post-Arrival Excellence
+          <div className="text-center mb-14 md:mb-20">
+            <Badge className="bg-primary/10 text-primary font-bold px-5 py-1.5 rounded-full border-none uppercase tracking-widest text-xs mb-5">
+              Everything You Need
             </Badge>
-            <h2 className="text-3xl sm:text-4xl md:text-6xl font-black text-slate-900 tracking-tight leading-tight mb-6">
-              Life in Latvia, <span className="text-primary italic">Systematized.</span>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight mb-5">
+              Your Life in Latvia, <span className="text-primary italic">Supported.</span>
             </h2>
-            <p className="text-slate-500 font-medium text-lg max-w-2xl mx-auto">
-              Your journey doesn't end at the airport. EBENESAID remains your central operating system for a thriving student life.
+            <p className="text-slate-500 font-medium text-base md:text-lg max-w-2xl mx-auto">
+              Your journey doesn't end at the airport. EBENESAID supports you throughout your entire student life in Latvia.
             </p>
           </div>
 
@@ -540,7 +540,7 @@ export default function LandingPage() {
       </section>
 
       {/* Student Voices Section */}
-      <section className="py-24 md:py-32 lg:py-48 bg-slate-50 overflow-hidden relative border-t border-slate-100">
+      <section className="py-20 md:py-28 lg:py-36 bg-slate-50 overflow-hidden relative border-t border-slate-100">
         <div className="container mx-auto px-4 sm:px-6 max-w-7xl relative z-10 text-center mb-16 md:mb-24">
           <div className="space-y-4">
              <div className="inline-flex items-center gap-2 text-primary font-black uppercase tracking-widest text-xs">
@@ -583,8 +583,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Final Institutional CTA Section */}
-      <section className="py-24 md:py-32 lg:py-48 bg-white relative overflow-hidden">
+      {/* Final CTA Section */}
+      <section className="py-20 md:py-28 lg:py-36 bg-white relative overflow-hidden">
         <div className="container mx-auto px-4 sm:px-6 max-w-7xl">
           <div className="bg-slate-900 rounded-[3rem] md:rounded-[4rem] p-10 md:p-20 relative overflow-hidden border border-white/5 shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)]">
             <div className="absolute top-0 right-0 w-96 h-96 bg-primary/20 rounded-full -translate-y-1/2 translate-x-1/2 blur-[120px]" />
@@ -596,11 +596,11 @@ export default function LandingPage() {
               </div>
               
               <div className="space-y-6 max-w-3xl mx-auto">
-                <h2 className="text-3xl md:text-6xl lg:text-7xl font-black text-white tracking-tighter leading-[1.1]">
-                  Systematize Your <span className="text-primary italic">Success in Latvia.</span>
+                <h2 className="text-3xl md:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.1]">
+                  Start Your Journey to <span className="text-primary italic">Latvia Today.</span>
                 </h2>
-                <p className="text-lg md:text-2xl text-slate-400 font-medium leading-relaxed max-w-2xl mx-auto">
-                  Register on EBENESAID to orchestrate a seamless relocation and an unparalleled student experience.
+                <p className="text-lg md:text-xl text-slate-400 font-medium leading-relaxed max-w-2xl mx-auto">
+                  Join thousands of students who chose EBENESAID for a smooth, safe, and supported relocation to Latvia.
                 </p>
               </div>
 
@@ -617,9 +617,9 @@ export default function LandingPage() {
                 </Button>
               </div>
 
-              <div className="flex items-center gap-4 pt-6 text-[10px] md:text-[11px] font-black uppercase tracking-[0.4em] text-slate-500">
+              <div className="flex items-center gap-4 pt-6 text-xs font-bold uppercase tracking-widest text-slate-500">
                 <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                Standardized Global Mobility Node
+                Free to join · No hidden fees
               </div>
             </div>
           </div>
@@ -627,39 +627,50 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-white border-t py-16 md:py-32">
+      <footer className="bg-white border-t py-14 md:py-20">
         <div className="container mx-auto px-4 sm:px-6 max-w-7xl">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 md:gap-24 mb-20">
-            <div className="lg:col-span-2 space-y-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 md:gap-16 mb-14">
+            <div className="lg:col-span-2 space-y-6">
               <div className="flex items-center gap-3">
-                <div className="bg-primary p-2.5 rounded-2xl shadow-xl shadow-primary/20">
-                  <ShieldCheck className="h-8 w-8 text-white" />
+                <div className="bg-sky-600 p-2.5 rounded-2xl shadow-lg shadow-sky-600/20">
+                  <ShieldCheck className="h-7 w-7 text-white" />
                 </div>
-                <span className="text-3xl font-black text-slate-900 uppercase italic text-primary">EBENESAID</span>
+                <span className="text-2xl font-black text-slate-900 uppercase italic tracking-tighter">EBENESAID</span>
               </div>
-              <p className="text-slate-500 text-lg max-w-md font-medium leading-relaxed">
-                The global operating system for international student mobility. Founded in Riga, serving the world's most ambitious students.
+              <p className="text-slate-500 text-base max-w-sm font-medium leading-relaxed">
+                The relocation platform for international students in Latvia and the Baltics. Secure housing, documents, jobs, and community — all in one place.
               </p>
+              <div className="flex items-center gap-3">
+                <Link href="/register" className="inline-flex items-center gap-2 bg-sky-600 hover:bg-sky-700 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-colors shadow-sm">
+                  Get Started Free <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+                <Link href="/login" className="text-sm font-bold text-slate-500 hover:text-primary transition-colors px-4 py-2.5">
+                  Sign In
+                </Link>
+              </div>
             </div>
             <div>
-              <h4 className="font-black text-slate-900 mb-8 uppercase tracking-widest text-[11px]">Platform</h4>
-              <ul className="space-y-5 text-base text-slate-600 font-bold">
-                <li><Link href="/accommodation" onClick={(e) => handleProtectedLink(e, "Verified Housing", "/accommodation")} className="hover:text-primary transition-colors flex items-center gap-2">Verified Housing <ExternalLink className="h-3 w-3 opacity-20" /></Link></li>
-                <li><Link href="/jobs" onClick={(e) => handleProtectedLink(e, "Job Board", "/jobs")} className="hover:text-primary transition-colors flex items-center gap-2">Job Board <ExternalLink className="h-3 w-3 opacity-20" /></Link></li>
-                <li><Link href="/docs" onClick={(e) => handleProtectedLink(e, "Secure Wallet", "/docs")} className="hover:text-primary transition-colors flex items-center gap-2">Secure Wallet <ExternalLink className="h-3 w-3 opacity-20" /></Link></li>
+              <h4 className="font-black text-slate-900 mb-5 uppercase tracking-widest text-xs">Platform</h4>
+              <ul className="space-y-3.5 text-sm text-slate-500 font-medium">
+                <li><Link href="/accommodation" onClick={(e) => handleProtectedLink(e, "Verified Housing", "/accommodation")} className="hover:text-primary transition-colors flex items-center gap-1.5">Verified Housing <ExternalLink className="h-3 w-3 opacity-30" /></Link></li>
+                <li><Link href="/jobs" onClick={(e) => handleProtectedLink(e, "Job Board", "/jobs")} className="hover:text-primary transition-colors flex items-center gap-1.5">Job Board <ExternalLink className="h-3 w-3 opacity-30" /></Link></li>
+                <li><Link href="/docs" onClick={(e) => handleProtectedLink(e, "Secure Wallet", "/docs")} className="hover:text-primary transition-colors flex items-center gap-1.5">Document Wallet <ExternalLink className="h-3 w-3 opacity-30" /></Link></li>
+                <li><Link href="/food" onClick={(e) => handleProtectedLink(e, "Food", "/food")} className="hover:text-primary transition-colors flex items-center gap-1.5">Order Food <ExternalLink className="h-3 w-3 opacity-30" /></Link></li>
               </ul>
             </div>
             <div>
-              <h4 className="font-black text-slate-900 mb-8 uppercase tracking-widest text-[11px]">Support</h4>
-              <ul className="space-y-5 text-base text-slate-600 font-bold">
+              <h4 className="font-black text-slate-900 mb-5 uppercase tracking-widest text-xs">Support</h4>
+              <ul className="space-y-3.5 text-sm text-slate-500 font-medium">
                 <li><Link href="/contact" className="hover:text-primary transition-colors">Contact Us</Link></li>
-                <li><Link href="/how-it-works" className="hover:text-primary transition-colors">Resources</Link></li>
-                <li><Link href="/about" className="hover:text-primary transition-colors">The Team</Link></li>
+                <li><Link href="/how-it-works" className="hover:text-primary transition-colors">How It Works</Link></li>
+                <li><Link href="/about" className="hover:text-primary transition-colors">About Us</Link></li>
+                <li><Link href="/login" className="hover:text-primary transition-colors">Sign In</Link></li>
               </ul>
             </div>
           </div>
-          <div className="pt-12 border-t border-slate-100 flex flex-col md:flex-row justify-between items-center gap-10 text-[10px] font-black uppercase tracking-[0.5em] text-slate-400 text-center md:text-left">
-            <p>© 2025 EBENESAID. ALL RIGHTS RESERVED. UNIVERSITY PARTNER TOOL.</p>
+          <div className="pt-8 border-t border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4 text-xs font-medium text-slate-400 text-center md:text-left">
+            <p>© 2026 EBENESAID. All rights reserved.</p>
+            <p>Built for international students in Latvia and the Baltics.</p>
           </div>
         </div>
       </footer>
