@@ -1,227 +1,257 @@
 'use client';
 
 import { SidebarShell } from "@/components/layout/sidebar-shell";
+import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Users, 
-  Home, 
-  Briefcase, 
-  Activity, 
-  BarChart3, 
-  ShieldCheck, 
-  ArrowUpRight, 
-  ArrowDownRight,
-  TrendingUp,
-  Globe,
-  Fingerprint,
-  Server,
-  Zap,
-  HardDrive
+import { Progress } from "@/components/ui/progress";
+import {
+  Users, Home, Briefcase, Activity, BarChart3, ShieldCheck,
+  ArrowUpRight, ArrowDownRight, TrendingUp, Globe, Zap,
+  HardDrive, AlertTriangle, CheckCircle2, Clock, Flag,
+  Building2, FileText, UserCheck, DollarSign, Server
 } from "lucide-react";
 import { SpecialistChat } from "@/components/SpecialistChat";
 import { discussOps } from "@/ai/flows/admin-ops-flow";
-import { 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  AreaChart,
-  Area
+import {
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area
 } from 'recharts';
+import Link from "next/link";
 
-const chartData = [
-  { name: 'Mon', mobility: 400, verification: 240 },
-  { name: 'Tue', mobility: 300, verification: 139 },
-  { name: 'Wed', mobility: 200, verification: 980 },
-  { name: 'Thu', mobility: 278, verification: 390 },
-  { name: 'Fri', mobility: 189, verification: 480 },
-  { name: 'Sat', mobility: 239, verification: 380 },
-  { name: 'Sun', mobility: 349, verification: 430 },
+const enrollmentData = [
+  { month: 'Jan', students: 320, verified: 280 },
+  { month: 'Feb', students: 480, verified: 390 },
+  { month: 'Mar', students: 620, verified: 540 },
+  { month: 'Apr', students: 890, verified: 760 },
+  { month: 'May', students: 1240, verified: 1050 },
+  { month: 'Jun', students: 1680, verified: 1420 },
+  { month: 'Jul', students: 2840, verified: 2480 },
+];
+
+const recentActivity = [
+  { type: 'verification', msg: 'Kofi Mensah · Residence permit approved', time: '2m ago', icon: ShieldCheck, color: 'text-emerald-500 bg-emerald-50' },
+  { type: 'housing', msg: 'New verified listing added · K. Valdemāra iela', time: '14m ago', icon: Home, color: 'text-sky-500 bg-sky-50' },
+  { type: 'alert', msg: 'Verification queue · 12 pending documents', time: '1h ago', icon: AlertTriangle, color: 'text-amber-500 bg-amber-50' },
+  { type: 'career', msg: 'Printful internship posted · 3 applicants', time: '2h ago', icon: Briefcase, color: 'text-violet-500 bg-violet-50' },
+  { type: 'report', msg: 'Incident report filed · Housing dispute resolved', time: '4h ago', icon: Flag, color: 'text-rose-500 bg-rose-50' },
+  { type: 'institution', msg: 'RTU Riga · Admissions sync completed', time: '6h ago', icon: Building2, color: 'text-indigo-500 bg-indigo-50' },
+];
+
+const platformModules = [
+  { name: 'Verified Housing', active: 412, total: 500, pct: 82, status: 'healthy', href: '/accommodation' },
+  { name: 'Career Board', active: 86, total: 100, pct: 86, status: 'healthy', href: '/jobs' },
+  { name: 'Document Wallets', active: 2840, total: 3000, pct: 95, status: 'healthy', href: '/docs' },
+  { name: 'Food Suppliers', active: 8, total: 10, pct: 80, status: 'warning', href: '/food' },
+  { name: 'Transport Fleet', active: 14, total: 20, pct: 70, status: 'warning', href: '/arrival' },
+  { name: 'Student Circles', active: 24, total: 24, pct: 100, status: 'healthy', href: '/community' },
+];
+
+const topUniversities = [
+  { name: 'RTU Riga', students: 840, compliance: 96, flag: '🇱🇻' },
+  { name: 'University of Latvia', students: 620, compliance: 94, flag: '🇱🇻' },
+  { name: 'Turiba University', students: 480, compliance: 91, flag: '🇱🇻' },
+  { name: 'RSU', students: 560, compliance: 98, flag: '🇱🇻' },
+  { name: 'RISEBA', students: 340, compliance: 89, flag: '🇱🇻' },
 ];
 
 export default function AdminDashboardPage() {
   return (
     <SidebarShell>
-      <div className="max-w-7xl mx-auto flex flex-col gap-6">
-        
-        {/* Professional Command Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-slate-100 pb-5">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="border-primary/20 bg-primary/5 text-primary text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5">
-                System Administrator • Root Access
-              </Badge>
-              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 text-[8px] font-black uppercase tracking-widest">
-                <Activity className="h-2.5 w-2.5" /> Platform Health: 100%
-              </div>
-            </div>
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight leading-none uppercase italic">Ops Command <span className="text-primary">Center</span></h1>
-            <p className="text-slate-400 text-[10px] font-medium max-w-lg uppercase tracking-widest">High-fidelity oversight of student mobility and platform integrity.</p>
-          </div>
-          <div className="flex items-center gap-2 w-full md:w-auto">
-            <Button variant="outline" size="sm" className="h-9 px-4 rounded-xl border-slate-200 font-bold gap-2 text-[10px] hover:bg-slate-50 transition-all flex-1 md:flex-none">
-              <HardDrive className="h-3.5 w-3.5" /> Logs
-            </Button>
-            <Button size="sm" className="h-9 px-5 rounded-xl font-black shadow-lg shadow-primary/20 gap-2 text-[10px] bg-primary text-white border-none flex-1 md:flex-none">
-              <Zap className="h-3.5 w-3.5" /> Audit
-            </Button>
-          </div>
+      <div className="max-w-7xl mx-auto flex flex-col gap-6 pb-10">
+
+        <PageHeader
+          title="Operations Dashboard"
+          subtitle="System Administrator · Full Access"
+          actions={
+            <>
+              <Button variant="outline" size="sm" className="h-9 px-4 rounded-xl border-slate-200 font-bold gap-2 text-xs hover:bg-slate-50" asChild>
+                <Link href="/admin/reports"><HardDrive className="h-3.5 w-3.5" /> System Logs</Link>
+              </Button>
+              <Button size="sm" className="h-9 px-4 rounded-xl font-bold shadow-md gap-2 text-xs bg-sky-600 hover:bg-sky-700 text-white border-none" asChild>
+                <Link href="/admin/verification"><Zap className="h-3.5 w-3.5" /> Verification Queue</Link>
+              </Button>
+            </>
+          }
+        />
+
+        {/* Top KPI Grid */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <KpiCard icon={<Users className="h-5 w-5" />} label="Total Students" value="2,840" delta="+14%" positive href="/admin/users" bg="bg-sky-50" color="text-sky-600" />
+          <KpiCard icon={<Home className="h-5 w-5" />} label="Verified Listings" value="412" delta="+8%" positive href="/accommodation" bg="bg-emerald-50" color="text-emerald-600" />
+          <KpiCard icon={<Briefcase className="h-5 w-5" />} label="Active Jobs" value="86" delta="+22%" positive href="/jobs" bg="bg-violet-50" color="text-violet-600" />
+          <KpiCard icon={<Building2 className="h-5 w-5" />} label="Partner Unis" value="12" delta="+2" positive href="/admin/institutions" bg="bg-amber-50" color="text-amber-600" />
         </div>
 
-        {/* TOP LEVEL INTELLIGENCE GRID - EXCLUSIVE AI PRESENCE */}
+        {/* Secondary KPIs */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <KpiCard icon={<UserCheck className="h-5 w-5" />} label="Pending Verifications" value="48" delta="Action required" positive={false} href="/admin/verification" bg="bg-rose-50" color="text-rose-600" />
+          <KpiCard icon={<DollarSign className="h-5 w-5" />} label="Platform Revenue" value="€24.8k" delta="+31% MoM" positive href="/admin/finance" bg="bg-green-50" color="text-green-600" />
+          <KpiCard icon={<CheckCircle2 className="h-5 w-5" />} label="Avg Compliance" value="94.2%" delta="+1.8%" positive href="/admin/statistics" bg="bg-indigo-50" color="text-indigo-600" />
+          <KpiCard icon={<Server className="h-5 w-5" />} label="Platform Health" value="100%" delta="All systems up" positive href="/admin/statistics" bg="bg-slate-50" color="text-slate-600" />
+        </div>
+
+        {/* Charts + AI Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+          {/* Enrollment Chart */}
+          <Card className="lg:col-span-8 rounded-2xl border-slate-100 shadow-sm bg-white">
+            <CardHeader className="p-5 border-b border-slate-50">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-sm font-black text-slate-900 leading-none">Student Enrollment Growth</CardTitle>
+                  <p className="text-xs text-slate-400 font-medium mt-1">Total enrolled vs. verified students — 2025</p>
+                </div>
+                <Badge className="bg-emerald-50 text-emerald-700 border-emerald-100 border font-bold text-[10px] px-2.5 py-1">
+                  +14% MoM
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="p-5 pt-3">
+              <ResponsiveContainer width="100%" height={220}>
+                <AreaChart data={enrollmentData}>
+                  <defs>
+                    <linearGradient id="adminGrad1" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.15} />
+                      <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="adminGrad2" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.15} />
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 600 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 600 }} axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '11px', fontWeight: 600 }} />
+                  <Area type="monotone" dataKey="students" stroke="#0ea5e9" strokeWidth={2} fill="url(#adminGrad1)" name="Total Students" />
+                  <Area type="monotone" dataKey="verified" stroke="#10b981" strokeWidth={2} fill="url(#adminGrad2)" name="Verified" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Platform Health */}
+          <Card className="lg:col-span-4 rounded-2xl border-slate-100 shadow-sm bg-white">
+            <CardHeader className="p-5 border-b border-slate-50">
+              <CardTitle className="text-sm font-black text-slate-900 leading-none">Platform Modules</CardTitle>
+              <p className="text-xs text-slate-400 font-medium mt-1">Live capacity across all services</p>
+            </CardHeader>
+            <CardContent className="p-5 space-y-4">
+              {platformModules.map((mod) => (
+                <Link key={mod.name} href={mod.href} className="block group">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-bold text-slate-700 group-hover:text-sky-600 transition-colors">{mod.name}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold text-slate-400">{mod.active}/{mod.total}</span>
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${mod.status === 'healthy' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
+                        {mod.status}
+                      </span>
+                    </div>
+                  </div>
+                  <Progress value={mod.pct} className={`h-1.5 rounded-full ${mod.status === 'healthy' ? '[&>div]:bg-emerald-500' : '[&>div]:bg-amber-500'}`} />
+                </Link>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Activity + Universities Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+          {/* Recent Activity */}
+          <Card className="lg:col-span-7 rounded-2xl border-slate-100 shadow-sm bg-white">
+            <CardHeader className="p-5 border-b border-slate-50 flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-sm font-black text-slate-900 leading-none">Recent Activity</CardTitle>
+                <p className="text-xs text-slate-400 font-medium mt-1">Live platform event stream</p>
+              </div>
+              <Button variant="outline" size="sm" className="h-8 rounded-xl text-xs font-bold border-slate-200" asChild>
+                <Link href="/admin/reports">View All</Link>
+              </Button>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="divide-y divide-slate-50">
+                {recentActivity.map((item, i) => (
+                  <div key={i} className="flex items-start gap-3.5 px-5 py-3.5 hover:bg-slate-50/60 transition-colors">
+                    <div className={`h-8 w-8 rounded-xl flex items-center justify-center shrink-0 ${item.color}`}>
+                      <item.icon className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-slate-800 leading-tight">{item.msg}</p>
+                      <p className="text-[10px] text-slate-400 font-medium mt-1">{item.time}</p>
+                    </div>
+                    <ArrowUpRight className="h-3.5 w-3.5 text-slate-300 shrink-0 mt-0.5" />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Top Universities */}
+          <Card className="lg:col-span-5 rounded-2xl border-slate-100 shadow-sm bg-white">
+            <CardHeader className="p-5 border-b border-slate-50 flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-sm font-black text-slate-900 leading-none">Partner Universities</CardTitle>
+                <p className="text-xs text-slate-400 font-medium mt-1">Student count & compliance</p>
+              </div>
+              <Button variant="outline" size="sm" className="h-8 rounded-xl text-xs font-bold border-slate-200" asChild>
+                <Link href="/admin/institutions">Manage</Link>
+              </Button>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="divide-y divide-slate-50">
+                {topUniversities.map((uni, i) => (
+                  <div key={i} className="flex items-center gap-3 px-5 py-3.5 hover:bg-slate-50/60 transition-colors">
+                    <span className="text-xl shrink-0">{uni.flag}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-slate-800 truncate">{uni.name}</p>
+                      <p className="text-[10px] text-slate-400 font-medium">{uni.students} students</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-xs font-black text-emerald-600">{uni.compliance}%</p>
+                      <p className="text-[9px] text-slate-400 font-medium">compliance</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* AI Ops + Quick Access */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div className="lg:col-span-8">
-            <SpecialistChat 
+            <SpecialistChat
               title="Operations Specialist"
               specialty="Platform KPI & Strategy"
-              initialMessage="Systems online. I can provide real-time analysis on vacancy rates, verification bottlenecks, or institutional sync health. What is our focus today?"
+              initialMessage="Systems online. I can provide real-time analysis on vacancy rates, verification bottlenecks, financial performance, or institutional sync health. What is our focus today?"
               flow={discussOps}
               icon={<BarChart3 className="h-4 w-4" />}
             />
           </div>
-          <div className="lg:col-span-4 flex flex-col gap-6">
-            <Card className="rounded-[2.5rem] bg-slate-900 text-white p-6 relative overflow-hidden shadow-xl border-none flex-1 flex flex-col justify-center min-h-[200px]">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full -translate-y-1/2 translate-x-1/2 blur-[60px]" />
-              <div className="flex items-center gap-2 text-primary mb-6 relative z-10">
-                <TrendingUp className="h-4 w-4" />
-                <p className="text-[8px] font-black uppercase tracking-[0.4em]">Growth Telemetry</p>
+          <div className="lg:col-span-4 flex flex-col gap-4">
+            <Card className="rounded-2xl border-slate-100 shadow-sm bg-slate-900 text-white p-5 flex-1">
+              <div className="flex items-center gap-2 text-sky-400 mb-4">
+                <Globe className="h-4 w-4" />
+                <p className="text-[10px] font-black uppercase tracking-widest">Admin Quick Access</p>
               </div>
-              <div className="space-y-5 relative z-10">
-                <div className="flex justify-between items-end">
-                  <div className="space-y-1">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Global Enrollment</p>
-                    <p className="text-2xl sm:text-3xl font-black text-white tracking-tighter italic">+14% <span className="text-primary text-xs sm:text-sm not-italic">MoM</span></p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Target</p>
-                    <p className="text-xs sm:text-sm font-black text-slate-200 italic">5,000</p>
-                  </div>
-                </div>
-                <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
-                  <div className="h-full bg-primary w-[70%] shadow-[0_0_15px_rgba(14,165,233,0.5)]" />
-                </div>
-                <div className="flex justify-between items-center text-[8px] font-black uppercase tracking-widest text-slate-500">
-                  <span>Current: 2,840</span>
-                  <span>Gap: 2,160</span>
-                </div>
-              </div>
-            </Card>
-
-            <Card className="rounded-[2rem] border-slate-100 shadow-sm bg-white p-5 flex flex-col justify-between group hover:shadow-lg transition-all border-l-4 border-l-primary">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Security Node</p>
-                <Badge className="bg-emerald-50 text-emerald-600 border-none text-[7px] font-black uppercase">AES-256</Badge>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="h-10 w-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-primary group-hover:text-white transition-all shadow-inner">
-                  <Fingerprint className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Encrypted Sessions</p>
-                  <p className="text-lg font-black text-slate-900 tracking-tighter">1,102 <span className="text-[8px] text-emerald-500 ml-1">Live</span></p>
-                </div>
-              </div>
-            </Card>
-          </div>
-        </div>
-
-        {/* INFRASTRUCTURE STATUS BAR */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatusNode icon={<Home />} label="Housing" status="Online" color="sky" />
-          <StatusNode icon={<Briefcase />} label="Career" status="Optimal" color="emerald" />
-          <StatusNode icon={<Server />} label="Wallet" status="Secure" color="indigo" />
-          <StatusNode icon={<Users />} label="Circle" status="Active" color="purple" />
-        </div>
-
-        {/* MAIN OPERATIONS MATRIX */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left Column: Telemetry & Charts */}
-          <div className="lg:col-span-8 space-y-6">
-            <Card className="rounded-[2.5rem] border-slate-100 shadow-sm bg-white overflow-hidden">
-              <CardHeader className="p-6 border-b border-slate-50 flex flex-row items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                    <BarChart3 className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-sm sm:text-base font-black text-slate-900 leading-none">Network Traffic</CardTitle>
-                    <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Daily Mobility Velocity</p>
-                  </div>
-                </div>
-                <div className="hidden sm:flex gap-2">
-                  <Badge variant="outline" className="text-[8px] font-black uppercase border-slate-100">Weekly</Badge>
-                  <Badge className="bg-primary text-white text-[8px] font-black uppercase">Live</Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="h-[250px] sm:h-[300px] w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={chartData}>
-                      <defs>
-                        <linearGradient id="colorMob" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#0EA5E9" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="#0EA5E9" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                      <XAxis 
-                        dataKey="name" 
-                        axisLine={false} 
-                        tickLine={false} 
-                        tick={{fontSize: 9, fontWeight: 800, fill: '#94a3b8'}} 
-                        dy={10}
-                      />
-                      <YAxis 
-                        axisLine={false} 
-                        tickLine={false} 
-                        tick={{fontSize: 9, fontWeight: 800, fill: '#94a3b8'}}
-                      />
-                      <Tooltip 
-                        contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 20px 50px rgba(0,0,0,0.1)', fontWeight: 800, fontSize: '10px'}}
-                      />
-                      <Area type="monotone" dataKey="mobility" stroke="#0EA5E9" strokeWidth={3} fillOpacity={1} fill="url(#colorMob)" />
-                      <Area type="monotone" dataKey="verification" stroke="#6366f1" strokeWidth={3} fillOpacity={0} />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <StatCard icon={<Users />} label="Students" value="2,840" delta="+122" positive />
-              <StatCard icon={<Home />} label="Units" value="412" delta="+18" positive />
-              <StatCard icon={<Briefcase />} label="Jobs" value="86" delta="-4" />
-              <StatCard icon={<Globe />} label="Unis" value="12" delta="0" />
-            </div>
-          </div>
-
-          {/* Right Column: Integrity Feed */}
-          <div className="lg:col-span-4">
-            <Card className="shadow-sm border-slate-100 rounded-[2.5rem] bg-white overflow-hidden h-full flex flex-col min-h-[400px]">
-              <CardHeader className="p-6 border-b border-slate-50 flex flex-row items-center justify-between shrink-0">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-slate-900 flex items-center justify-center text-white">
-                    <Activity className="h-5 w-5" />
-                  </div>
-                  <CardTitle className="text-sm sm:text-base font-black text-slate-900 leading-none">Integrity Feed</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent className="p-0 flex-1 overflow-y-auto custom-scrollbar">
-                <div className="divide-y divide-slate-50">
-                  <ActivityItem title="New Housing" sub="Apt #882 - Maskavas" time="2m" type="housing" />
-                  <ActivityItem title="Sync Success" sub="RTU Institutional" time="15m" type="system" />
-                  <ActivityItem title="User Dispute" sub="ID: stu_9921" time="1h" type="alert" />
-                  <ActivityItem title="Audit Done" sub="Job Board Partners" time="4h" type="career" />
-                  <ActivityItem title="GDPR Rotation" sub="EU-Central-1 Node" time="6h" type="system" />
-                </div>
-              </CardContent>
-              <div className="p-4 border-t border-slate-50 bg-slate-50/50">
-                <Button className="w-full h-10 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-xl shadow-slate-900/10" variant="secondary">
-                  System Audit Logs
-                </Button>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { label: 'Verifications', href: '/admin/verification', icon: ShieldCheck },
+                  { label: 'User Directory', href: '/admin/users', icon: Users },
+                  { label: 'Institutions', href: '/admin/institutions', icon: Building2 },
+                  { label: 'Finance', href: '/admin/finance', icon: DollarSign },
+                  { label: 'Reports', href: '/admin/reports', icon: Flag },
+                  { label: 'Support', href: '/admin/support', icon: Activity },
+                ].map(link => (
+                  <Link key={link.label} href={link.href}>
+                    <div className="flex items-center gap-2 p-3 bg-white/8 hover:bg-white/15 rounded-xl transition-all cursor-pointer group">
+                      <link.icon className="h-3.5 w-3.5 text-sky-400 group-hover:text-white transition-colors shrink-0" />
+                      <span className="text-[10px] font-bold text-slate-300 group-hover:text-white transition-colors leading-tight">{link.label}</span>
+                    </div>
+                  </Link>
+                ))}
               </div>
             </Card>
           </div>
@@ -231,68 +261,23 @@ export default function AdminDashboardPage() {
   );
 }
 
-function StatCard({ icon, label, value, delta, positive }: any) {
+function KpiCard({ icon, label, value, delta, positive, href, bg, color }: {
+  icon: React.ReactNode; label: string; value: string; delta: string;
+  positive: boolean; href: string; bg: string; color: string;
+}) {
   return (
-    <Card className="p-4 sm:p-5 rounded-[1.5rem] sm:rounded-[2rem] border-slate-100 shadow-sm bg-white group hover:shadow-lg transition-all overflow-hidden relative">
-      <div className="absolute top-0 right-0 w-16 h-16 bg-slate-50 rounded-full translate-x-1/2 -translate-y-1/2 group-hover:bg-primary/5 transition-colors" />
-      <div className="flex justify-between items-start mb-3 sm:mb-4 relative z-10">
-        <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl bg-slate-50 text-slate-400 group-hover:bg-primary group-hover:text-white transition-all flex items-center justify-center shadow-inner">
+    <Link href={href}>
+      <Card className="rounded-2xl border-slate-100 shadow-sm bg-white p-5 hover:shadow-md hover:border-sky-100 transition-all group cursor-pointer">
+        <div className={`h-10 w-10 rounded-xl ${bg} ${color} flex items-center justify-center mb-3 group-hover:scale-105 transition-transform`}>
           {icon}
         </div>
-        <Badge className={`border-none font-black text-[7px] uppercase tracking-widest ${positive ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-400'}`}>
+        <p className="text-xl font-black text-slate-900 leading-none">{value}</p>
+        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1.5 mb-2">{label}</p>
+        <div className={`flex items-center gap-1 text-[10px] font-bold ${positive ? 'text-emerald-600' : 'text-rose-500'}`}>
+          {positive ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
           {delta}
-        </Badge>
-      </div>
-      <div className="relative z-10">
-        <p className="text-[8px] sm:text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] sm:tracking-[0.3em] leading-none mb-1">{label}</p>
-        <p className="text-xl sm:text-2xl font-black text-slate-900 tracking-tighter leading-none italic">{value}</p>
-      </div>
-    </Card>
-  );
-}
-
-function ActivityItem({ title, sub, time, type }: any) {
-  return (
-    <div className="p-4 px-6 group hover:bg-slate-50/50 transition-all cursor-pointer flex items-center justify-between">
-      <div className="flex items-center gap-4 min-w-0">
-        <div className={`h-2 w-2 rounded-full shrink-0 shadow-[0_0_8px_rgba(0,0,0,0.1)] ${
-          type === 'housing' ? 'bg-sky-500' : 
-          type === 'alert' ? 'bg-red-500' : 
-          type === 'career' ? 'bg-emerald-500' : 
-          'bg-indigo-500'
-        }`} />
-        <div className="space-y-0.5 min-w-0">
-          <p className="text-[11px] font-black text-slate-800 leading-none group-hover:text-primary transition-colors truncate">{title}</p>
-          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tight mt-1 truncate">{sub}</p>
         </div>
-      </div>
-      <div className="text-right shrink-0">
-        <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">{time}</p>
-      </div>
-    </div>
-  );
-}
-
-function StatusNode({ icon, label, status, color }: any) {
-  const colorMap: any = {
-    sky: 'text-sky-600 bg-sky-50',
-    emerald: 'text-emerald-600 bg-emerald-50',
-    indigo: 'text-indigo-600 bg-indigo-50',
-    purple: 'text-purple-600 bg-purple-50'
-  };
-
-  return (
-    <Card className="p-3 sm:p-4 rounded-xl sm:rounded-2xl border-slate-100 shadow-sm bg-white flex items-center gap-3 group hover:border-primary/20 transition-all">
-      <div className={`h-8 w-8 sm:h-10 sm:w-10 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0 shadow-inner ${colorMap[color] || colorMap.sky}`}>
-        {icon}
-      </div>
-      <div className="min-w-0">
-        <p className="text-[8px] sm:text-[9px] font-black text-slate-900 uppercase tracking-tight leading-none mb-1 truncate">{label}</p>
-        <div className="flex items-center gap-1.5">
-          <div className="h-1 w-1 rounded-full bg-emerald-500 animate-pulse" />
-          <p className="text-[7px] sm:text-[8px] font-bold text-slate-400 uppercase tracking-widest">{status}</p>
-        </div>
-      </div>
-    </Card>
+      </Card>
+    </Link>
   );
 }

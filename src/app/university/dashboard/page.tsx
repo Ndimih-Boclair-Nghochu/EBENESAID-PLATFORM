@@ -1,161 +1,268 @@
 'use client';
 
 import { SidebarShell } from "@/components/layout/sidebar-shell";
+import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Users, 
-  Activity, 
-  GraduationCap, 
-  MessageSquare, 
-  Clock, 
-  CheckCircle2, 
-  ShieldCheck,
-  Zap,
-  Globe
+import { Progress } from "@/components/ui/progress";
+import {
+  Users, GraduationCap, CheckCircle2, ShieldCheck,
+  ArrowUpRight, Clock, Globe, Zap, Activity,
+  Building2, FileText, UserCheck, AlertTriangle, BookOpen, MessageSquare
 } from "lucide-react";
-import { 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  AreaChart,
-  Area
+import { SpecialistChat } from "@/components/SpecialistChat";
+import { ebenesaidInfo } from "@/ai/flows/ebenesaid-info-flow";
+import {
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area
 } from 'recharts';
+import Link from "next/link";
 
-const recruitmentData = [
-  { name: 'Feb', students: 45 },
-  { name: 'Mar', students: 52 },
-  { name: 'Apr', students: 48 },
-  { name: 'May', students: 61 },
-  { name: 'Jun', students: 75 },
-  { name: 'Jul', students: 120 },
+const arrivalData = [
+  { month: 'Feb', enrolled: 45, arrived: 38 },
+  { month: 'Mar', enrolled: 52, arrived: 47 },
+  { month: 'Apr', enrolled: 68, arrived: 59 },
+  { month: 'May', enrolled: 91, arrived: 82 },
+  { month: 'Jun', enrolled: 124, arrived: 108 },
+  { month: 'Jul', enrolled: 210, arrived: 186 },
 ];
+
+const studentRegistry = [
+  { name: 'Louis D.', origin: 'Nigeria', status: 'Arrived', compliance: 100, program: 'Computer Eng.', flag: '🇳🇬' },
+  { name: 'Maria K.', origin: 'Ukraine', status: 'In Transit', compliance: 88, program: 'Business Admin', flag: '🇺🇦' },
+  { name: 'Kofi M.', origin: 'Ghana', status: 'Arrived', compliance: 96, program: 'Medicine', flag: '🇬🇭' },
+  { name: 'Amara S.', origin: 'Senegal', status: 'Pre-Arrival', compliance: 74, program: 'Architecture', flag: '🇸🇳' },
+  { name: 'Chen W.', origin: 'China', status: 'Arrived', compliance: 100, program: 'Data Science', flag: '🇨🇳' },
+];
+
+const complianceModules = [
+  { name: 'Visa Documentation', pct: 96, status: 'healthy' },
+  { name: 'Housing Confirmed', pct: 88, status: 'healthy' },
+  { name: 'Academic Registration', pct: 92, status: 'healthy' },
+  { name: 'Health Insurance', pct: 78, status: 'warning' },
+  { name: 'Language Assessment', pct: 65, status: 'warning' },
+];
+
+const statusColor: Record<string, string> = {
+  Arrived: 'bg-emerald-50 text-emerald-700',
+  'In Transit': 'bg-sky-50 text-sky-700',
+  'Pre-Arrival': 'bg-amber-50 text-amber-700',
+};
 
 export default function UniversityDashboardPage() {
   return (
     <SidebarShell>
-      <div className="max-w-7xl mx-auto flex flex-col gap-6">
-        
-        {/* Institutional Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-slate-100 pb-5">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="border-indigo-400/20 bg-indigo-50 text-indigo-600 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5">
-                Academic Node • RTU Riga Hub
-              </Badge>
-              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 text-[8px] font-black uppercase tracking-widest">
-                <Activity className="h-2.5 w-2.5" /> Sync Health: 100%
-              </div>
-            </div>
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight leading-none uppercase italic">Partner <span className="text-indigo-600">Portal</span></h1>
-            <p className="text-slate-400 text-[10px] font-medium max-w-lg uppercase tracking-widest">Administrative oversight of student relocation and institutional compliance.</p>
-          </div>
-          <div className="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto">
-            <Button variant="outline" size="sm" className="h-9 px-4 rounded-xl border-slate-200 font-bold gap-2 text-[10px] hover:bg-slate-50 transition-all w-full sm:w-auto">
-              <Zap className="h-3.5 w-3.5" /> Trigger Bulk Sync
-            </Button>
-            <Button size="sm" className="h-9 px-5 rounded-xl font-black shadow-lg shadow-indigo-600/20 gap-2 text-[10px] bg-indigo-600 text-white border-none w-full sm:w-auto">
-              <MessageSquare className="h-3.5 w-3.5" /> Broadcast Update
-            </Button>
-          </div>
+      <div className="max-w-7xl mx-auto flex flex-col gap-6 pb-10">
+
+        <PageHeader
+          title="Partner Dashboard"
+          subtitle="University Partner · RTU Riga"
+          actions={
+            <>
+              <Button variant="outline" size="sm" className="h-9 px-4 rounded-xl border-slate-200 font-bold gap-2 text-xs hover:bg-slate-50" asChild>
+                <Link href="/university/sync"><Globe className="h-3.5 w-3.5" /> Sync Portal</Link>
+              </Button>
+              <Button size="sm" className="h-9 px-4 rounded-xl font-bold shadow-md gap-2 text-xs bg-indigo-600 hover:bg-indigo-700 text-white border-none" asChild>
+                <Link href="/university/students"><Zap className="h-3.5 w-3.5" /> Student Registry</Link>
+              </Button>
+            </>
+          }
+        />
+
+        {/* KPI Grid */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <KpiCard icon={<Users className="h-5 w-5" />} label="Total Students" value="1,240" delta="+12%" positive href="/university/students" bg="bg-indigo-50" color="text-indigo-600" />
+          <KpiCard icon={<Clock className="h-5 w-5" />} label="In Transit" value="412" delta="+8%" positive href="/university/students" bg="bg-sky-50" color="text-sky-600" />
+          <KpiCard icon={<CheckCircle2 className="h-5 w-5" />} label="Arrived & Settled" value="828" delta="+4%" positive href="/university/students" bg="bg-emerald-50" color="text-emerald-600" />
+          <KpiCard icon={<ShieldCheck className="h-5 w-5" />} label="Compliance Rate" value="94.2%" delta="+1.4%" positive href="/university/verification" bg="bg-violet-50" color="text-violet-600" />
         </div>
 
-        {/* TOP LEVEL METRICS - Responsive Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <KPICard icon={<Users />} label="Total Students" value="1,240" delta="+12%" />
-          <KPICard icon={<Clock />} label="In Transit" value="412" delta="+8%" />
-          <KPICard icon={<CheckCircle2 />} label="Arrived & Settled" value="828" delta="+4%" />
-          <KPICard icon={<ShieldCheck />} label="Compliance Rate" value="98.2%" delta="+0.5%" />
-        </div>
-
-        {/* MAIN INSIGHTS GRID */}
+        {/* Chart + Compliance */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Main Chart */}
-          <div className="lg:col-span-8 order-2 lg:order-1">
-            <Card className="rounded-[2.5rem] border-slate-100 shadow-sm bg-white overflow-hidden h-full flex flex-col">
-              <CardHeader className="p-6 border-b border-slate-50 flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle className="text-base font-black text-slate-900 leading-none">Arrival Velocity</CardTitle>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Student Enrollment Trend (2025)</p>
-                </div>
-                <Badge variant="outline" className="hidden sm:inline-flex text-[8px] font-black uppercase">Live Data</Badge>
-              </CardHeader>
-              <CardContent className="p-6 flex-1 min-h-[300px]">
-                <div className="h-[300px] w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={recruitmentData}>
-                      <defs>
-                        <linearGradient id="colorStudents" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 800, fill: '#94a3b8'}} dy={10} />
-                      <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 800, fill: '#94a3b8'}} />
-                      <Tooltip contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 20px 50px rgba(0,0,0,0.1)', fontWeight: 800}} />
-                      <Area type="monotone" dataKey="students" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorStudents)" />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
 
-          {/* Side Panels */}
-          <div className="lg:col-span-4 flex flex-col gap-6 order-1 lg:order-2">
-            <Card className="rounded-[2rem] bg-slate-900 text-white p-6 relative overflow-hidden shadow-xl border-none min-h-[180px] flex flex-col justify-center">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 rounded-full -translate-y-1/2 translate-x-1/2 blur-[60px]" />
-              <div className="flex items-center gap-2 text-indigo-400 mb-6 relative z-10">
-                <GraduationCap className="h-4 w-4" />
-                <p className="text-[8px] font-black uppercase tracking-[0.4em]">Academic Roadmap</p>
+          {/* Arrival Velocity Chart */}
+          <Card className="lg:col-span-8 rounded-2xl border-slate-100 shadow-sm bg-white">
+            <CardHeader className="p-5 border-b border-slate-50">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-sm font-black text-slate-900 leading-none">Arrival Velocity</CardTitle>
+                  <p className="text-xs text-slate-400 font-medium mt-1">Enrolled vs. arrived students — 2025 cohort</p>
+                </div>
+                <Badge className="bg-indigo-50 text-indigo-700 border-indigo-100 border font-bold text-[10px] px-2.5 py-1">
+                  Live Data
+                </Badge>
               </div>
-              <p className="text-xs font-medium text-slate-300 leading-relaxed italic relative z-10 border-l-2 border-indigo-500/40 pl-4 py-1">
-                "Relocation compliance has reached optimal levels for the 2025 cohort."
-              </p>
+            </CardHeader>
+            <CardContent className="p-5 pt-3">
+              <ResponsiveContainer width="100%" height={220}>
+                <AreaChart data={arrivalData}>
+                  <defs>
+                    <linearGradient id="uniGrad1" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#6366f1" stopOpacity={0.15} />
+                      <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="uniGrad2" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.15} />
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 600 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 600 }} axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '11px', fontWeight: 600 }} />
+                  <Area type="monotone" dataKey="enrolled" stroke="#6366f1" strokeWidth={2} fill="url(#uniGrad1)" name="Enrolled" />
+                  <Area type="monotone" dataKey="arrived" stroke="#10b981" strokeWidth={2} fill="url(#uniGrad2)" name="Arrived" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Compliance Modules */}
+          <Card className="lg:col-span-4 rounded-2xl border-slate-100 shadow-sm bg-white">
+            <CardHeader className="p-5 border-b border-slate-50">
+              <CardTitle className="text-sm font-black text-slate-900 leading-none">Compliance Checklist</CardTitle>
+              <p className="text-xs text-slate-400 font-medium mt-1">Cohort readiness by module</p>
+            </CardHeader>
+            <CardContent className="p-5 space-y-4">
+              {complianceModules.map((mod) => (
+                <div key={mod.name}>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-bold text-slate-700">{mod.name}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold text-slate-400">{mod.pct}%</span>
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${mod.status === 'healthy' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
+                        {mod.status}
+                      </span>
+                    </div>
+                  </div>
+                  <Progress value={mod.pct} className={`h-1.5 rounded-full ${mod.status === 'healthy' ? '[&>div]:bg-indigo-500' : '[&>div]:bg-amber-500'}`} />
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Student Registry + Quick Actions */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+          {/* Student Registry */}
+          <Card className="lg:col-span-8 rounded-2xl border-slate-100 shadow-sm bg-white">
+            <CardHeader className="p-5 border-b border-slate-50 flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-sm font-black text-slate-900 leading-none">Student Registry</CardTitle>
+                <p className="text-xs text-slate-400 font-medium mt-1">Live relocation status per student</p>
+              </div>
+              <Button variant="outline" size="sm" className="h-8 rounded-xl text-xs font-bold border-slate-200" asChild>
+                <Link href="/university/students">View All</Link>
+              </Button>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="divide-y divide-slate-50">
+                {studentRegistry.map((s, i) => (
+                  <div key={i} className="flex items-center gap-3 px-5 py-3.5 hover:bg-slate-50/60 transition-colors">
+                    <span className="text-xl shrink-0">{s.flag}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-xs font-bold text-slate-800">{s.name}</p>
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${statusColor[s.status] ?? 'bg-slate-50 text-slate-500'}`}>
+                          {s.status}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-400 font-medium">{s.program} · {s.origin}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-xs font-black text-indigo-600">{s.compliance}%</p>
+                      <p className="text-[9px] text-slate-400 font-medium">compliance</p>
+                    </div>
+                    <ArrowUpRight className="h-3.5 w-3.5 text-slate-300 shrink-0" />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Quick Actions + Sync Status */}
+          <div className="lg:col-span-4 flex flex-col gap-4">
+            <Card className="rounded-2xl border-slate-100 shadow-sm bg-slate-900 text-white p-5 flex-1">
+              <div className="flex items-center gap-2 text-indigo-400 mb-4">
+                <Globe className="h-4 w-4" />
+                <p className="text-[10px] font-black uppercase tracking-widest">Quick Access</p>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { label: 'Students', href: '/university/students', icon: Users },
+                  { label: 'Verification', href: '/university/verification', icon: ShieldCheck },
+                  { label: 'Sync Portal', href: '/university/sync', icon: Globe },
+                  { label: 'AI Advisor', href: '/university/chat', icon: MessageSquare },
+                  { label: 'Documents', href: '/docs', icon: FileText },
+                  { label: 'Reports', href: '/university/verification', icon: BookOpen },
+                ].map(link => (
+                  <Link key={link.label} href={link.href}>
+                    <div className="flex items-center gap-2 p-3 bg-white/8 hover:bg-white/15 rounded-xl transition-all cursor-pointer group">
+                      <link.icon className="h-3.5 w-3.5 text-indigo-400 group-hover:text-white transition-colors shrink-0" />
+                      <span className="text-[10px] font-bold text-slate-300 group-hover:text-white transition-colors leading-tight">{link.label}</span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
             </Card>
 
-            <Card className="rounded-[2rem] border-slate-100 shadow-sm bg-white p-5 flex flex-col justify-between group hover:shadow-lg transition-all border-l-4 border-l-indigo-600">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Institutional Sync</p>
-                <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="h-10 w-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-inner">
-                  <Globe className="h-5 w-5" />
+            <Card className="rounded-2xl border-slate-100 shadow-sm bg-white p-4">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Institutional Sync</p>
+                <div className="flex items-center gap-1.5">
+                  <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-[9px] font-bold text-emerald-600">Active</span>
                 </div>
-                <div>
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">API Handshake</p>
-                  <p className="text-lg font-black text-slate-900 tracking-tighter">Active <span className="text-[8px] text-emerald-500 ml-1 font-bold">SECURE</span></p>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-medium text-slate-500">API Handshake</span>
+                  <span className="font-bold text-emerald-600">Secure</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-medium text-slate-500">Last Sync</span>
+                  <span className="font-bold text-slate-700">2 min ago</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-medium text-slate-500">Records Synced</span>
+                  <span className="font-bold text-slate-700">1,240</span>
                 </div>
               </div>
             </Card>
           </div>
         </div>
+
+        {/* AI Advisor */}
+        <SpecialistChat
+          title="Academic Advisor"
+          specialty="Student Enrollment & Compliance"
+          initialMessage="Partner portal online. I can assist with student compliance tracking, enrollment velocity analysis, or institutional sync diagnostics. How can I help?"
+          flow={ebenesaidInfo}
+          icon={<GraduationCap className="h-4 w-4" />}
+        />
       </div>
     </SidebarShell>
   );
 }
 
-function KPICard({ icon, label, value, delta }: any) {
+function KpiCard({ icon, label, value, delta, positive, href, bg, color }: {
+  icon: React.ReactNode; label: string; value: string; delta: string;
+  positive: boolean; href: string; bg: string; color: string;
+}) {
   return (
-    <Card className="p-4 sm:p-5 rounded-[1.5rem] sm:rounded-[2rem] border-slate-100 shadow-sm bg-white group hover:shadow-lg transition-all relative overflow-hidden">
-      <div className="absolute top-0 right-0 w-16 h-16 bg-slate-50 rounded-full translate-x-1/2 -translate-y-1/2 group-hover:bg-indigo-50 transition-colors" />
-      <div className="flex justify-between items-start mb-3 sm:mb-4 relative z-10">
-        <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl bg-slate-50 text-slate-400 group-hover:bg-indigo-600 group-hover:text-white transition-all flex items-center justify-center shadow-inner">
+    <Link href={href}>
+      <Card className="rounded-2xl border-slate-100 shadow-sm bg-white p-5 hover:shadow-md hover:border-indigo-100 transition-all group cursor-pointer">
+        <div className={`h-10 w-10 rounded-xl ${bg} ${color} flex items-center justify-center mb-3 group-hover:scale-105 transition-transform`}>
           {icon}
         </div>
-        <Badge className="bg-emerald-50 text-emerald-600 border-none font-black text-[7px] sm:text-[8px] uppercase tracking-widest">
+        <p className="text-xl font-black text-slate-900 leading-none">{value}</p>
+        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1.5 mb-2">{label}</p>
+        <div className={`flex items-center gap-1 text-[10px] font-bold ${positive ? 'text-emerald-600' : 'text-rose-500'}`}>
+          <ArrowUpRight className="h-3 w-3" />
           {delta}
-        </Badge>
-      </div>
-      <div className="relative z-10">
-        <p className="text-[8px] sm:text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] sm:tracking-[0.3em] leading-none mb-1">{label}</p>
-        <p className="text-xl sm:text-2xl font-black text-slate-900 tracking-tighter leading-none italic">{value}</p>
-      </div>
-    </Card>
+        </div>
+      </Card>
+    </Link>
   );
 }

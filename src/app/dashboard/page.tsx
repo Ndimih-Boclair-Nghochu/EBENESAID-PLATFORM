@@ -2,19 +2,17 @@
 
 import { useState } from "react";
 import { SidebarShell } from "@/components/layout/sidebar-shell";
+import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Home,
   FileText,
   Briefcase,
   Users,
-  ChevronRight,
   ArrowUpRight,
-  Activity,
   MapPin,
   Wallet,
   Compass,
@@ -23,7 +21,9 @@ import {
   CheckCircle2,
   Clock,
   TrendingUp,
-  BookOpen
+  BookOpen,
+  Utensils,
+  PlaneTakeoff
 } from "lucide-react";
 import Link from "next/link";
 
@@ -67,34 +67,20 @@ export default function DashboardPage() {
     <SidebarShell>
       <div className="flex flex-col gap-6 max-w-7xl mx-auto pb-10">
 
-        {/* Page Header */}
-        <section className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 border-b border-slate-100 pb-5">
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-2 flex-wrap">
-              <Badge variant="outline" className="border-primary/20 bg-primary/5 text-primary text-[10px] font-bold uppercase tracking-wider px-2 py-0.5">
-                RTU Riga · 2025
-              </Badge>
-              <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-bold">
-                <div className="status-dot-active h-1.5 w-1.5" />
-                On Track
-              </div>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight leading-none">
-              Welcome back, <span className="text-primary italic">Louis.</span>
-            </h1>
-            <p className="text-slate-400 text-xs font-medium">
-              Your relocation to <span className="text-slate-700 font-bold">Riga Technical University</span> is progressing well.
-            </p>
-          </div>
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <Button size="sm" className="rounded-xl font-bold h-9 px-4 shadow-md shadow-primary/20 gap-2 text-xs w-full sm:w-auto bg-sky-600 hover:bg-sky-700 text-white border-none" asChild>
-              <Link href="/docs"><Wallet className="h-3.5 w-3.5" /> My Wallet</Link>
-            </Button>
-            <Button size="sm" variant="outline" className="rounded-xl font-bold h-9 px-4 gap-2 text-xs w-full sm:w-auto border-slate-200" asChild>
-              <Link href="/settings">Settings</Link>
-            </Button>
-          </div>
-        </section>
+        <PageHeader
+          title="My Dashboard"
+          subtitle="Student Portal · RTU Riga 2025"
+          actions={
+            <>
+              <Button size="sm" variant="outline" className="rounded-xl font-bold h-9 px-4 gap-2 text-xs border-slate-200" asChild>
+                <Link href="/arrival"><PlaneTakeoff className="h-3.5 w-3.5" /> Arrival</Link>
+              </Button>
+              <Button size="sm" className="rounded-xl font-bold h-9 px-4 shadow-md shadow-sky-600/20 gap-2 text-xs bg-sky-600 hover:bg-sky-700 text-white border-none" asChild>
+                <Link href="/docs"><Wallet className="h-3.5 w-3.5" /> My Wallet</Link>
+              </Button>
+            </>
+          }
+        />
 
         {/* Stats Row */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
