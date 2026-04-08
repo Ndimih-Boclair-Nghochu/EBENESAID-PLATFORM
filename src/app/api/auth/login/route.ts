@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Find user
-    const dbUser = getUserByEmail(email);
+    const dbUser = await getUserByEmail(email);
     if (!dbUser) {
       return NextResponse.json(
         { error: 'Invalid email or password.' },
@@ -41,10 +41,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Update last login
-    updateLastLogin(dbUser.id);
+    await updateLastLogin(dbUser.id);
 
     // Create session
-    const session = createSession(dbUser.id);
+    const session = await createSession(dbUser.id);
 
     // Build response
     const safeUser = toSafeUser(dbUser);
