@@ -98,30 +98,24 @@ const transportNavigation = [
 ];
 
 export function MainNav() {
+
   const pathname = usePathname();
-  const auth = useAuth();
   const router = useRouter();
-  const { user } = useUser();
-  const [demoRole, setDemoRole] = useState<string | null>(null);
+  // Use the real backend user from AuthProvider
+  const { user, logout } = useAuthContext();
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setDemoRole(localStorage.getItem('eb_demo_role'));
-    }
-  }, []);
 
-  const isAdmin = user?.email?.includes('admin') || pathname.startsWith('/admin') || demoRole === 'admin';
-  const isUniversity = user?.email?.includes('uni') || pathname.startsWith('/university') || demoRole === 'university';
-  const isSupplier = user?.email?.includes('supplier') || pathname.startsWith('/supplier') || demoRole === 'supplier';
-  const isAgent = user?.email?.includes('agent') || pathname.startsWith('/agent') || demoRole === 'agent';
-  const isTransport = user?.email?.includes('transport') || pathname.startsWith('/transport') || demoRole === 'transport';
+  // Role detection based on userType from backend
+  const isAdmin = user?.userType === 'admin' || pathname.startsWith('/admin');
+  const isUniversity = user?.userType === 'university' || pathname.startsWith('/university');
+  const isSupplier = user?.userType === 'supplier' || pathname.startsWith('/supplier');
+  const isAgent = user?.userType === 'agent' || pathname.startsWith('/agent');
+  const isTransport = user?.userType === 'transport' || pathname.startsWith('/transport');
+
 
   const handleLogout = async () => {
     try {
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('eb_demo_role');
-      }
-      await signOut(auth);
+      await logout();
       router.push('/');
     } catch (error) {
       console.error("Logout failed:", error);
