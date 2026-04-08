@@ -8,6 +8,11 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  // Enable Node.js experimental SQLite module for API routes
+  serverExternalPackages: [],
+  experimental: {
+    serverComponentsExternalPackages: [],
+  },
   images: {
     remotePatterns: [
       {

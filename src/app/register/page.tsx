@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from "@/components/ui/button";
@@ -19,7 +18,9 @@ import {
   Mail,
   GraduationCap,
   MapPin,
-  FileText
+  FileText,
+  Loader2,
+  AlertCircle
 } from "lucide-react";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -30,9 +31,9 @@ import {
   CarouselItem,
 } from "@/components/ui/carousel";
 import Autoplay from "embla-carousel-autoplay";
-import { useAuth, initiateAnonymousSignIn, useUser } from "@/firebase";
+import { useAuthContext } from "@/auth/provider";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 const testimonials = [
   {
@@ -56,9 +57,20 @@ const testimonials = [
 ];
 
 export default function RegisterPage() {
-  const auth = useAuth();
+  const { user, register } = useAuthContext();
   const router = useRouter();
-  const { user } = useUser();
+  const [isLoading, setIsLoading] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  // Form fields
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [university, setUniversity] = useState('');
+  const [countryOfOrigin, setCountryOfOrigin] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   useEffect(() => {
     if (user) {
@@ -66,11 +78,54 @@ export default function RegisterPage() {
     }
   }, [user, router]);
 
-  const handleRegister = () => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('eb_demo_role', 'student');
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError(null);
+    setIsLoading(true);
+
+    // Client-side validation
+    if (!firstName.trim() || !lastName.trim()) {
+      setFormError('First name and last name are required.');
+      setIsLoading(false);
+      return;
     }
-    initiateAnonymousSignIn(auth);
+
+    if (!email.trim()) {
+      setFormError('Email address is required.');
+      setIsLoading(false);
+      return;
+    }
+
+    if (password.length < 6) {
+      setFormError('Password must be at least 6 characters.');
+      setIsLoading(false);
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setFormError('Passwords do not match.');
+      setIsLoading(false);
+      return;
+    }
+
+    const result = await register({
+      email,
+      password,
+      confirmPassword,
+      firstName,
+      lastName,
+      phone,
+      university,
+      countryOfOrigin,
+    });
+
+    setIsLoading(false);
+
+    if (result.success) {
+      router.push('/dashboard');
+    } else {
+      setFormError(result.error || 'Registration failed. Please try again.');
+    }
   };
 
   return (
@@ -151,7 +206,7 @@ export default function RegisterPage() {
                           {[...Array(5)].map((_, j) => <Star key={j} className="h-3 w-3 fill-current" />)}
                         </div>
                         <p className="text-sm text-slate-300 font-medium leading-relaxed">
-                          "{t.text}"
+                          &quot;{t.text}&quot;
                         </p>
                         <div>
                           <p className="text-xs font-black text-white">{t.name}</p>
@@ -196,39 +251,64 @@ export default function RegisterPage() {
                   Create Your Account
                 </CardTitle>
                 <CardDescription className="text-slate-400 font-medium text-sm mt-1">
-                  Fill in your details to get started
+                  Fill in your details to get started — 1 month free trial included!
                 </CardDescription>
               </CardHeader>
 
-              <CardContent className="space-y-5 px-8 sm:px-10 pb-8">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <FormInput label="First Name" placeholder="John" icon={<User className="h-3.5 w-3.5" />} />
-                  <FormInput label="Last Name" placeholder="Doe" icon={<User className="h-3.5 w-3.5" />} />
-                </div>
+              <form onSubmit={handleRegister}>
+                <CardContent className="space-y-5 px-8 sm:px-10 pb-8">
+                  {/* Error Message */}
+                  {formError && (
+                    <div className="flex items-start gap-3 p-4 rounded-2xl bg-red-50 border border-red-100 text-red-700">
+                      <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                      <p className="text-sm font-medium">{formError}</p>
+                    </div>
+                  )}
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <FormInput label="Phone Number" placeholder="+371 20 000 000" icon={<Phone className="h-3.5 w-3.5" />} />
-                  <FormInput label="Email Address" placeholder="you@example.com" icon={<Mail className="h-3.5 w-3.5" />} />
-                </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FormInput label="First Name" placeholder="John" icon={<User className="h-3.5 w-3.5" />} value={firstName} onChange={setFirstName} required />
+                    <FormInput label="Last Name" placeholder="Doe" icon={<User className="h-3.5 w-3.5" />} value={lastName} onChange={setLastName} required />
+                  </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <FormInput label="University" placeholder="e.g. RTU Riga" icon={<GraduationCap className="h-3.5 w-3.5" />} />
-                  <FormInput label="Country of Origin" placeholder="e.g. Nigeria" icon={<MapPin className="h-3.5 w-3.5" />} />
-                </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FormInput label="Phone Number" placeholder="+371 20 000 000" icon={<Phone className="h-3.5 w-3.5" />} value={phone} onChange={setPhone} />
+                    <FormInput label="Email Address" placeholder="you@example.com" type="email" icon={<Mail className="h-3.5 w-3.5" />} value={email} onChange={setEmail} required />
+                  </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <FormInput label="Password" placeholder="Create a password" type="password" icon={<Lock className="h-3.5 w-3.5" />} />
-                  <FormInput label="Confirm Password" placeholder="Confirm password" type="password" icon={<Lock className="h-3.5 w-3.5" />} />
-                </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FormInput label="University" placeholder="e.g. RTU Riga" icon={<GraduationCap className="h-3.5 w-3.5" />} value={university} onChange={setUniversity} />
+                    <FormInput label="Country of Origin" placeholder="e.g. Nigeria" icon={<MapPin className="h-3.5 w-3.5" />} value={countryOfOrigin} onChange={setCountryOfOrigin} />
+                  </div>
 
-                <Button
-                  onClick={handleRegister}
-                  className="w-full h-12 rounded-xl text-sm font-black shadow-lg shadow-primary/20 hover:-translate-y-0.5 active:translate-y-0 transition-all bg-green-700 hover:bg-green-800 text-white border-none group mt-2"
-                >
-                  Create Account
-                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
-                </Button>
-              </CardContent>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FormInput label="Password" placeholder="Min. 6 characters" type="password" icon={<Lock className="h-3.5 w-3.5" />} value={password} onChange={setPassword} required />
+                    <FormInput label="Confirm Password" placeholder="Confirm password" type="password" icon={<Lock className="h-3.5 w-3.5" />} value={confirmPassword} onChange={setConfirmPassword} required />
+                  </div>
+
+                  {/* Trial info */}
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-green-50 border border-green-100">
+                    <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+                    <p className="text-xs font-medium text-green-700">
+                      Your account includes a <span className="font-black">1-month free trial</span>. After that, the platform fee is <span className="font-black">€100</span>.
+                    </p>
+                  </div>
+
+                  <Button
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full h-12 rounded-xl text-sm font-black shadow-lg shadow-primary/20 hover:-translate-y-0.5 active:translate-y-0 transition-all bg-green-700 hover:bg-green-800 text-white border-none group mt-2"
+                  >
+                    {isLoading ? (
+                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Creating Account...</>
+                    ) : (
+                      <>
+                        Create Account
+                        <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
+                      </>
+                    )}
+                  </Button>
+                </CardContent>
+              </form>
 
               <CardFooter className="text-center flex-col pb-7 px-8 sm:px-10 border-t border-slate-50 pt-5">
                 <p className="text-sm text-slate-400 font-medium">
@@ -263,12 +343,18 @@ function FormInput({
   label,
   placeholder,
   type = "text",
-  icon
+  icon,
+  value,
+  onChange,
+  required = false,
 }: {
   label: string;
   placeholder: string;
   type?: string;
-  icon?: React.ReactNode
+  icon?: React.ReactNode;
+  value: string;
+  onChange: (value: string) => void;
+  required?: boolean;
 }) {
   return (
     <div className="space-y-1.5">
@@ -279,6 +365,9 @@ function FormInput({
       <Input
         type={type}
         placeholder={placeholder}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        required={required}
         className="h-11 rounded-xl bg-slate-50 border-slate-200 focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all font-medium px-4 text-sm placeholder:text-slate-300"
       />
     </div>
