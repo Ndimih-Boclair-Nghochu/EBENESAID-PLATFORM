@@ -24,7 +24,7 @@ import {
   SheetTitle
 } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { useUser } from "@/firebase";
+import { useAuthContext } from "@/auth/provider";
 
 export default function HowItWorksPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -44,7 +44,7 @@ export default function HowItWorksPage() {
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-  const { user } = useUser();
+  const { user } = useAuthContext();
 
   const handleProtectedLink = (e: React.MouseEvent, title: string, href: string) => {
     if (!user) {
