@@ -26,7 +26,7 @@ import {
   SheetTitle
 } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { useUser } from "@/firebase";
+import { useAuthContext } from "@/auth/provider";
 
 export default function ContactPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -34,7 +34,7 @@ export default function ContactPage() {
   const [selectedService, setSelectedService] = useState("");
   const [headerVisible, setHeaderVisible] = useState(true);
   const lastScrollY = useRef(0);
-  const { user } = useUser();
+  const { user } = useAuthContext();
 
   useEffect(() => {
     const handleScroll = () => {
