@@ -1,6 +1,5 @@
 import type {Metadata} from 'next';
 import './globals.css';
-import { FirebaseClientProvider } from '@/firebase';
 import { AuthProvider } from '@/auth/provider';
 import { Toaster } from '@/components/ui/toaster';
 import { Chatbot } from '@/components/Chatbot';
@@ -24,11 +23,9 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased selection:bg-primary/20 bg-background text-foreground">
         <AuthProvider>
-          <FirebaseClientProvider>
-            {children}
-            <Chatbot />
-            <Toaster />
-          </FirebaseClientProvider>
+          {children}
+          <Chatbot />
+          <Toaster />
         </AuthProvider>
       </body>
     </html>

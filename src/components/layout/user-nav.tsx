@@ -13,8 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ChevronUp, ShieldCheck, User as UserIcon, CreditCard, LogOut, CheckCircle2 } from "lucide-react";
-import { useAuth } from "@/firebase";
-import { signOut } from "firebase/auth";
+import { useAuthContext } from "@/auth/provider";
 import { useRouter } from "next/navigation";
 
 /**
@@ -24,7 +23,7 @@ import { useRouter } from "next/navigation";
  */
 export function UserNav() {
   const [mounted, setMounted] = useState(false);
-  const auth = useAuth();
+  const { user, logout } = useAuthContext();
   const router = useRouter();
 
   useEffect(() => {
@@ -33,7 +32,7 @@ export function UserNav() {
 
   const handleLogout = async () => {
     try {
-      await signOut(auth);
+      await logout();
       router.push('/');
     } catch (error) {
       console.error("Logout failed:", error);
@@ -52,18 +51,21 @@ export function UserNav() {
     );
   }
 
+  // Render user info from real backend user
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-14 w-full justify-between gap-3 px-3 hover:bg-white/10 rounded-xl border border-transparent hover:border-white/10 transition-all group">
           <div className="flex items-center gap-3 overflow-hidden text-left">
             <Avatar className="h-9 w-9 rounded-xl border border-white/20 shadow-sm transition-transform group-hover:scale-105 shrink-0">
-              <AvatarImage src="https://picsum.photos/seed/user-louis/100/100" alt="@user" />
-              <AvatarFallback className="bg-white text-green-700 font-black text-xs">LD</AvatarFallback>
+              <AvatarImage src={user?.avatar || undefined} alt="@user" />
+              <AvatarFallback className="bg-white text-green-700 font-black text-xs">
+                {user?.firstName?.[0]}{user?.lastName?.[0]}
+              </AvatarFallback>
             </Avatar>
             <div className="flex flex-col items-start overflow-hidden">
-              <span className="text-xs font-black text-white leading-none">Louis D.</span>
-              <span className="text-[8px] font-bold text-green-200 truncate w-full mt-1.5 uppercase tracking-widest">louis@ebenesaid.com</span>
+              <span className="text-xs font-black text-white leading-none">{user?.firstName} {user?.lastName}</span>
+              <span className="text-[8px] font-bold text-green-200 truncate w-full mt-1.5 uppercase tracking-widest">{user?.email}</span>
             </div>
           </div>
           <ChevronUp className="h-3 w-3 text-green-200 group-hover:text-white transition-colors shrink-0" />
@@ -73,7 +75,7 @@ export function UserNav() {
         <DropdownMenuLabel className="font-normal p-3">
           <div className="flex flex-col space-y-1">
             <div className="flex items-center gap-2">
-              <p className="text-sm font-black leading-none text-slate-900 tracking-tight">Louis D.</p>
+              <p className="text-sm font-black leading-none text-slate-900 tracking-tight">{user?.firstName} {user?.lastName}</p>
               <CheckCircle2 className="h-3 w-3 text-primary" />
             </div>
             <p className="text-[8px] font-black leading-none text-primary uppercase tracking-[0.2em]">

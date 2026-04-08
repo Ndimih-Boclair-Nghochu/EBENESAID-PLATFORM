@@ -14,8 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Bell, Settings, ChevronDown, LogOut, User, MessageSquare, LifeBuoy, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
-import { useAuth } from "@/firebase";
-import { signOut } from "firebase/auth";
+import { useAuthContext } from "@/auth/provider";
 import { useRouter } from "next/navigation";
 
 export const roleProfiles = {
@@ -107,33 +106,25 @@ export function PageHeader({
   subtitle?: string;
   actions?: React.ReactNode;
 }) {
-  const [profile, setProfile] = useState(roleProfiles.student);
+  const { user, logout } = useAuthContext();
   const [mounted, setMounted] = useState(false);
-  const auth = useAuth();
   const router = useRouter();
   const unreadCount = notifications.filter(n => n.unread).length;
 
   useEffect(() => {
     setMounted(true);
-    if (typeof window !== 'undefined') {
-      const role = localStorage.getItem('eb_demo_role') as keyof typeof roleProfiles;
-      if (role && roleProfiles[role]) {
-        setProfile(roleProfiles[role]);
-      }
-    }
   }, []);
 
   const handleLogout = async () => {
     try {
-      if (typeof window !== 'undefined') localStorage.removeItem('eb_demo_role');
-      await signOut(auth);
+      await logout();
       router.push('/');
     } catch (e) {
       console.error(e);
     }
   };
 
-  if (!mounted) {
+  if (!mounted || !user) {
     return (
       <div className="flex items-center justify-between gap-4 pb-5 border-b border-slate-100 mb-6">
         <div className="space-y-1.5">
@@ -198,82 +189,54 @@ export function PageHeader({
               ))}
             </div>
             <div className="px-4 py-3 border-t border-slate-50 text-center">
-              <Link href="/support" className="text-xs font-bold text-green-700 hover:text-green-700 transition-colors">
-                View all notifications
-              </Link>
+              <Button variant="ghost" size="sm" className="rounded-xl font-bold text-xs text-slate-500 hover:text-green-700 hover:bg-green-50">
+                View all
+              </Button>
             </div>
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* Profile dropdown */}
+        {/* Profile dropdown using real backend user */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-2 pl-1.5 pr-2.5 py-1.5 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all group outline-none">
-              <div className="relative">
-                <Avatar className="h-8 w-8 rounded-xl border-2 border-white shadow-md ring-1 ring-slate-100">
-                  <AvatarImage src={profile.avatar} alt={profile.name} className="object-cover" />
-                  <AvatarFallback className={`${profile.accentClass} text-white font-black text-xs rounded-xl`}>
-                    {profile.initials}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 bg-emerald-500 rounded-full border-2 border-white shadow-sm" />
-              </div>
-              <div className="hidden sm:block text-left">
-                <p className="text-xs font-black text-slate-900 leading-none">{profile.name}</p>
-                <p className="text-[10px] font-medium text-slate-400 mt-0.5 leading-none">{profile.role}</p>
-              </div>
-              <ChevronDown className="h-3 w-3 text-slate-300 hidden sm:block group-hover:text-slate-500 transition-colors" />
-            </button>
+            <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-xl border border-slate-100 hover:bg-slate-100 transition-colors">
+              <Avatar className="h-8 w-8 rounded-xl border border-white/20 shadow-sm">
+                <AvatarImage alt="@user" />
+                <AvatarFallback className="bg-green-50 text-green-700 font-black text-xs">
+                  {user.firstName?.[0]}{user.lastName?.[0]}
+                </AvatarFallback>
+              </Avatar>
+              <ChevronDown className="h-3 w-3 text-slate-400 ml-1" />
+            </Button>
           </DropdownMenuTrigger>
-
-          <DropdownMenuContent align="end" className="w-60 rounded-2xl p-2 shadow-xl border border-slate-100">
-            {/* Profile card */}
-            <div className="px-3 py-3 flex items-center gap-3 mb-1">
-              <div className="relative shrink-0">
-                <Avatar className="h-11 w-11 rounded-xl border-2 border-white shadow-md ring-1 ring-slate-100">
-                  <AvatarImage src={profile.avatar} alt={profile.name} className="object-cover" />
-                  <AvatarFallback className={`${profile.accentClass} text-white font-black text-sm rounded-xl`}>
-                    {profile.initials}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 bg-emerald-500 rounded-full border-2 border-white" />
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <p className="text-sm font-black text-slate-900 leading-none truncate">{profile.name}</p>
-                  <CheckCircle2 className="h-3.5 w-3.5 text-green-600 shrink-0" />
+          <DropdownMenuContent align="end" className="w-64 rounded-2xl p-2 shadow-2xl border-none mb-2 animate-in slide-in-from-bottom-2 duration-300">
+            <DropdownMenuLabel className="font-normal p-3">
+              <div className="flex flex-col space-y-1">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-black leading-none text-slate-900 tracking-tight">{user.firstName} {user.lastName}</p>
+                  <CheckCircle2 className="h-3 w-3 text-primary" />
                 </div>
-                <Badge className={`mt-1.5 text-[9px] font-bold border px-2 py-0 rounded-full ${profile.badgeClass}`}>
-                  {profile.role}
-                </Badge>
+                <p className="text-[8px] font-black leading-none text-primary uppercase tracking-[0.2em]">
+                  {user.userType}
+                </p>
               </div>
-            </div>
-
-            <DropdownMenuSeparator className="my-1 bg-slate-50" />
-
-            <DropdownMenuItem asChild className="rounded-xl px-3 py-2.5 cursor-pointer gap-2.5 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-green-700 focus:bg-slate-50 focus:text-green-700">
-              <Link href="/settings">
-                <User className="h-3.5 w-3.5 text-slate-400" /> My Profile & Settings
-              </Link>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator className="my-1 bg-slate-50 mx-1" />
+            <DropdownMenuItem className="rounded-xl px-3 py-2.5 font-bold hover:bg-slate-50 cursor-pointer transition-colors gap-2 text-xs">
+              <User className="h-4 w-4 text-slate-400" /> My Profile
             </DropdownMenuItem>
-            <DropdownMenuItem asChild className="rounded-xl px-3 py-2.5 cursor-pointer gap-2.5 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-green-700 focus:bg-slate-50 focus:text-green-700">
-              <Link href="/messages">
-                <MessageSquare className="h-3.5 w-3.5 text-slate-400" /> Messages
-              </Link>
+            <DropdownMenuItem className="rounded-xl px-3 py-2.5 font-bold hover:bg-slate-50 cursor-pointer transition-colors gap-2 text-xs">
+              <Settings className="h-4 w-4 text-slate-400" /> Settings
             </DropdownMenuItem>
-            <DropdownMenuItem asChild className="rounded-xl px-3 py-2.5 cursor-pointer gap-2.5 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-green-700 focus:bg-slate-50 focus:text-green-700">
-              <Link href="/support">
-                <LifeBuoy className="h-3.5 w-3.5 text-slate-400" /> Support
-              </Link>
+            <DropdownMenuItem className="rounded-xl px-3 py-2.5 font-bold hover:bg-slate-50 cursor-pointer transition-colors gap-2 text-xs">
+              <LifeBuoy className="h-4 w-4 text-slate-400" /> Support
             </DropdownMenuItem>
-
-            <DropdownMenuSeparator className="my-1 bg-slate-50" />
-
+            <DropdownMenuSeparator className="my-1 bg-slate-50 mx-1" />
             <DropdownMenuItem
               onClick={handleLogout}
-              className="rounded-xl px-3 py-2.5 cursor-pointer gap-2.5 text-xs font-medium text-red-500 hover:bg-red-50 hover:text-red-600 focus:bg-red-50 focus:text-red-600"
+              className="rounded-xl px-3 py-2.5 font-bold text-red-500 hover:bg-red-50 cursor-pointer transition-colors gap-2 text-xs"
             >
-              <LogOut className="h-3.5 w-3.5" /> Sign Out
+              <LogOut className="h-4 w-4" /> Sign Out
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

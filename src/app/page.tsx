@@ -39,7 +39,7 @@ import {
 } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { useUser } from "@/firebase";
+import { useAuthContext } from "@/auth/provider";
 
 const partners = [
   { name: "RTU RIGA", abbr: "RT" },
@@ -140,7 +140,7 @@ export default function LandingPage() {
   const [selectedService, setSelectedService] = useState("");
   const [headerVisible, setHeaderVisible] = useState(true);
   const lastScrollY = useRef(0);
-  const { user } = useUser();
+  const { user } = useAuthContext();
 
   useEffect(() => {
     const handleScroll = () => {
