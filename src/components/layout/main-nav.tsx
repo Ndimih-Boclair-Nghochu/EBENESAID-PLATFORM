@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from "react";
@@ -36,8 +35,7 @@ import {
   Clock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useAuth, useUser } from "@/firebase";
-import { signOut } from "firebase/auth";
+import { useAuthContext } from "@/auth/provider";
 
 const studentNavigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
