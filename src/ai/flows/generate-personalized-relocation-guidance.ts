@@ -7,7 +7,7 @@
  * - GeneratePersonalizedRelocationGuidanceOutput - The return type for the generatePersonalizedRelocationGuidance function.
  */
 
-import { openai } from '../openai-client';
+import { getOpenAIClient } from '../openai-client';
 
 
 export type GeneratePersonalizedRelocationGuidanceInput = {
@@ -25,6 +25,7 @@ export type GeneratePersonalizedRelocationGuidanceOutput = {
 export async function generatePersonalizedRelocationGuidance(
   input: GeneratePersonalizedRelocationGuidanceInput
 ): Promise<GeneratePersonalizedRelocationGuidanceOutput> {
+  const openai = getOpenAIClient();
   const systemPrompt = `You are EBENESAID AI, the Relocation Strategist.\n\nYour job is to generate a personalized relocation checklist and guidance for international students moving to Latvia.\n\nChecklist should be actionable, step-by-step, and tailored to the student's university, nationality, and arrival status.\n\nOutput JSON with two fields: checklist (array of {task, isCompleted}) and guidance (string with contextual tips).`;
 
   const userPrompt = `University: ${input.university}\nNationality: ${input.nationality}\nArrival Status: ${input.arrivalStatus}`;

@@ -5,7 +5,7 @@
  * Handles student dietary queries, neighborhood delivery navigation, and supplier menu optimization.
  */
 
-import { openai } from '../openai-client';
+import { getOpenAIClient } from '../openai-client';
 
 
 type KitchenSpecialistInput = {
@@ -18,6 +18,7 @@ type KitchenSpecialistOutput = {
 
 
 export async function discussKitchen(input: KitchenSpecialistInput): Promise<KitchenSpecialistOutput> {
+  const openai = getOpenAIClient();
   const systemPrompt = `You are EBENESAID AI, the Kitchen Specialist.\n\nYou bridge the gap between international students and verified food suppliers in Latvia, focusing on delivery to student housing and campus locations.\n\nEXPERT DOMAINS:\n1. Neighborhood Delivery: Explaining delivery availability in Centrs, Āgenskalns, Teika, and other student-dense areas.\n2. Dietary Navigation: Explaining Halal, Vegan, or allergen-free options in Riga.\n3. Cultural Comfort: Recommending West African, Indian, or local Latvian student meals.\n4. Supplier Support: Helping suppliers understand student demand, delivery route optimization, and packaging standards.\n\nTone: Warm, efficient, and appetizing. Keep responses concise and focused on reliable delivery.`;
 
   const completion = await openai.chat.completions.create({

@@ -8,7 +8,7 @@
  * - GenerateAdminTaskExplanationOutput - The return type for the generateAdminTaskExplanation function.
  */
 
-import { openai } from '../openai-client';
+import { getOpenAIClient } from '../openai-client';
 
 
 export type GenerateAdminTaskExplanationInput = {
@@ -30,6 +30,7 @@ export type GenerateAdminTaskExplanationOutput = {
 export async function generateAdminTaskExplanation(
   input: GenerateAdminTaskExplanationInput
 ): Promise<GenerateAdminTaskExplanationOutput> {
+  const openai = getOpenAIClient();
   const systemPrompt = `You are EBENESAID AI, the Admin Task Explainer.\n\nYour job is to generate clear, step-by-step explanations for complex administrative tasks, customized to an international student's profile.\n\nOutput JSON with these fields: explanation (string), estimatedTime (string, optional), requiredDocuments (string[], optional), importantTips (string[], optional).`;
 
   const userPrompt = `Task: ${input.taskDescription}\nNationality: ${input.studentNationality}\nUniversity: ${input.studentUniversity}\nLocation: ${input.studentCurrentLocation}\n${input.additionalContext ? `Additional: ${input.additionalContext}` : ''}`;

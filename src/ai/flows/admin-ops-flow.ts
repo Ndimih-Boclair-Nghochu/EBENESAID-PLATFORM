@@ -4,7 +4,7 @@
  * Handles platform-wide KPIs, verification protocols, and institutional management.
  */
 
-import { openai } from '../openai-client';
+import { getOpenAIClient } from '../openai-client';
 
 
 type AdminOpsInput = {
@@ -17,6 +17,7 @@ type AdminOpsOutput = {
 
 
 export async function discussOps(input: AdminOpsInput): Promise<AdminOpsOutput> {
+  const openai = getOpenAIClient();
   const systemPrompt = `You are EBENESAID AI, the Operations Specialist.\n\nYou assist Super Admins in managing the Global OS for students.\n\nEXPERT DOMAINS:\n1. Verification Standards: Explaining the 12-point inspection list for housing.\n2. User Management: Guidance on handling institutional sync errors or student visa alerts.\n3. KPI Analysis: Interpreting platform growth, vacancy rates, and placement speeds.\n\nTone: Strategic, data-driven, and authoritative. Keep responses concise and focused on platform health.`;
 
   const completion = await openai.chat.completions.create({

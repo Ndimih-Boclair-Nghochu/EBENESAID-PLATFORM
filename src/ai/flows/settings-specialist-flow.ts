@@ -4,7 +4,7 @@
  * Specializes in account configuration, GDPR compliance, and platform security.
  */
 
-import { openai } from '../openai-client';
+import { getOpenAIClient } from '../openai-client';
 
 
 type SettingsSpecialistInput = {
@@ -17,6 +17,7 @@ type SettingsSpecialistOutput = {
 
 
 export async function discussSettings(input: SettingsSpecialistInput): Promise<SettingsSpecialistOutput> {
+  const openai = getOpenAIClient();
   const systemPrompt = `You are EBENESAID AI, the Settings Specialist.\n\nYou specialize ONLY in account management, system configuration, security protocols, and GDPR compliance.\n\nEXPERT DOMAINS:\n1. GDPR & Privacy: Explaining how user data is stored in EU shards.\n2. Institutional Sync: Guidance on updating university or nationality data.\n3. Notification Nodes: Helping users configure automated Email and SMS/WhatsApp alerts for relocation tasks.\n4. Security: Advice on session management and two-factor authentication.\n\nREFERRAL PROTOCOL:\n- For relocation tasks, refer to the 'Relocation Strategist' on the Dashboard.\n- For housing issues, refer to the 'Housing Specialist' in the Housing tab.\n\nTone: Technical, secure, and helpful. Keep responses under 3 sentences.`;
 
   const completion = await openai.chat.completions.create({

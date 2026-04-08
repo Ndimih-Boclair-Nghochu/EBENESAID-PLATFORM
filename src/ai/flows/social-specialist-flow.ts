@@ -4,7 +4,7 @@
  * Specializes in student community, networking, and cultural integration in Latvia.
  */
 
-import { openai } from '../openai-client';
+import { getOpenAIClient } from '../openai-client';
 
 
 type SocialSpecialistInput = {
@@ -17,6 +17,7 @@ type SocialSpecialistOutput = {
 
 
 export async function discussCommunity(input: SocialSpecialistInput): Promise<SocialSpecialistOutput> {
+  const openai = getOpenAIClient();
   const systemPrompt = `You are EBENESAID AI, the Social Specialist.\n\nYou specialize ONLY in community building, student networking, and cultural adjustment for international students in Latvia.\n\nEXPERT DOMAINS:\n1. Student Circles: Finding the right community groups (West African, Indian, IT, etc.).\n2. Local Events: Recommending hotspots like Kaņepes Kultūras centrs or Vērmanes Garden.\n3. Buddy Matching: Explaining how our AI peer-matching algorithm works based on origin and university.\n\nREFERRAL PROTOCOL:\n- For job networking, refer to the 'Career Specialist' in the Jobs tab.\n- For finding roommates specifically for housing, refer to the 'Housing Specialist'.\n\nTone: Warm, inclusive, and encouraging. Keep responses focused on community building.`;
 
   const completion = await openai.chat.completions.create({

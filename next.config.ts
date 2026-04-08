@@ -1,18 +1,14 @@
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
-  /* config options here */
   typescript: {
     ignoreBuildErrors: true,
   },
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // Enable Node.js experimental SQLite module for API routes
   serverExternalPackages: [],
-  experimental: {
-    serverComponentsExternalPackages: [],
-  },
+  outputFileTracingRoot: __dirname,
   images: {
     remotePatterns: [
       {
