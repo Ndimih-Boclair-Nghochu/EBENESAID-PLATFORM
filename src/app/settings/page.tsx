@@ -33,17 +33,16 @@ import {
 import { SpecialistChat } from "@/components/SpecialistChat";
 import { discussSettings } from "@/ai/flows/settings-specialist-flow";
 import { UNIVERSITIES, NATIONALITIES } from "@/lib/constants";
-import { useAuth } from "@/firebase";
-import { signOut } from "firebase/auth";
+import { useAuthContext } from "@/auth/provider";
 import { useRouter } from "next/navigation";
 
 export default function SettingsPage() {
-  const auth = useAuth();
+  const { user, logout } = useAuthContext();
   const router = useRouter();
 
   const handleLogout = async () => {
     try {
-      await signOut(auth);
+      await logout();
       router.push('/');
     } catch (error) {
       console.error("Logout failed:", error);
