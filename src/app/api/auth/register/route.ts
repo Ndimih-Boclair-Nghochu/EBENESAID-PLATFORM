@@ -78,7 +78,12 @@ export async function POST(request: NextRequest) {
     return response;
   } catch (error: unknown) {
     console.error('Registration error:', error);
-    const message = error instanceof Error ? error.message : 'An unexpected error occurred.';
+    let message = 'An unexpected error occurred.';
+    if (error instanceof Error) {
+      message = error.message;
+    } else if (typeof error === 'string') {
+      message = error;
+    }
 
     // Handle SQLite unique constraint
     if (message.includes('UNIQUE constraint failed')) {
@@ -88,8 +93,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Return the actual error message for debugging
     return NextResponse.json(
-      { error: 'Failed to create account. Please try again.' },
+      { error: message },
       { status: 500 }
     );
   }
