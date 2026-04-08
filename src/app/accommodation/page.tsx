@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { MapPin, ShieldCheck, Search, Filter, Star, Home, Sparkles, Activity, ArrowUpRight, MessagesSquare } from "lucide-react";
 import Image from "next/image";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
-import { generateAccommodationSummary } from "@/ai/flows/generate-accommodation-summary";
+// import { generateAccommodationSummary } from "@/ai/flows/generate-accommodation-summary";
 import { Input } from "@/components/ui/input";
 import { SpecialistChat } from "@/components/SpecialistChat";
 import { discussHousing } from "@/ai/flows/housing-specialist-flow";
@@ -32,13 +32,7 @@ const listings = [
   }
 ];
 
-export default async function AccommodationPage() {
-  const userPreferences = {
-    universityProximity: "close",
-    preferredNationalities: ["Nigerian", "Any"],
-    budget: "€250-€400"
-  };
-
+  // Move userPreferences to client
   return (
     <SidebarShell>
       <div className="max-w-7xl mx-auto flex flex-col gap-6">
@@ -116,83 +110,7 @@ export default async function AccommodationPage() {
                </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {listings.map(async (listing) => {
-                const img = PlaceHolderImages.find(i => i.id === listing.imgId);
-                const aiSummary = await generateAccommodationSummary({
-                  accommodationListing: listing.details,
-                  userPreferences
-                });
-
-                return (
-                  <Card key={listing.id} className="overflow-hidden border-none shadow-sm rounded-[2rem] bg-white group flex flex-col sm:flex-row hover:shadow-lg transition-all duration-300">
-                    <div className="relative w-full sm:w-48 aspect-video sm:aspect-auto shrink-0 overflow-hidden">
-                      {img && (
-                        <Image
-                          src={img.imageUrl}
-                          alt={img.description}
-                          fill
-                          className="object-cover group-hover:scale-105 transition-transform duration-700"
-                          data-ai-hint={img.imageHint}
-                        />
-                      )}
-                      <div className="absolute top-2.5 left-2.5">
-                        <Badge className="bg-white/95 backdrop-blur text-primary font-black px-1.5 py-0.5 rounded-lg border-none shadow-sm flex items-center gap-1 text-[7px] uppercase tracking-wider">
-                          <ShieldCheck className="h-2.5 w-2.5" /> Verified
-                        </Badge>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col flex-1 min-w-0">
-                      <CardHeader className="p-4 pb-2">
-                        <div className="flex justify-between items-start gap-4">
-                          <div className="space-y-0.5 min-w-0">
-                            <CardTitle className="text-sm font-black text-slate-900 group-hover:text-primary transition-colors tracking-tight leading-none truncate">{listing.title}</CardTitle>
-                            <CardDescription className="flex items-center gap-1 font-bold text-slate-400 text-[8px] uppercase tracking-tight truncate">
-                              <MapPin className="h-2 w-2 text-primary" /> {listing.location}
-                            </CardDescription>
-                          </div>
-                          <div className="text-right shrink-0">
-                            <p className="text-base font-black text-primary tracking-tighter leading-none">€{listing.price}</p>
-                            <p className="text-[6px] font-black text-slate-400 uppercase tracking-widest mt-0.5">/ Month</p>
-                          </div>
-                        </div>
-                      </CardHeader>
-
-                      <CardContent className="p-4 pt-0 space-y-3">
-                        <div className="bg-primary/5 p-3 rounded-xl border border-primary/10 relative overflow-hidden">
-                          <p className="text-[7px] font-black text-primary uppercase tracking-[0.2em] mb-1.5 flex items-center gap-1">
-                            <Sparkles className="h-2.5 w-2.5 fill-primary/20" /> AI Insights • {aiSummary.matchScore * 10}% Match
-                          </p>
-                          <p className="text-[10px] font-medium text-slate-600 italic leading-relaxed mb-2 line-clamp-2">
-                            "{aiSummary.summary}"
-                          </p>
-                          <div className="flex flex-wrap gap-1">
-                            {aiSummary.pros.slice(0, 2).map((pro, i) => (
-                              <Badge key={i} className="bg-white text-slate-400 font-bold border-slate-100 rounded-md text-[7px] px-1.5 py-0.5 uppercase tracking-tighter">
-                                {pro}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      </CardContent>
-
-                      <CardFooter className="p-4 pt-0 flex gap-2 mt-auto">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg shrink-0 text-slate-400 hover:text-primary hover:bg-primary/5 border border-slate-100" asChild>
-                          <Link href="/messages"><MessagesSquare className="h-4 w-4" /></Link>
-                        </Button>
-                        <Button variant="ghost" className="h-8 rounded-lg flex-1 font-black text-[9px] text-slate-400 hover:text-primary hover:bg-slate-50 uppercase tracking-widest" asChild>
-                          <Link href="/dashboard">Details</Link>
-                        </Button>
-                        <Button className="h-8 rounded-lg flex-1 font-black text-[9px] shadow-md shadow-primary/20 uppercase tracking-widest" asChild>
-                          <Link href="/dashboard">Request Booking</Link>
-                        </Button>
-                      </CardFooter>
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
+            <AccommodationListings />
           </div>
         </div>
       </div>
