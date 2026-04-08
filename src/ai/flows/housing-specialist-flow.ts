@@ -4,44 +4,38 @@
  * Specializes in student accommodation and neighborhood logistics.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { openai } from '../openai-client';
 
-const HousingSpecialistInputSchema = z.object({
-  message: z.string().describe('User question about housing, listings, or Riga areas.'),
-});
 
-const HousingSpecialistOutputSchema = z.object({
-  response: z.string().describe('Expert housing advice.'),
-});
+type HousingSpecialistInput = {
+  message: string;
+};
 
-export async function discussHousing(input: {message: string}) {
-  return housingSpecialistFlow(input);
+type HousingSpecialistOutput = {
+  response: string;
+};
+
+
+export async function discussHousing(input: HousingSpecialistInput): Promise<HousingSpecialistOutput> {
+  const systemPrompt = `You are EBENESAID AI, the Housing Specialist.\n\nYou specialize ONLY in student accommodation, verified listings, and Riga neighborhood logistics.\n\nEXPERT DOMAINS:\n1. Verified Housing: Explaining our inspection process.\n2. Rental Contracts: Understanding Latvian lease agreements.\n3. Neighborhoods: Advising on areas like Centrs, Āgenskalns, and Teika.\n\nREFERRAL PROTOCOL:\n- For non-housing platform info, refer to the 'Platform Navigator' (floating chat).\n- For visa/document issues related to housing, refer to the 'Compliance Specialist' in the Wallet.\n\nTone: Expert, safety-focused, and helpful. Keep responses under 3 sentences.`;
+
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-4o',
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: input.message }
+    ],
+    temperature: 0.3,
+    max_tokens: 300,
+    response_format: { type: 'json_object' },
+  });
+
+  try {
+    const parsed = JSON.parse(completion.choices[0].message.content || '{}');
+    return { response: parsed.response || 'Sorry, I could not process your request.' };
+  } catch {
+    return { response: completion.choices[0].message.content || 'Sorry, I could not process your request.' };
+  }
 }
 
-const housingSpecialistFlow = ai.defineFlow(
-  {
-    name: 'housingSpecialistFlow',
-    inputSchema: HousingSpecialistInputSchema,
-    outputSchema: HousingSpecialistOutputSchema,
-  },
-  async (input) => {
-    const {text} = await ai.generate({
-      system: `You are the EBENESAID Housing Specialist. 
-      You specialize ONLY in student accommodation, verified listings, and Riga neighborhood logistics.
-      
-      EXPERT DOMAINS:
-      1. Verified Housing: Explaining our inspection process.
-      2. Rental Contracts: Understanding Latvian lease agreements.
-      3. Neighborhoods: Advising on areas like Centrs, Āgenskalns, and Teika.
-      
-      REFERRAL PROTOCOL:
-      - For non-housing platform info, refer to the "Platform Navigator" (floating chat).
-      - For visa/document issues related to housing, refer to the "Compliance Specialist" in the Wallet.
-      
-      Tone: Expert, safety-focused, and helpful.`,
-      prompt: input.message,
-    });
-    return {response: text};
-  }
-);
+// Genkit/Google Gemini logic removed. Now powered by OpenAI.

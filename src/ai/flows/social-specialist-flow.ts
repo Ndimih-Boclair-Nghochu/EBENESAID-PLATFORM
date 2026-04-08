@@ -4,44 +4,38 @@
  * Specializes in student community, networking, and cultural integration in Latvia.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { openai } from '../openai-client';
 
-const SocialSpecialistInputSchema = z.object({
-  message: z.string().describe('User question about community, events, or meeting people.'),
-});
 
-const SocialSpecialistOutputSchema = z.object({
-  response: z.string().describe('Expert social guidance.'),
-});
+type SocialSpecialistInput = {
+  message: string;
+};
 
-export async function discussCommunity(input: {message: string}) {
-  return socialSpecialistFlow(input);
+type SocialSpecialistOutput = {
+  response: string;
+};
+
+
+export async function discussCommunity(input: SocialSpecialistInput): Promise<SocialSpecialistOutput> {
+  const systemPrompt = `You are EBENESAID AI, the Social Specialist.\n\nYou specialize ONLY in community building, student networking, and cultural adjustment for international students in Latvia.\n\nEXPERT DOMAINS:\n1. Student Circles: Finding the right community groups (West African, Indian, IT, etc.).\n2. Local Events: Recommending hotspots like Kaņepes Kultūras centrs or Vērmanes Garden.\n3. Buddy Matching: Explaining how our AI peer-matching algorithm works based on origin and university.\n\nREFERRAL PROTOCOL:\n- For job networking, refer to the 'Career Specialist' in the Jobs tab.\n- For finding roommates specifically for housing, refer to the 'Housing Specialist'.\n\nTone: Warm, inclusive, and encouraging. Keep responses focused on community building.`;
+
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-4o',
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: input.message }
+    ],
+    temperature: 0.3,
+    max_tokens: 300,
+    response_format: { type: 'json_object' },
+  });
+
+  try {
+    const parsed = JSON.parse(completion.choices[0].message.content || '{}');
+    return { response: parsed.response || 'Sorry, I could not process your request.' };
+  } catch {
+    return { response: completion.choices[0].message.content || 'Sorry, I could not process your request.' };
+  }
 }
 
-const socialSpecialistFlow = ai.defineFlow(
-  {
-    name: 'socialSpecialistFlow',
-    inputSchema: SocialSpecialistInputSchema,
-    outputSchema: SocialSpecialistOutputSchema,
-  },
-  async (input) => {
-    const {text} = await ai.generate({
-      system: `You are the EBENESAID Social Specialist. 
-      You specialize ONLY in community building, student networking, and cultural adjustment for international students in Latvia.
-      
-      EXPERT DOMAINS:
-      1. Student Circles: Finding the right community groups (West African, Indian, IT, etc.).
-      2. Local Events: Recommending hotspots like Kaņepes Kultūras centrs or Vērmanes Garden.
-      3. Buddy Matching: Explaining how our AI peer-matching algorithm works based on origin and university.
-      
-      REFERRAL PROTOCOL:
-      - For job networking, refer to the "Career Specialist" in the Jobs tab.
-      - For finding roommates specifically for housing, refer to the "Housing Specialist".
-      
-      Tone: Warm, inclusive, and encouraging. Keep responses focused on community building.`,
-      prompt: input.message,
-    });
-    return {response: text};
-  }
-);
+// Genkit/Google Gemini logic removed. Now powered by OpenAI.

@@ -4,53 +4,45 @@
  * Handles general inquiries and directs users to specialized modules with direct links.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { openai } from '../openai-client';
 
-const EbenesaidInfoInputSchema = z.object({
-  message: z.string().describe('The user\'s message about the platform or navigation.'),
-});
 
-const EbenesaidInfoOutputSchema = z.object({
-  response: z.string().describe('The AI\'s response providing guidance or referral.'),
-  links: z.array(z.object({
-    title: z.string().describe('The display title of the link.'),
-    path: z.string().describe('The relative path to the page (e.g., "/accommodation").'),
-  })).optional().describe('Direct navigation links relevant to the user\'s inquiry.'),
-});
+type EbenesaidInfoInput = {
+  message: string;
+};
 
-export async function ebenesaidInfo(input: {message: string}) {
-  return ebenesaidInfoFlow(input);
+type EbenesaidInfoOutput = {
+  response: string;
+  links?: { title: string; path: string }[];
+};
+
+
+export async function ebenesaidInfo(input: EbenesaidInfoInput): Promise<EbenesaidInfoOutput> {
+  const systemPrompt = `You are EBENESAID AI, the Platform Navigator.\n\nYour specialty is helping users navigate the EBENESAID OS, finding features, and staying updated on platform news.\n\nKEY RESPONSIBILITIES:\n1. Explain WHAT EBENESAID is (The Global OS for International Students).\n2. Help users find specific modules: Housing, Docs, Jobs, Circle.\n3. Inform users that detailed AI specialist guidance is exclusively available in the Admin Ops Console for platform operators.\n\nNAVIGATIONAL MAPPING (Strictly use these paths):\n- Dashboard -> /dashboard\n- Housing/Accommodation -> /accommodation\n- Wallet/Documents/Docs -> /docs\n- Job Board/Jobs/Employment -> /jobs\n- Student Circle/Community/Social -> /community\n\nOutput the 'links' array whenever the user is looking for or asking about a specific section mentioned in the mapping.\n\nTone: Efficient, knowledgeable, and professional. Keep responses under 3 sentences.`;
+
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-4o',
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: input.message }
+    ],
+    temperature: 0.3,
+    max_tokens: 300,
+    response_format: { type: 'json_object' },
+  });
+
+  // The OpenAI response will be a JSON object with 'response' and optional 'links'.
+  try {
+    const parsed = JSON.parse(completion.choices[0].message.content || '{}');
+    return {
+      response: parsed.response || 'Sorry, I could not process your request.',
+      links: parsed.links,
+    };
+  } catch {
+    return {
+      response: completion.choices[0].message.content || 'Sorry, I could not process your request.',
+    };
+  }
 }
 
-const ebenesaidInfoFlow = ai.defineFlow(
-  {
-    name: 'ebenesaidInfoFlow',
-    inputSchema: EbenesaidInfoInputSchema,
-    outputSchema: EbenesaidInfoOutputSchema,
-  },
-  async (input) => {
-    const {output} = await ai.generate({
-      system: `You are the EBENESAID Platform Navigator. 
-      Your specialty is helping users navigate the EBENESAID OS, finding features, and staying updated on platform news.
-      
-      KEY RESPONSIBILITIES:
-      1. Explain WHAT EBENESAID is (The Global OS for International Students).
-      2. Help users find specific modules: Housing, Docs, Jobs, Circle.
-      3. Inform users that detailed AI specialist guidance is exclusively available in the Admin Ops Console for platform operators.
-      
-      NAVIGATIONAL MAPPING (Strictly use these paths):
-      - Dashboard -> /dashboard
-      - Housing/Accommodation -> /accommodation
-      - Wallet/Documents/Docs -> /docs
-      - Job Board/Jobs/Employment -> /jobs
-      - Student Circle/Community/Social -> /community
-      
-      Output the 'links' array whenever the user is looking for or asking about a specific section mentioned in the mapping.
-      
-      Tone: Efficient, knowledgeable, and professional. Keep responses under 3 sentences.`,
-      prompt: input.message,
-    });
-    return output!;
-  }
-);
+// Genkit/Google Gemini logic removed. Now powered by OpenAI.

@@ -7,57 +7,54 @@
  * - GeneratePersonalizedRelocationGuidanceOutput - The return type for the generatePersonalizedRelocationGuidance function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { openai } from '../openai-client';
 
-const GeneratePersonalizedRelocationGuidanceInputSchema = z.object({
-  university: z.string().describe('The name of the university the student will attend.'),
-  nationality: z.string().describe('The nationality of the student.'),
-  arrivalStatus: z
-    .string()
-    .describe(
-      'The current arrival status of the student (e.g., "admission received", "visa approved", "arrived in Latvia").'
-    ),
-});
-export type GeneratePersonalizedRelocationGuidanceInput = z.infer<
-  typeof GeneratePersonalizedRelocationGuidanceInputSchema
->;
 
-const GeneratePersonalizedRelocationGuidanceOutputSchema = z.object({
-  checklist: z
-    .array(
-      z.object({
-        task: z.string().describe('A task item in the relocation checklist.'),
-        isCompleted: z.boolean().describe('Whether the task is completed (default to false).'),
-      })
-    )
-    .describe('A personalized checklist of relocation tasks.'),
-  guidance: z.string().describe('Contextual guidance and tips for the relocation process.'),
-});
-export type GeneratePersonalizedRelocationGuidanceOutput = z.infer<
-  typeof GeneratePersonalizedRelocationGuidanceOutputSchema
->;
+export type GeneratePersonalizedRelocationGuidanceInput = {
+  university: string;
+  nationality: string;
+  arrivalStatus: string;
+};
+
+export type GeneratePersonalizedRelocationGuidanceOutput = {
+  checklist: { task: string; isCompleted: boolean }[];
+  guidance: string;
+};
+
 
 export async function generatePersonalizedRelocationGuidance(
   input: GeneratePersonalizedRelocationGuidanceInput
 ): Promise<GeneratePersonalizedRelocationGuidanceOutput> {
-  return personalizedRelocationGuidanceFlow(input);
+  const systemPrompt = `You are EBENESAID AI, the Relocation Strategist.\n\nYour job is to generate a personalized relocation checklist and guidance for international students moving to Latvia.\n\nChecklist should be actionable, step-by-step, and tailored to the student's university, nationality, and arrival status.\n\nOutput JSON with two fields: checklist (array of {task, isCompleted}) and guidance (string with contextual tips).`;
+
+  const userPrompt = `University: ${input.university}\nNationality: ${input.nationality}\nArrival Status: ${input.arrivalStatus}`;
+
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-4o',
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt }
+    ],
+    temperature: 0.3,
+    max_tokens: 500,
+    response_format: { type: 'json_object' },
+  });
+
+  try {
+    const parsed = JSON.parse(completion.choices[0].message.content || '{}');
+    return {
+      checklist: parsed.checklist || [],
+      guidance: parsed.guidance || 'No guidance available.'
+    };
+  } catch {
+    return {
+      checklist: [],
+      guidance: completion.choices[0].message.content || 'Sorry, I could not process your request.'
+    };
+  }
 }
 
-const prompt = ai.definePrompt({
-  name: 'personalizedRelocationGuidancePrompt',
-  input: {schema: GeneratePersonalizedRelocationGuidanceInputSchema},
-  output: {schema: GeneratePersonalizedRelocationGuidanceOutputSchema},
-  config: {
-    safetySettings: [
-      {
-        category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
-        threshold: 'BLOCK_NONE',
-      },
-      {
-        category: 'HARM_CATEGORY_HATE_SPEECH',
-        threshold: 'BLOCK_NONE',
-      },
+// Genkit/Google Gemini logic removed. Now powered by OpenAI.
       {
         category: 'HARM_CATEGORY_HARASSMENT',
         threshold: 'BLOCK_NONE',

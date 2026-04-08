@@ -7,89 +7,60 @@
  * - GenerateAccommodationSummaryOutput - The return type for the generateAccommodationSummary function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { openai } from '../openai-client';
 
-const GenerateAccommodationSummaryInputSchema = z.object({
-  accommodationListing: z.string().describe('The full details of the accommodation listing.'),
-  userPreferences: z
-    .object({
-      universityProximity: z
-        .string()
-        .optional()
-        .describe('User preference for proximity to their university (e.g., "close", "walking distance").'),
-      preferredNationalities: z
-        .array(z.string())
-        .optional()
-        .describe('A list of preferred nationalities for shared accommodation.'),
-      budget: z
-        .string()
-        .optional()
-        .describe('User\'s budget for accommodation (e.g., "€300-€500 per month").'),
-    })
-    .describe('User-specific preferences for accommodation.'),
-});
-export type GenerateAccommodationSummaryInput = z.infer<typeof GenerateAccommodationSummaryInputSchema>;
 
-const GenerateAccommodationSummaryOutputSchema = z.object({
-  summary: z.string().describe('A concise, personalized summary of the accommodation listing.'),
-  pros: z.array(z.string()).describe('A list of advantages of the accommodation relevant to the user.'),
-  cons: z.array(z.string()).describe('A list of disadvantages of the accommodation relevant to the user.'),
-  matchScore: z
-    .number()
-    .min(0)
-    .max(10)
-    .describe('A score from 0-10 indicating how well the accommodation matches the user\'s preferences.'),
-});
-export type GenerateAccommodationSummaryOutput = z.infer<typeof GenerateAccommodationSummaryOutputSchema>;
+export type GenerateAccommodationSummaryInput = {
+  accommodationListing: string;
+  userPreferences: {
+    universityProximity?: string;
+    preferredNationalities?: string[];
+    budget?: string;
+  };
+};
+
+export type GenerateAccommodationSummaryOutput = {
+  summary: string;
+  pros: string[];
+  cons: string[];
+  matchScore: number;
+};
+
 
 export async function generateAccommodationSummary(
   input: GenerateAccommodationSummaryInput
 ): Promise<GenerateAccommodationSummaryOutput> {
-  return generateAccommodationSummaryFlow(input);
+  const systemPrompt = `You are EBENESAID AI, the Accommodation Summary Specialist.\n\nYour task is to analyze an accommodation listing and provide a personalized summary, highlighting its key features, pros, and cons based on the user's specific preferences. Also, provide a match score from 0-10 indicating how well the accommodation fits the user's criteria.\n\nOutput JSON with these fields: summary (string), pros (string[]), cons (string[]), matchScore (number 0-10).`;
+
+  const userPrompt = `--- Accommodation Listing ---\n${input.accommodationListing}\n\n--- User Preferences ---\nUniversity Proximity: ${input.userPreferences.universityProximity || ''}\nPreferred Nationalities: ${(input.userPreferences.preferredNationalities || []).join(', ')}\nBudget: ${input.userPreferences.budget || ''}`;
+
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-4o',
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt }
+    ],
+    temperature: 0.3,
+    max_tokens: 500,
+    response_format: { type: 'json_object' },
+  });
+
+  try {
+    const parsed = JSON.parse(completion.choices[0].message.content || '{}');
+    return {
+      summary: parsed.summary || '',
+      pros: parsed.pros || [],
+      cons: parsed.cons || [],
+      matchScore: typeof parsed.matchScore === 'number' ? parsed.matchScore : 0,
+    };
+  } catch {
+    return {
+      summary: completion.choices[0].message.content || 'Sorry, I could not process your request.',
+      pros: [],
+      cons: [],
+      matchScore: 0,
+    };
+  }
 }
 
-const prompt = ai.definePrompt({
-  name: 'generateAccommodationSummaryPrompt',
-  input: {schema: GenerateAccommodationSummaryInputSchema},
-  output: {schema: GenerateAccommodationSummaryOutputSchema},
-  prompt: `You are an AI assistant helping international students find suitable accommodation.
-
-Your task is to analyze an accommodation listing and provide a personalized summary, highlighting its key features, pros, and cons based on the user's specific preferences.
-Also, provide a match score from 0-10 indicating how well the accommodation fits the user's criteria.
-
---- Accommodation Listing ---
-{{{accommodationListing}}}
-
---- User Preferences ---
-University Proximity: {{{userPreferences.universityProximity}}}
-Preferred Nationalities: {{#each userPreferences.preferredNationalities}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}
-Budget: {{{userPreferences.budget}}}
-
---- Output in JSON format ---
-`,
-});
-
-const generateAccommodationSummaryFlow = ai.defineFlow(
-  {
-    name: 'generateAccommodationSummaryFlow',
-    inputSchema: GenerateAccommodationSummaryInputSchema,
-    outputSchema: GenerateAccommodationSummaryOutputSchema,
-  },
-  async input => {
-    try {
-      const {output} = await prompt(input);
-      if (!output) throw new Error('AI returned no output');
-      return output;
-    } catch (error: any) {
-      console.error('Accommodation Summary Flow Error:', error?.message || error);
-      // Robust Fallback
-      return {
-        summary: "This listing features modern amenities in a strategically located student area.",
-        pros: ["Physically verified", "Student-focused area"],
-        cons: ["High demand"],
-        matchScore: 8
-      };
-    }
-  }
-);
+// Genkit/Google Gemini logic removed. Now powered by OpenAI.

@@ -4,45 +4,38 @@
  * Specializes in account configuration, GDPR compliance, and platform security.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { openai } from '../openai-client';
 
-const SettingsSpecialistInputSchema = z.object({
-  message: z.string().describe('User question about their account, privacy, or settings.'),
-});
 
-const SettingsSpecialistOutputSchema = z.object({
-  response: z.string().describe('Expert configuration guidance.'),
-});
+type SettingsSpecialistInput = {
+  message: string;
+};
 
-export async function discussSettings(input: {message: string}) {
-  return settingsSpecialistFlow(input);
+type SettingsSpecialistOutput = {
+  response: string;
+};
+
+
+export async function discussSettings(input: SettingsSpecialistInput): Promise<SettingsSpecialistOutput> {
+  const systemPrompt = `You are EBENESAID AI, the Settings Specialist.\n\nYou specialize ONLY in account management, system configuration, security protocols, and GDPR compliance.\n\nEXPERT DOMAINS:\n1. GDPR & Privacy: Explaining how user data is stored in EU shards.\n2. Institutional Sync: Guidance on updating university or nationality data.\n3. Notification Nodes: Helping users configure automated Email and SMS/WhatsApp alerts for relocation tasks.\n4. Security: Advice on session management and two-factor authentication.\n\nREFERRAL PROTOCOL:\n- For relocation tasks, refer to the 'Relocation Strategist' on the Dashboard.\n- For housing issues, refer to the 'Housing Specialist' in the Housing tab.\n\nTone: Technical, secure, and helpful. Keep responses under 3 sentences.`;
+
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-4o',
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: input.message }
+    ],
+    temperature: 0.3,
+    max_tokens: 300,
+    response_format: { type: 'json_object' },
+  });
+
+  try {
+    const parsed = JSON.parse(completion.choices[0].message.content || '{}');
+    return { response: parsed.response || 'Sorry, I could not process your request.' };
+  } catch {
+    return { response: completion.choices[0].message.content || 'Sorry, I could not process your request.' };
+  }
 }
 
-const settingsSpecialistFlow = ai.defineFlow(
-  {
-    name: 'settingsSpecialistFlow',
-    inputSchema: SettingsSpecialistInputSchema,
-    outputSchema: SettingsSpecialistOutputSchema,
-  },
-  async (input) => {
-    const {text} = await ai.generate({
-      system: `You are the EBENESAID Settings Specialist. 
-      You specialize ONLY in account management, system configuration, security protocols, and GDPR compliance.
-      
-      EXPERT DOMAINS:
-      1. GDPR & Privacy: Explaining how user data is stored in EU shards.
-      2. Institutional Sync: Guidance on updating university or nationality data.
-      3. Notification Nodes: Helping users configure automated Email and SMS/WhatsApp alerts for relocation tasks.
-      4. Security: Advice on session management and two-factor authentication.
-      
-      REFERRAL PROTOCOL:
-      - For relocation tasks, refer to the "Relocation Strategist" on the Dashboard.
-      - For housing issues, refer to the "Housing Specialist" in the Housing tab.
-      
-      Tone: Technical, secure, and helpful. Keep responses under 3 sentences.`,
-      prompt: input.message,
-    });
-    return {response: text};
-  }
-);
+// Genkit/Google Gemini logic removed. Now powered by OpenAI.
