@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if email already exists
-    const existingUser = getUserByEmail(email);
+    const existingUser = await getUserByEmail(email);
     if (existingUser) {
       return NextResponse.json(
         { error: 'An account with this email already exists. Please sign in instead.' },
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create user (only students can self-register)
-    const user = createUser({
+    const user = await createUser({
       email,
       password,
       firstName,
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Create session
-    const session = createSession(user.id);
+    const session = await createSession(user.id);
 
     // Set session cookie
     const response = NextResponse.json(
