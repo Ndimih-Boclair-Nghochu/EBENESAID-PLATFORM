@@ -458,8 +458,11 @@ export async function createSession(userId: number): Promise<{ token: string; ex
 
 export async function getSessionByToken(token: string): Promise<{ user_id: number; expires_at: string } | undefined> {
   // Clean expired sessions
-  await pool.query('DELETE FROM sessions WHERE expires_at < NOW()');
-  const result = await pool.query('SELECT user_id, expires_at FROM sessions WHERE token = $1 AND expires_at > NOW()', [token]);
+  await pool.query("DELETE FROM sessions WHERE expires_at::timestamptz < NOW()");
+  const result = await pool.query(
+    "SELECT user_id, expires_at FROM sessions WHERE token = $1 AND expires_at::timestamptz > NOW()",
+    [token]
+  );
   return result.rows[0];
 }
 
