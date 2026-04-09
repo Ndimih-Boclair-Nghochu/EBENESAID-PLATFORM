@@ -88,6 +88,22 @@ export interface StudentDashboardData {
   guidance: string;
 }
 
+export interface PropertyListing {
+  id: number;
+  title: string;
+  location: string;
+  price: number;
+  type: string;
+  status: string;
+  details: string;
+  imageUrl: string;
+  leads: number;
+  trustScore: number;
+  createdByUserId: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export function toSafeUser(dbUser: DbUser): SafeUser {
   return {
     id: dbUser.id,
@@ -205,6 +221,24 @@ async function ensurePlatformTables(): Promise<void> {
         CREATE UNIQUE INDEX IF NOT EXISTS student_dashboard_tasks_user_title_idx
         ON student_dashboard_tasks (user_id, title)
       `);
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS property_listings (
+          id SERIAL PRIMARY KEY,
+          title TEXT NOT NULL,
+          location TEXT NOT NULL,
+          price NUMERIC(10, 2) NOT NULL,
+          type TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'Pending',
+          details TEXT NOT NULL,
+          image_url TEXT NOT NULL,
+          leads INTEGER NOT NULL DEFAULT 0,
+          trust_score INTEGER NOT NULL DEFAULT 50,
+          created_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+      `);
     })().catch(error => {
       schemaReady = null;
       throw error;
@@ -212,6 +246,224 @@ async function ensurePlatformTables(): Promise<void> {
   }
 
   await schemaReady;
+}
+
+type ListingSeed = {
+  title: string;
+  location: string;
+  price: number;
+  type: string;
+  status: string;
+  details: string;
+  imageUrl: string;
+  leads: number;
+  trustScore: number;
+};
+
+const defaultPropertyListings: ListingSeed[] = [
+  {
+    title: 'Premium Riga Center Studio',
+    location: 'K. Valdemara iela, Riga',
+    price: 380,
+    type: 'Studio',
+    status: 'Verified',
+    details: 'Luxury student studio in a historic building. Fully furnished, 24sqm, five minutes from the University of Latvia with utilities averaging EUR 80 per month.',
+    imageUrl: 'https://picsum.photos/seed/apt-verified-1/900/700',
+    leads: 12,
+    trustScore: 92,
+  },
+  {
+    title: 'International Student Hub',
+    location: 'Zunda krastmala, Riga',
+    price: 270,
+    type: 'Shared Room',
+    status: 'Verified',
+    details: 'Modern shared apartment near RTU with a private bedroom, all bills included, and a strong student community atmosphere.',
+    imageUrl: 'https://picsum.photos/seed/apt-verified-2/900/700',
+    leads: 8,
+    trustScore: 88,
+  },
+  {
+    title: 'Modern Old Town Apartment',
+    location: 'Kalku iela, Riga',
+    price: 450,
+    type: 'Whole Apartment',
+    status: 'Pending',
+    details: 'Bright central apartment with updated kitchen, flexible lease options, and quick access to transport, cafes, and student services.',
+    imageUrl: 'https://picsum.photos/seed/apt-verified-3/900/700',
+    leads: 4,
+    trustScore: 74,
+  },
+];
+
+function toPropertyListing(row: {
+  id: number;
+  title: string;
+  location: string;
+  price: string | number;
+  type: string;
+  status: string;
+  details: string;
+  image_url: string;
+  leads: number;
+  trust_score: number;
+  created_by_user_id: number | null;
+  created_at: string;
+  updated_at: string;
+}): PropertyListing {
+  return {
+    id: row.id,
+    title: row.title,
+    location: row.location,
+    price: Number(row.price),
+    type: row.type,
+    status: row.status,
+    details: row.details,
+    imageUrl: row.image_url,
+    leads: row.leads,
+    trustScore: row.trust_score,
+    createdByUserId: row.created_by_user_id,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+async function seedPropertyListings(): Promise<void> {
+  await ensurePlatformTables();
+
+  const existing = await pool.query('SELECT COUNT(*)::int AS count FROM property_listings');
+  if ((existing.rows[0]?.count ?? 0) > 0) {
+    return;
+  }
+
+  for (const listing of defaultPropertyListings) {
+    await pool.query(
+      `INSERT INTO property_listings
+       (title, location, price, type, status, details, image_url, leads, trust_score)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      [
+        listing.title,
+        listing.location,
+        listing.price,
+        listing.type,
+        listing.status,
+        listing.details,
+        listing.imageUrl,
+        listing.leads,
+        listing.trustScore,
+      ]
+    );
+  }
+}
+
+export async function getPropertyListings(options?: {
+  createdByUserId?: number;
+  includePending?: boolean;
+}): Promise<PropertyListing[]> {
+  await seedPropertyListings();
+
+  const conditions: string[] = [];
+  const values: Array<number | string | boolean> = [];
+
+  if (options?.createdByUserId) {
+    values.push(options.createdByUserId);
+    conditions.push(`created_by_user_id = $${values.length}`);
+  }
+
+  if (!options?.includePending) {
+    conditions.push(`status = 'Verified'`);
+  }
+
+  const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+  const result = await pool.query(
+    `SELECT id, title, location, price, type, status, details, image_url, leads, trust_score, created_by_user_id, created_at, updated_at
+     FROM property_listings
+     ${whereClause}
+     ORDER BY updated_at DESC, id DESC`
+  );
+
+  return result.rows.map(toPropertyListing);
+}
+
+export async function createPropertyListing(data: {
+  title: string;
+  location: string;
+  price: number;
+  type: string;
+  status?: string;
+  details: string;
+  imageUrl: string;
+  createdByUserId?: number | null;
+}): Promise<PropertyListing> {
+  await ensurePlatformTables();
+
+  const result = await pool.query(
+    `INSERT INTO property_listings
+     (title, location, price, type, status, details, image_url, leads, trust_score, created_by_user_id, created_at, updated_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, 0, 70, $8, NOW(), NOW())
+     RETURNING id, title, location, price, type, status, details, image_url, leads, trust_score, created_by_user_id, created_at, updated_at`,
+    [
+      data.title.trim(),
+      data.location.trim(),
+      data.price,
+      data.type.trim(),
+      data.status?.trim() || 'Pending',
+      data.details.trim(),
+      data.imageUrl.trim(),
+      data.createdByUserId ?? null,
+    ]
+  );
+
+  return toPropertyListing(result.rows[0]);
+}
+
+export async function updatePropertyListing(
+  listingId: number,
+  data: {
+    title: string;
+    location: string;
+    price: number;
+    type: string;
+    status: string;
+    details: string;
+    imageUrl: string;
+  }
+): Promise<PropertyListing | undefined> {
+  await ensurePlatformTables();
+
+  const result = await pool.query(
+    `UPDATE property_listings
+     SET title = $2,
+         location = $3,
+         price = $4,
+         type = $5,
+         status = $6,
+         details = $7,
+         image_url = $8,
+         updated_at = NOW()
+     WHERE id = $1
+     RETURNING id, title, location, price, type, status, details, image_url, leads, trust_score, created_by_user_id, created_at, updated_at`,
+    [
+      listingId,
+      data.title.trim(),
+      data.location.trim(),
+      data.price,
+      data.type.trim(),
+      data.status.trim(),
+      data.details.trim(),
+      data.imageUrl.trim(),
+    ]
+  );
+
+  const row = result.rows[0];
+  return row ? toPropertyListing(row) : undefined;
+}
+
+export async function deletePropertyListing(listingId: number): Promise<boolean> {
+  await ensurePlatformTables();
+
+  const result = await pool.query('DELETE FROM property_listings WHERE id = $1', [listingId]);
+  return (result.rowCount ?? 0) > 0;
 }
 
 function toStudentDashboardTask(row: {
