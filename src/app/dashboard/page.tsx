@@ -45,6 +45,19 @@ type DashboardTask = {
   href: string;
 };
 
+async function readJsonSafely<T>(response: Response): Promise<T | null> {
+  const text = await response.text();
+  if (!text) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return null;
+  }
+}
+
 const categoryColors: Record<string, string> = {
   Housing: "bg-green-50 text-green-700 border-green-100",
   Logistics: "bg-violet-50 text-violet-700 border-violet-100",
@@ -95,15 +108,15 @@ export default function DashboardPage() {
       try {
         setIsDashboardLoading(true);
         const res = await fetch("/api/dashboard", { credentials: "include" });
-        const data = await res.json();
+        const data = await readJsonSafely<{ tasks?: DashboardTask[]; guidance?: string; error?: string }>(res);
 
         if (!res.ok) {
-          throw new Error(data.error || "Failed to load dashboard.");
+          throw new Error(data?.error || "Failed to load dashboard.");
         }
 
         if (isMounted) {
-          setTasks(data.tasks ?? []);
-          setGuidance(data.guidance ?? "");
+          setTasks(data?.tasks ?? []);
+          setGuidance(data?.guidance ?? "");
           setDashboardError(null);
         }
       } catch (error) {
@@ -150,14 +163,14 @@ export default function DashboardPage() {
         credentials: "include",
         body: JSON.stringify({ taskId: id, done: nextDone }),
       });
-      const data = await res.json();
+      const data = await readJsonSafely<{ tasks?: DashboardTask[]; guidance?: string; error?: string }>(res);
 
       if (!res.ok) {
-        throw new Error(data.error || "Failed to update task.");
+        throw new Error(data?.error || "Failed to update task.");
       }
 
-      setTasks(data.tasks ?? []);
-      setGuidance(data.guidance ?? "");
+      setTasks(data?.tasks ?? []);
+      setGuidance(data?.guidance ?? "");
     } catch (error) {
       setTasks(prev => prev.map(task => task.id === id ? { ...task, done: !nextDone } : task));
       setDashboardError(error instanceof Error ? error.message : "Failed to update task.");

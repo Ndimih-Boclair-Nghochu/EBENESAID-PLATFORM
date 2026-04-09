@@ -45,6 +45,19 @@ export interface RegisterData {
 
 const AuthContext = createContext<AuthContextState | undefined>(undefined);
 
+async function readJsonSafely<T>(response: Response): Promise<T | null> {
+  const text = await response.text();
+  if (!text) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return null;
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -55,9 +68,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshUser = useCallback(async () => {
     try {
       const res = await fetch('/api/auth/me', { credentials: 'include' });
+      const data = await readJsonSafely<{ user?: AuthUser }>(res);
       if (res.ok) {
-        const data = await res.json();
-        setUser(data.user);
+        setUser(data?.user ?? null);
         setError(null);
       } else {
         setUser(null);
@@ -83,9 +96,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await res.json();
+      const data = await readJsonSafely<{ user?: AuthUser; error?: string }>(res);
 
-      if (res.ok) {
+      if (res.ok && data?.user) {
         setUser(data.user);
         // Check if this is the user's first login (lastLoginAt is null means account was just created
         // or first real login)
@@ -94,8 +107,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         return { success: true };
       } else {
-        setError(data.error);
-        return { success: false, error: data.error };
+        const error = data?.error || 'Login failed. Please try again.';
+        setError(error);
+        return { success: false, error };
       }
     } catch {
       const msg = 'Network error. Please check your connection.';
@@ -114,15 +128,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify(data),
       });
 
-      const responseData = await res.json();
+      const responseData = await readJsonSafely<{ user?: AuthUser; error?: string }>(res);
 
-      if (res.ok) {
+      if (res.ok && responseData?.user) {
         setUser(responseData.user);
         setIsFirstLogin(true); // New registration is always first login
         return { success: true };
       } else {
-        setError(responseData.error);
-        return { success: false, error: responseData.error };
+        const error = responseData?.error || 'Registration failed. Please try again.';
+        setError(error);
+        return { success: false, error };
       }
     } catch {
       const msg = 'Network error. Please check your connection.';
