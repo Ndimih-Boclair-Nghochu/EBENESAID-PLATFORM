@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { LogOut, Save, Settings as SettingsIcon, ShieldCheck } from "lucide-react";
+import { CreditCard, LogOut, Save, Settings as SettingsIcon, ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { discussSettings } from "@/ai/flows/settings-specialist-flow";
@@ -148,6 +148,11 @@ export default function SettingsPage() {
               <p className="mt-4 text-sm text-slate-300">
                 Signed in as {form.email || "student account"}.
               </p>
+              <Button variant="outline" className="mt-4 w-full rounded-xl border-white/10 text-white hover:bg-white hover:text-green-900" asChild>
+                <Link href="/billing">
+                  <CreditCard className="mr-2 h-4 w-4" /> Open Billing
+                </Link>
+              </Button>
               <Button variant="outline" onClick={handleLogout} className="mt-6 w-full rounded-xl border-red-900/20 text-red-400 hover:bg-red-50 hover:text-red-500">
                 <LogOut className="mr-2 h-4 w-4" /> Sign Out
               </Button>

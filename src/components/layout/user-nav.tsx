@@ -102,7 +102,7 @@ export function UserNav() {
             <ShieldCheck className="h-4 w-4 text-slate-400" /> Verification Status
           </DropdownMenuItem>
           <DropdownMenuItem
-            onSelect={() => handleNavigate('/settings')}
+            onSelect={() => handleNavigate('/billing')}
             className="rounded-xl px-3 py-2.5 font-bold hover:bg-slate-50 cursor-pointer transition-colors gap-2 text-xs"
           >
             <CreditCard className="h-4 w-4 text-slate-400" /> Billing

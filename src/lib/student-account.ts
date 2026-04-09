@@ -99,6 +99,27 @@ export type SupportMessage = {
   content: string;
 };
 
+export type StudentBillingProfile = {
+  billingName: string;
+  billingEmail: string;
+  billingPhone: string;
+  billingCountry: string;
+  billingCurrency: string;
+  billingAddress: string;
+  providerPreference: 'stripe' | 'flutterwave';
+  stripeCustomerEmail: string;
+  stripeCustomerId: string;
+  stripePaymentMethodLabel: string;
+  stripeCheckoutMode: string;
+  flutterwaveCustomerEmail: string;
+  flutterwaveCustomerId: string;
+  flutterwavePaymentMethod: string;
+  flutterwaveMobileMoneyProvider: string;
+  flutterwaveReference: string;
+  invoiceEmail: string;
+  autoRenew: boolean;
+};
+
 let studentSchemaReady: Promise<void> | null = null;
 
 async function ensureStudentTables() {
@@ -241,6 +262,33 @@ async function ensureStudentTables() {
           role TEXT NOT NULL,
           content TEXT NOT NULL,
           created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+      `);
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS student_billing_profiles (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+          billing_name TEXT NOT NULL DEFAULT '',
+          billing_email TEXT NOT NULL DEFAULT '',
+          billing_phone TEXT NOT NULL DEFAULT '',
+          billing_country TEXT NOT NULL DEFAULT '',
+          billing_currency TEXT NOT NULL DEFAULT 'EUR',
+          billing_address TEXT NOT NULL DEFAULT '',
+          provider_preference TEXT NOT NULL DEFAULT 'stripe',
+          stripe_customer_email TEXT NOT NULL DEFAULT '',
+          stripe_customer_id TEXT NOT NULL DEFAULT '',
+          stripe_payment_method_label TEXT NOT NULL DEFAULT '',
+          stripe_checkout_mode TEXT NOT NULL DEFAULT 'card',
+          flutterwave_customer_email TEXT NOT NULL DEFAULT '',
+          flutterwave_customer_id TEXT NOT NULL DEFAULT '',
+          flutterwave_payment_method TEXT NOT NULL DEFAULT 'card',
+          flutterwave_mobile_money_provider TEXT NOT NULL DEFAULT '',
+          flutterwave_reference TEXT NOT NULL DEFAULT '',
+          invoice_email TEXT NOT NULL DEFAULT '',
+          auto_renew BOOLEAN NOT NULL DEFAULT FALSE,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         );
       `);
     })().catch(error => {
@@ -554,6 +602,116 @@ export async function createSupportMessage(user: SafeUser, content: string) {
       'Thanks for contacting support. A team member will review your request and follow up shortly.',
     ]
   );
+}
+
+function toBillingProfile(
+  user: SafeUser,
+  row?: Record<string, unknown>
+): StudentBillingProfile {
+  return {
+    billingName: String(row?.billing_name ?? `${user.firstName} ${user.lastName}`.trim()),
+    billingEmail: String(row?.billing_email ?? user.email ?? ''),
+    billingPhone: String(row?.billing_phone ?? user.phone ?? ''),
+    billingCountry: String(row?.billing_country ?? user.countryOfOrigin ?? ''),
+    billingCurrency: String(row?.billing_currency ?? 'EUR'),
+    billingAddress: String(row?.billing_address ?? ''),
+    providerPreference: String(row?.provider_preference ?? 'stripe') === 'flutterwave' ? 'flutterwave' : 'stripe',
+    stripeCustomerEmail: String(row?.stripe_customer_email ?? user.email ?? ''),
+    stripeCustomerId: String(row?.stripe_customer_id ?? ''),
+    stripePaymentMethodLabel: String(row?.stripe_payment_method_label ?? ''),
+    stripeCheckoutMode: String(row?.stripe_checkout_mode ?? 'card'),
+    flutterwaveCustomerEmail: String(row?.flutterwave_customer_email ?? user.email ?? ''),
+    flutterwaveCustomerId: String(row?.flutterwave_customer_id ?? ''),
+    flutterwavePaymentMethod: String(row?.flutterwave_payment_method ?? 'card'),
+    flutterwaveMobileMoneyProvider: String(row?.flutterwave_mobile_money_provider ?? ''),
+    flutterwaveReference: String(row?.flutterwave_reference ?? ''),
+    invoiceEmail: String(row?.invoice_email ?? user.email ?? ''),
+    autoRenew: Boolean(row?.auto_renew ?? false),
+  };
+}
+
+export async function getStudentBillingProfile(user: SafeUser): Promise<StudentBillingProfile> {
+  await ensureStudentDataTables();
+  const result = await pool.query(
+    `SELECT billing_name, billing_email, billing_phone, billing_country, billing_currency, billing_address,
+            provider_preference, stripe_customer_email, stripe_customer_id, stripe_payment_method_label, stripe_checkout_mode,
+            flutterwave_customer_email, flutterwave_customer_id, flutterwave_payment_method, flutterwave_mobile_money_provider,
+            flutterwave_reference, invoice_email, auto_renew
+     FROM student_billing_profiles
+     WHERE user_id = $1`,
+    [user.id]
+  );
+
+  return toBillingProfile(user, result.rows[0]);
+}
+
+export async function updateStudentBillingProfile(
+  user: SafeUser,
+  data: StudentBillingProfile
+): Promise<StudentBillingProfile> {
+  await ensureStudentDataTables();
+  const result = await pool.query(
+    `INSERT INTO student_billing_profiles (
+        user_id, billing_name, billing_email, billing_phone, billing_country, billing_currency, billing_address,
+        provider_preference, stripe_customer_email, stripe_customer_id, stripe_payment_method_label, stripe_checkout_mode,
+        flutterwave_customer_email, flutterwave_customer_id, flutterwave_payment_method, flutterwave_mobile_money_provider,
+        flutterwave_reference, invoice_email, auto_renew, updated_at
+      )
+      VALUES (
+        $1, $2, $3, $4, $5, $6, $7,
+        $8, $9, $10, $11, $12,
+        $13, $14, $15, $16,
+        $17, $18, $19, NOW()
+      )
+      ON CONFLICT (user_id)
+      DO UPDATE SET
+        billing_name = EXCLUDED.billing_name,
+        billing_email = EXCLUDED.billing_email,
+        billing_phone = EXCLUDED.billing_phone,
+        billing_country = EXCLUDED.billing_country,
+        billing_currency = EXCLUDED.billing_currency,
+        billing_address = EXCLUDED.billing_address,
+        provider_preference = EXCLUDED.provider_preference,
+        stripe_customer_email = EXCLUDED.stripe_customer_email,
+        stripe_customer_id = EXCLUDED.stripe_customer_id,
+        stripe_payment_method_label = EXCLUDED.stripe_payment_method_label,
+        stripe_checkout_mode = EXCLUDED.stripe_checkout_mode,
+        flutterwave_customer_email = EXCLUDED.flutterwave_customer_email,
+        flutterwave_customer_id = EXCLUDED.flutterwave_customer_id,
+        flutterwave_payment_method = EXCLUDED.flutterwave_payment_method,
+        flutterwave_mobile_money_provider = EXCLUDED.flutterwave_mobile_money_provider,
+        flutterwave_reference = EXCLUDED.flutterwave_reference,
+        invoice_email = EXCLUDED.invoice_email,
+        auto_renew = EXCLUDED.auto_renew,
+        updated_at = NOW()
+      RETURNING billing_name, billing_email, billing_phone, billing_country, billing_currency, billing_address,
+                provider_preference, stripe_customer_email, stripe_customer_id, stripe_payment_method_label, stripe_checkout_mode,
+                flutterwave_customer_email, flutterwave_customer_id, flutterwave_payment_method, flutterwave_mobile_money_provider,
+                flutterwave_reference, invoice_email, auto_renew`,
+    [
+      user.id,
+      data.billingName.trim(),
+      data.billingEmail.trim().toLowerCase(),
+      data.billingPhone.trim(),
+      data.billingCountry.trim(),
+      data.billingCurrency.trim().toUpperCase(),
+      data.billingAddress.trim(),
+      data.providerPreference === 'flutterwave' ? 'flutterwave' : 'stripe',
+      data.stripeCustomerEmail.trim().toLowerCase(),
+      data.stripeCustomerId.trim(),
+      data.stripePaymentMethodLabel.trim(),
+      data.stripeCheckoutMode.trim(),
+      data.flutterwaveCustomerEmail.trim().toLowerCase(),
+      data.flutterwaveCustomerId.trim(),
+      data.flutterwavePaymentMethod.trim(),
+      data.flutterwaveMobileMoneyProvider.trim(),
+      data.flutterwaveReference.trim(),
+      data.invoiceEmail.trim().toLowerCase(),
+      data.autoRenew,
+    ]
+  );
+
+  return toBillingProfile(user, result.rows[0]);
 }
 
 export async function updateStudentProfile(

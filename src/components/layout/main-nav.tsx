@@ -32,7 +32,8 @@ import {
   MessagesSquare,
   Navigation,
   Car,
-  Clock
+  Clock,
+  CreditCard
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuthContext } from "@/auth/provider";
@@ -197,6 +198,18 @@ export function MainNav() {
         >
           <Settings className="h-5 w-5 text-white/40 group-hover:text-white transition-colors" />
           Settings
+        </Link>
+        <Link
+          href="/billing"
+          className={cn(
+            "group flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold transition-all",
+            pathname === "/billing"
+              ? "bg-white text-green-700"
+              : "text-white/70 hover:bg-white/10 hover:text-white"
+          )}
+        >
+          <CreditCard className="h-5 w-5 text-white/40 group-hover:text-white transition-colors" />
+          Billing
         </Link>
         <button
           onClick={handleLogout}
