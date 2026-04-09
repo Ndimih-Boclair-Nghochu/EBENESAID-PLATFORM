@@ -1,221 +1,232 @@
 'use client';
 
-import { useState } from "react";
-import { SidebarShell } from "@/components/layout/sidebar-shell";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Input } from "@/components/ui/input";
-import { 
-  Users, 
-  Calendar, 
-  MessageSquare, 
-  Heart, 
-  MapPin, 
-  Sparkles, 
-  ArrowUpRight, 
-  Globe,
-  Clock,
-  MoreHorizontal,
-  Send,
-  ChevronLeft,
-  Search,
-  Hash
-} from "lucide-react";
-import Image from "next/image";
-import { cn } from "@/lib/utils";
-import { SpecialistChat } from "@/components/SpecialistChat";
-import { discussCommunity } from "@/ai/flows/social-specialist-flow";
+import { useEffect, useMemo, useState } from "react";
+import { MessageSquare, Send, Sparkles, Users } from "lucide-react";
 
-const popularCircles = [
-  { id: 'c1', name: "RTU International", members: "1.2k", description: "Official hub for all international students at RTU." },
-  { id: 'c2', name: "Riga Flatmates", members: "800", description: "Find verified roommates and shared housing tips." },
-  { id: 'c3', name: "West African Students", members: "150", description: "Cultural connection and support for West African talent." },
-  { id: 'c4', name: "Tech & Innovation", members: "450", description: "For the builders and dreamers in the Baltic tech scene." },
-];
+import { discussCommunity } from "@/ai/flows/social-specialist-flow";
+import { SpecialistChat } from "@/components/SpecialistChat";
+import { SidebarShell } from "@/components/layout/sidebar-shell";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+
+type CommunityCircle = {
+  id: number;
+  name: string;
+  members: string;
+  description: string;
+  joined: boolean;
+};
+
+type CircleMessage = {
+  id: number;
+  circleId: number;
+  author: string;
+  content: string;
+  createdAt: string;
+};
 
 export default function CommunityPage() {
-  const [activeCircleId, setActiveCircleId] = useState<string | null>(null);
+  const [circles, setCircles] = useState<CommunityCircle[]>([]);
+  const [messages, setMessages] = useState<CircleMessage[]>([]);
+  const [activeCircleId, setActiveCircleId] = useState<number | null>(null);
   const [chatInput, setChatInput] = useState("");
+  const [status, setStatus] = useState<string | null>(null);
 
-  const activeCircle = popularCircles.find(c => c.id === activeCircleId);
+  async function loadCommunity() {
+    const res = await fetch("/api/student/community", { credentials: "include" });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || "Failed to load community data.");
+    }
+    setCircles(data.circles ?? []);
+    setMessages(data.messages ?? []);
+    setActiveCircleId((current: number | null) => current ?? data.circles?.[0]?.id ?? null);
+  }
+
+  useEffect(() => {
+    loadCommunity().catch(error => setStatus(error.message));
+  }, []);
+
+  async function joinCircle(circleId: number) {
+    const res = await fetch("/api/student/community", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ action: "join", circleId }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      setStatus(data.error || "Failed to join circle.");
+      return;
+    }
+    setCircles(data.circles ?? []);
+    setMessages(data.messages ?? []);
+    setStatus("Circle joined successfully.");
+  }
+
+  async function sendMessage() {
+    if (!activeCircleId || !chatInput.trim()) {
+      return;
+    }
+    const res = await fetch("/api/student/community", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ action: "message", circleId: activeCircleId, content: chatInput }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      setStatus(data.error || "Failed to send message.");
+      return;
+    }
+    setCircles(data.circles ?? []);
+    setMessages(data.messages ?? []);
+    setChatInput("");
+    setStatus("Community message sent.");
+  }
+
+  const activeCircle = useMemo(
+    () => circles.find(circle => circle.id === activeCircleId) ?? null,
+    [activeCircleId, circles]
+  );
+  const activeMessages = useMemo(
+    () => messages.filter(message => message.circleId === activeCircleId),
+    [activeCircleId, messages]
+  );
 
   return (
     <SidebarShell>
-      <div className="max-w-7xl mx-auto flex flex-col gap-6 pb-10">
-        {/* Compact Professional Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-slate-100 pb-5">
+      <div className="mx-auto flex max-w-7xl flex-col gap-6">
+        <div className="flex flex-col items-start justify-between gap-4 border-b border-slate-100 pb-5 md:flex-row md:items-end">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="border-primary/20 bg-primary/5 text-primary text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5">
-                Social Node • {activeCircleId ? activeCircle?.name : 'Active'}
+              <Badge variant="outline" className="border-primary/20 bg-primary/5 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest text-primary">
+                Social Node - Live Circles
               </Badge>
-              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-purple-50 text-purple-600 text-[8px] font-black uppercase tracking-widest">
-                <Sparkles className="h-2.5 w-2.5" /> AI Matching Live
+              <div className="flex items-center gap-1.5 rounded-full bg-purple-50 px-2 py-0.5 text-[8px] font-black uppercase tracking-widest text-purple-600">
+                <Sparkles className="h-2.5 w-2.5" /> Matching Active
               </div>
             </div>
-            <h1 className="text-xl font-black text-slate-900 tracking-tight leading-none">
-              {activeCircleId ? activeCircle?.name : 'Student Circle'}
-            </h1>
-            <p className="text-slate-400 text-[10px] font-medium max-w-lg uppercase tracking-wider">
-              {activeCircleId ? activeCircle?.description : 'Orchestrated peer connections and community engagement.'}
+            <h1 className="text-xl font-black text-slate-900">Student Circle</h1>
+            <p className="text-[10px] font-medium uppercase tracking-wider text-slate-400">
+              Join communities, browse real posts, and message people inside active student circles.
             </p>
-          </div>
-          <div className="flex items-center gap-2 w-full md:w-auto">
-            {activeCircleId && (
-              <Button variant="ghost" size="sm" onClick={() => setActiveCircleId(null)} className="h-9 px-4 rounded-xl font-bold text-slate-400 hover:text-primary gap-2 text-[10px]">
-                <ChevronLeft className="h-3.5 w-3.5" /> Exit Circle
-              </Button>
-            )}
-            <Button size="sm" className="h-9 px-5 rounded-xl font-black shadow-lg shadow-primary/20 gap-2 text-[10px] w-full sm:w-auto">
-              <Users className="h-3.5 w-3.5" /> Find a Buddy
-            </Button>
           </div>
         </div>
 
-        {/* AI Specialist Console */}
-        <div className="grid lg:grid-cols-12 gap-6">
+        {status && <p className="text-sm font-medium text-slate-600">{status}</p>}
+
+        <div className="grid gap-6 lg:grid-cols-12">
           <div className="lg:col-span-8">
-            <SpecialistChat 
+            <SpecialistChat
               title="Social Specialist"
               specialty="Community & Cultural Integration Expert"
-              initialMessage="Welcome to the Circle. I can help you find specialized student groups (e.g., West African, IT), recommend local cultural hotspots, or explain our origin-based matching algorithm. Who are you looking to connect with?"
+              initialMessage="I can help you find student groups, understand the social scene, and figure out where to connect next."
               flow={discussCommunity}
               icon={<Users className="h-4 w-4" />}
             />
           </div>
           <div className="lg:col-span-4">
-            <Card className="rounded-[1.5rem] bg-slate-900 text-white p-6 relative overflow-hidden shadow-xl border-none h-full flex flex-col justify-center">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-primary/20 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl" />
-              <div className="flex items-center gap-2 text-primary mb-4 relative z-10">
-                <Sparkles className="h-4 w-4" />
-                <p className="text-[8px] font-black uppercase tracking-[0.4em]">Matching Engine</p>
-              </div>
-              <div className="space-y-4 relative z-10">
-                <div className="flex items-center gap-3 bg-white/5 p-3 rounded-xl border border-white/10">
-                  <Avatar className="h-10 w-10 rounded-lg border border-primary/40">
-                    <AvatarFallback className="bg-primary text-white font-black text-[10px]">JD</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-black text-xs text-white leading-none">John D. <Badge className="bg-primary text-white text-[7px] font-black px-1 py-0.5 rounded-full ml-1">98%</Badge></p>
-                    <p className="text-[8px] text-slate-400 font-bold uppercase mt-1">Nigeria • RTU 2025</p>
-                  </div>
-                </div>
-              </div>
+            <Card className="rounded-[1.5rem] border-none bg-slate-900 p-6 text-white shadow-xl">
+              <p className="text-[8px] font-black uppercase tracking-[0.4em] text-primary">Community Pulse</p>
+              <p className="mt-4 text-3xl font-black">{circles.length}</p>
+              <p className="mt-2 text-sm text-slate-300">Live circles available for this student account.</p>
             </Card>
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-12 gap-6">
-          {/* Sidebar Navigation - Circles List */}
-          <div className="lg:col-span-4 flex flex-col gap-6">
-            <Card className="border-slate-100 shadow-sm rounded-[2rem] bg-white overflow-hidden">
-              <CardHeader className="p-5 pb-2 border-b border-slate-50 flex items-center justify-between">
-                <p className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-400">Popular Circles</p>
-                <Globe className="h-3 w-3 text-slate-200" />
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="divide-y divide-slate-50">
-                  {popularCircles.map((circle) => (
-                    <GroupItem key={circle.id} name={circle.name} members={circle.members} isActive={activeCircleId === circle.id} onClick={() => setActiveCircleId(circle.id)} />
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Main Social Feed / Chat Area */}
-          <div className="lg:col-span-8 space-y-6">
-            {!activeCircleId ? (
-              <div className="space-y-4">
-                <h2 className="text-sm font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
-                  <MessageSquare className="h-4 w-4 text-primary" /> Active Feed
-                </h2>
-                <Card className="rounded-[2rem] border-slate-100 shadow-sm bg-white overflow-hidden">
-                   <div className="divide-y divide-slate-50">
-                     <Post author="Kofi Mensah" time="2h ago" content="Does anyone know the fastest way to get to the Immigration Office (PMLP)?" />
-                     <Post author="Ananya S." time="5h ago" content="Looking for 2 more people for a weekend trip to Sigulda! We have a car." />
-                   </div>
-                </Card>
-              </div>
-            ) : (
-              <Card className="rounded-[2rem] border-slate-100 shadow-sm bg-white h-[600px] flex flex-col overflow-hidden">
-                <CardHeader className="p-5 border-b border-slate-50 flex flex-row items-center justify-between shrink-0">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary"><Hash className="h-5 w-5" /></div>
-                    <div>
-                      <CardTitle className="text-base font-black text-slate-900 leading-none">{activeCircle?.name}</CardTitle>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">{activeCircle?.members} Members • 12 Online</p>
+        <div className="grid gap-6 lg:grid-cols-12">
+          <Card className="rounded-[2rem] border-slate-100 bg-white shadow-sm lg:col-span-4">
+            <CardHeader>
+              <CardTitle className="text-base font-black">Available Circles</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {circles.map(circle => (
+                <button
+                  key={circle.id}
+                  type="button"
+                  onClick={() => setActiveCircleId(circle.id)}
+                  className={`w-full rounded-2xl border p-4 text-left transition ${
+                    circle.id === activeCircleId ? "border-primary bg-primary/5" : "border-slate-100 hover:bg-slate-50"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-black text-slate-900">{circle.name}</p>
+                      <p className="mt-1 text-xs uppercase tracking-wider text-slate-400">{circle.members} members</p>
                     </div>
+                    <Badge variant={circle.joined ? "default" : "outline"}>{circle.joined ? "Joined" : "Open"}</Badge>
                   </div>
-                </CardHeader>
-                <CardContent className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/30 custom-scrollbar">
-                  <ChatMessage author="Ebenezer" time="10:15 AM" content="Has anyone already submitted their PMLP documents for this month?" avatar="https://picsum.photos/seed/ebenezer/100/100" />
-                </CardContent>
-                <CardFooter className="p-4 border-t border-slate-50 bg-white shrink-0">
-                  <div className="flex w-full gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
-                    <Input placeholder={`Message ${activeCircle?.name}...`} className="h-10 border-none bg-transparent shadow-none focus-visible:ring-0 font-bold px-4 text-slate-700 text-xs flex-1" value={chatInput} onChange={(e) => setChatInput(e.target.value)} />
-                    <Button size="icon" className="h-10 w-10 rounded-xl shadow-lg shadow-primary/20"><Send className="h-4 w-4" /></Button>
+                  <p className="mt-3 text-sm text-slate-600">{circle.description}</p>
+                  {!circle.joined && (
+                    <Button
+                      className="mt-4 rounded-xl bg-green-700 hover:bg-green-800"
+                      onClick={event => {
+                        event.stopPropagation();
+                        joinCircle(circle.id);
+                      }}
+                    >
+                      Join Circle
+                    </Button>
+                  )}
+                </button>
+              ))}
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-[2rem] border-slate-100 bg-white shadow-sm lg:col-span-8">
+            <CardHeader>
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <CardTitle className="text-base font-black">{activeCircle?.name ?? "Select a Circle"}</CardTitle>
+                  <p className="mt-1 text-xs uppercase tracking-wider text-slate-400">
+                    {activeCircle?.description ?? "Pick a community space to read and post updates."}
+                  </p>
+                </div>
+                {activeCircle && <Badge>{activeCircle.members} members</Badge>}
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="max-h-[420px] space-y-3 overflow-y-auto pr-1">
+                {activeMessages.length > 0 ? activeMessages.map(message => (
+                  <div key={message.id} className="rounded-2xl border border-slate-100 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="font-bold text-slate-900">{message.author}</p>
+                      <p className="text-xs uppercase tracking-wider text-slate-400">{message.createdAt}</p>
+                    </div>
+                    <p className="mt-2 text-sm text-slate-600">{message.content}</p>
                   </div>
-                </CardFooter>
-              </Card>
-            )}
-          </div>
+                )) : (
+                  <div className="rounded-2xl border border-dashed border-slate-200 p-8 text-center text-sm text-slate-500">
+                    No messages yet in this circle.
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                <Input
+                  value={chatInput}
+                  onChange={event => setChatInput(event.target.value)}
+                  placeholder={activeCircle ? `Message ${activeCircle.name}...` : "Select a circle first"}
+                  disabled={!activeCircle}
+                  className="h-11 rounded-xl bg-slate-50"
+                />
+                <Button className="rounded-xl bg-green-700 hover:bg-green-800" onClick={sendMessage} disabled={!activeCircle}>
+                  <Send className="mr-2 h-4 w-4" /> Send
+                </Button>
+              </div>
+
+              <Button variant="outline" className="rounded-xl" asChild>
+                <a href="/messages">
+                  <MessageSquare className="mr-2 h-4 w-4" /> Open Direct Messages
+                </a>
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </SidebarShell>
-  );
-}
-
-function GroupItem({ name, members, onClick, isActive }: any) {
-  return (
-    <div onClick={onClick} className={cn("flex items-center justify-between group cursor-pointer p-3.5 transition-all", isActive ? "bg-primary/5 border-l-2 border-primary" : "hover:bg-slate-50 border-l-2 border-transparent")}>
-      <div className="flex items-center gap-3 min-w-0">
-        <div className={cn("h-7 w-7 rounded-lg transition-all flex items-center justify-center font-black text-[8px] shrink-0", isActive ? "bg-primary text-white" : "bg-slate-50 text-slate-400 group-hover:bg-primary group-hover:text-white")}>{name.charAt(0)}</div>
-        <div className="min-w-0">
-          <p className={cn("text-[10px] font-black transition-colors truncate leading-none mb-1", isActive ? "text-primary" : "text-slate-900 group-hover:text-primary")}>{name}</p>
-          <p className="text-[7px] font-bold text-slate-400 uppercase tracking-widest leading-none">{members} Members</p>
-        </div>
-      </div>
-      <ArrowUpRight className={cn("h-2.5 w-2.5 transition-all shrink-0", isActive ? "text-primary" : "text-slate-200 group-hover:text-primary")} />
-    </div>
-  );
-}
-
-function Post({ author, time, content }: any) {
-  return (
-    <div className="p-4 group/post hover:bg-slate-50/50 transition-all cursor-pointer flex items-start gap-3">
-      <Avatar className="h-8 w-8 rounded-lg shadow-sm shrink-0">
-        <AvatarFallback className="bg-primary text-white font-black text-[8px]">{author.charAt(0)}</AvatarFallback>
-      </Avatar>
-      <div className="flex-1 min-w-0 space-y-1">
-        <div className="flex items-center justify-between">
-          <p className="text-[11px] font-black text-slate-900 group-hover/post:text-primary transition-colors leading-none">{author}</p>
-          <p className="text-[7px] font-bold text-slate-400 uppercase tracking-widest">{time}</p>
-        </div>
-        <p className="text-[10px] text-slate-600 font-medium leading-relaxed italic line-clamp-2">"{content}"</p>
-      </div>
-    </div>
-  );
-}
-
-function ChatMessage({ author, time, content, avatar }: any) {
-  return (
-    <div className="flex items-start gap-3 animate-in slide-in-from-bottom-2 duration-300">
-      <Avatar className="h-8 w-8 rounded-lg shadow-sm shrink-0 mt-0.5">
-        <AvatarImage src={avatar} />
-        <AvatarFallback className="bg-slate-200 text-slate-600 font-black text-[8px]">{author.charAt(0)}</AvatarFallback>
-      </Avatar>
-      <div className="flex-1 min-w-0 space-y-1">
-        <div className="flex items-center gap-2">
-          <p className="text-[11px] font-black leading-none text-slate-900">{author}</p>
-          <p className="text-[7px] font-bold text-slate-400 uppercase tracking-widest">{time}</p>
-        </div>
-        <div className="p-3 rounded-2xl text-[11px] font-medium leading-relaxed bg-white text-slate-600 border border-slate-100 shadow-sm">
-          {content}
-        </div>
-      </div>
-    </div>
   );
 }

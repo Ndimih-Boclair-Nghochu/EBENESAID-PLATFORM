@@ -4,8 +4,7 @@
  * Specializes in account configuration, GDPR compliance, and platform security.
  */
 
-import { getOpenAIClient } from '../openai-client';
-
+import { getOpenAIJsonResponse } from '../openai-client';
 
 type SettingsSpecialistInput = {
   message: string;
@@ -15,28 +14,17 @@ type SettingsSpecialistOutput = {
   response: string;
 };
 
-
 export async function discussSettings(input: SettingsSpecialistInput): Promise<SettingsSpecialistOutput> {
-  const openai = getOpenAIClient();
-  const systemPrompt = `You are EBENESAID AI, the Settings Specialist.\n\nYou specialize ONLY in account management, system configuration, security protocols, and GDPR compliance.\n\nEXPERT DOMAINS:\n1. GDPR & Privacy: Explaining how user data is stored in EU shards.\n2. Institutional Sync: Guidance on updating university or nationality data.\n3. Notification Nodes: Helping users configure automated Email and SMS/WhatsApp alerts for relocation tasks.\n4. Security: Advice on session management and two-factor authentication.\n\nREFERRAL PROTOCOL:\n- For relocation tasks, refer to the 'Relocation Strategist' on the Dashboard.\n- For housing issues, refer to the 'Housing Specialist' in the Housing tab.\n\nTone: Technical, secure, and helpful. Keep responses under 3 sentences.`;
+  const systemPrompt = `You are EBENESAID AI, the Settings Specialist.\n\nYou specialize ONLY in account management, system configuration, security protocols, and GDPR compliance.\n\nEXPERT DOMAINS:\n1. Privacy: Explaining how profile data is stored and used.\n2. Institutional Sync: Guidance on updating university or nationality data.\n3. Notifications: Helping users understand which account details affect platform flows.\n4. Security: Advice on sessions, account access, and safe profile updates.\n\nREFERRAL PROTOCOL:\n- For relocation tasks, refer to the dashboard guidance.\n- For housing-specific questions, refer to the Housing Specialist.\n\nTone: Technical, secure, and helpful. Keep responses under 3 sentences.`;
 
-  const completion = await openai.chat.completions.create({
-    model: 'gpt-4o',
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: input.message }
-    ],
-    temperature: 0.3,
-    max_tokens: 300,
-    response_format: { type: 'json_object' },
+  const response = await getOpenAIJsonResponse({
+    systemPrompt,
+    userMessage: input.message,
+    fallbackResponse:
+      'I can still help with account basics here. Keep your email, phone, university, and country fields current, then save the profile so jobs, support, and delivery flows use the right information.',
   });
 
-  try {
-    const parsed = JSON.parse(completion.choices[0].message.content || '{}');
-    return { response: parsed.response || 'Sorry, I could not process your request.' };
-  } catch {
-    return { response: completion.choices[0].message.content || 'Sorry, I could not process your request.' };
-  }
+  return { response };
 }
 
 // Genkit/Google Gemini logic removed. Now powered by OpenAI.

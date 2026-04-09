@@ -1,150 +1,154 @@
-
 'use client';
 
-import { useState } from "react";
-import { SidebarShell } from "@/components/layout/sidebar-shell";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Input } from "@/components/ui/input";
-import { 
-  Send, 
-  LifeBuoy, 
-  Activity, 
-  ShieldCheck, 
-  MessageSquare,
-  Clock,
-  MoreVertical,
-  CheckCircle2,
-  Lock
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-import { SpecialistChat } from "@/components/SpecialistChat";
+import { useEffect, useState } from "react";
+import { LifeBuoy, Send, ShieldCheck } from "lucide-react";
+
 import { discussDocuments } from "@/ai/flows/document-specialist-flow";
+import { SpecialistChat } from "@/components/SpecialistChat";
+import { SidebarShell } from "@/components/layout/sidebar-shell";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+
+type SupportMessage = {
+  id: number;
+  role: "user" | "admin" | "system";
+  time: string;
+  content: string;
+};
 
 export default function GeneralSupportPage() {
+  const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [chatInput, setChatInput] = useState("");
+  const [status, setStatus] = useState<string | null>(null);
+
+  async function loadSupport() {
+    const res = await fetch("/api/student/support", { credentials: "include" });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || "Failed to load support thread.");
+    }
+    setMessages(data.messages ?? []);
+  }
+
+  useEffect(() => {
+    loadSupport().catch(error => setStatus(error.message));
+  }, []);
+
+  async function sendMessage() {
+    if (!chatInput.trim()) {
+      return;
+    }
+    const res = await fetch("/api/student/support", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ content: chatInput }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      setStatus(data.error || "Failed to send support message.");
+      return;
+    }
+    setMessages(data.messages ?? []);
+    setChatInput("");
+    setStatus("Support request sent.");
+  }
 
   return (
     <SidebarShell>
-      <div className="max-w-7xl mx-auto flex flex-col gap-6 pb-10 h-[calc(100vh-140px)]">
-        
-        {/* Compact Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-slate-100 pb-5 shrink-0">
+      <div className="mx-auto flex h-[calc(100vh-140px)] max-w-7xl flex-col gap-6 pb-10">
+        <div className="flex flex-col items-start justify-between gap-4 border-b border-slate-100 pb-5 md:flex-row md:items-end">
           <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="border-primary/20 bg-primary/5 text-primary text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5">
-                Support Node • Authorized Channel
-              </Badge>
-              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 text-[8px] font-black uppercase tracking-widest">
-                <Activity className="h-2.5 w-2.5" /> Support Online
-              </div>
-            </div>
-            <h1 className="text-xl font-black text-slate-900 tracking-tight leading-none uppercase italic">System <span className="text-primary">Support</span></h1>
-            <p className="text-slate-400 text-[10px] font-medium max-w-lg uppercase tracking-wider hidden sm:block">Direct line to EBENESAID super administrators for technical or legal assistance.</p>
+            <Badge variant="outline" className="border-primary/20 bg-primary/5 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest text-primary">
+              Support Node - Authorized Channel
+            </Badge>
+            <h1 className="text-xl font-black text-slate-900">System Support</h1>
+            <p className="text-[10px] font-medium uppercase tracking-wider text-slate-400">
+              Reach the real support thread tied to this student account and keep a persistent issue history.
+            </p>
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-12 gap-6 flex-1 min-h-0">
-          {/* AI Specialist Section */}
-          <div className="lg:col-span-4 space-y-6 flex flex-col">
-            <SpecialistChat 
+        {status && <p className="text-sm font-medium text-slate-600">{status}</p>}
+
+        <div className="grid min-h-0 flex-1 gap-6 lg:grid-cols-12">
+          <div className="space-y-6 lg:col-span-4">
+            <SpecialistChat
               title="System Concierge"
               specialty="General Protocol Specialist"
-              initialMessage="I can provide immediate guidance on platform features or escalate complex issues to our super admins. What do you need help with?"
+              initialMessage="I can help you troubleshoot platform steps and tell you when something should go to human support."
               flow={discussDocuments}
               icon={<ShieldCheck className="h-4 w-4" />}
             />
-            
-            <Card className="rounded-[2rem] bg-slate-900 text-white p-6 relative overflow-hidden shadow-xl border-none flex-1 flex flex-col justify-center">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full -translate-y-1/2 translate-x-1/2 blur-[60px]" />
-              <div className="flex items-center gap-2 text-primary mb-6 relative z-10">
-                <Lock className="h-4 w-4" />
-                <p className="text-[8px] font-black uppercase tracking-[0.4em]">Encrypted Session</p>
-              </div>
-              <div className="space-y-4 relative z-10">
-                <div className="bg-white/5 p-4 rounded-xl border border-white/10">
-                  <p className="text-[10px] font-black text-white leading-none mb-2">Secure Channel Active</p>
-                  <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest leading-relaxed">
-                    Messages are protected by AES-256 and accessible only by Super Admins.
-                  </p>
-                </div>
-              </div>
+            <Card className="rounded-[2rem] border-none bg-slate-900 p-6 text-white shadow-xl">
+              <p className="text-[8px] font-black uppercase tracking-[0.4em] text-primary">Secure Channel</p>
+              <p className="mt-4 text-sm text-slate-300">
+                Messages in this support thread are stored per student account and can be followed up later.
+              </p>
             </Card>
           </div>
 
-          {/* Main Chat Area */}
-          <div className="lg:col-span-8 flex flex-col h-full min-h-0">
-            <Card className="rounded-[2.5rem] border-slate-100 shadow-sm bg-white h-full flex flex-col overflow-hidden">
-              <CardHeader className="p-5 border-b border-slate-50 flex flex-row items-center justify-between shrink-0">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                    <LifeBuoy className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-base font-black text-slate-900 leading-none">Admin Direct</CardTitle>
-                    <div className="flex items-center gap-2 mt-1.5">
-                      <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Support Response: ~15m</p>
-                    </div>
-                  </div>
+          <Card className="rounded-[2rem] border-slate-100 bg-white shadow-sm lg:col-span-8">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="rounded-xl bg-primary/10 p-2 text-primary">
+                  <LifeBuoy className="h-4 w-4" />
                 </div>
-                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-slate-300 hover:text-primary"><MoreVertical className="h-4 w-4" /></Button>
-              </CardHeader>
-              
-              <CardContent className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/30 custom-scrollbar">
-                <SupportMessage role="system" time="Yesterday" content="Welcome to the official EBENESAID support channel. How can we assist your relocation today?" />
-                <SupportMessage role="user" time="Today, 10:15 AM" content="Hi, I'm having trouble uploading my Latvian visa scan. It keeps saying 'Format Error'." />
-                <SupportMessage role="admin" time="Today, 10:20 AM" content="Hello! This usually happens if the file is larger than 10MB. Please try compressing the image or using a PDF format. I've reset your upload node for that document." />
-              </CardContent>
+                <div>
+                  <CardTitle className="text-base font-black">Admin Direct</CardTitle>
+                  <p className="mt-1 text-xs uppercase tracking-wider text-slate-400">Persistent support thread</p>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="flex h-[calc(100vh-320px)] flex-col gap-4">
+              <div className="flex-1 space-y-3 overflow-y-auto pr-1">
+                {messages.length > 0 ? messages.map(message => (
+                  <div
+                    key={message.id}
+                    className={`max-w-[85%] rounded-2xl p-4 text-sm ${
+                      message.role === "user"
+                        ? "ml-auto bg-primary text-white"
+                        : message.role === "system"
+                          ? "bg-slate-900 text-white"
+                          : "bg-slate-50 text-slate-700"
+                    }`}
+                  >
+                    <p className={`text-xs font-black uppercase tracking-wider ${
+                      message.role === "user" || message.role === "system" ? "text-white/70" : "text-slate-400"
+                    }`}>
+                      {message.role}
+                    </p>
+                    <p className="mt-2">{message.content}</p>
+                    <p className={`mt-2 text-xs uppercase tracking-wider ${
+                      message.role === "user" || message.role === "system" ? "text-white/70" : "text-slate-400"
+                    }`}>
+                      {message.time}
+                    </p>
+                  </div>
+                )) : (
+                  <div className="flex h-full items-center justify-center rounded-2xl border border-dashed border-slate-200 text-sm text-slate-500">
+                    No support messages yet for this student account.
+                  </div>
+                )}
+              </div>
 
-              <CardFooter className="p-4 border-t border-slate-50 bg-white shrink-0">
-                <div className="flex w-full gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-100 focus-within:border-primary transition-all">
-                  <Input 
-                    placeholder="Describe your issue..." 
-                    className="h-10 border-none bg-transparent shadow-none focus-visible:ring-0 font-bold px-4 text-slate-700 text-xs flex-1" 
-                    value={chatInput} 
-                    onChange={(e) => setChatInput(e.target.value)} 
-                  />
-                  <Button size="icon" className="h-10 w-10 rounded-xl shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90 text-white border-none shrink-0"><Send className="h-4 w-4" /></Button>
-                </div>
-              </CardFooter>
-            </Card>
-          </div>
+              <div className="flex gap-2">
+                <Input
+                  value={chatInput}
+                  onChange={event => setChatInput(event.target.value)}
+                  placeholder="Describe your issue..."
+                  className="h-11 rounded-xl bg-slate-50"
+                />
+                <Button className="rounded-xl bg-green-700 hover:bg-green-800" onClick={sendMessage}>
+                  <Send className="mr-2 h-4 w-4" /> Send
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </SidebarShell>
-  );
-}
-
-function SupportMessage({ role, time, content }: any) {
-  const isUser = role === 'user';
-  const isSystem = role === 'system';
-
-  return (
-    <div className={cn("flex gap-3 animate-in slide-in-from-bottom-2 duration-300", isUser && "flex-row-reverse")}>
-      {!isUser && (
-        <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center text-[8px] font-black text-white shrink-0 shadow-sm", isSystem ? "bg-slate-800" : "bg-primary")}>
-          {isSystem ? 'SYS' : 'ADM'}
-        </div>
-      )}
-      {isUser && (
-        <div className="h-8 w-8 rounded-lg bg-slate-200 flex items-center justify-center text-[8px] font-black text-slate-600 shrink-0 shadow-sm">
-          ME
-        </div>
-      )}
-      <div className={cn(
-        "max-w-[85%] p-3.5 rounded-2xl text-[11px] font-medium leading-relaxed shadow-sm border",
-        isUser ? "bg-primary text-white border-transparent rounded-tr-none" : 
-        isSystem ? "bg-slate-800 text-white border-slate-700 rounded-tl-none italic" :
-        "bg-white text-slate-600 border-slate-100 rounded-tl-none"
-      )}>
-        {content}
-        <div className={cn("text-[7px] font-black uppercase tracking-widest mt-2 opacity-50", isUser || isSystem ? "text-white" : "text-slate-400")}>
-          {time}
-        </div>
-      </div>
-    </div>
   );
 }
