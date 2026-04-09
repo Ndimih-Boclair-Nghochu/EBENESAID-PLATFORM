@@ -123,6 +123,13 @@ export default function JobsPage() {
               </CardContent>
             </Card>
           ))}
+          {!visibleJobs.length && (
+            <Card className="rounded-[2rem] border border-dashed border-slate-200 bg-white shadow-sm md:col-span-2">
+              <CardContent className="p-8 text-center text-sm text-slate-500">
+                No real job listings are available yet.
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </SidebarShell>

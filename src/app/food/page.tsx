@@ -167,6 +167,13 @@ export default function FoodMarketplacePage() {
               </CardContent>
             </Card>
           ))}
+          {!filteredItems.length && (
+            <Card className="rounded-[2rem] border border-dashed border-slate-200 bg-white shadow-sm md:col-span-2 xl:col-span-3">
+              <CardContent className="p-8 text-center text-sm text-slate-500">
+                No real food items are available yet.
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         <Card id="my-orders" className="rounded-[2rem] border-slate-100 bg-white shadow-sm">

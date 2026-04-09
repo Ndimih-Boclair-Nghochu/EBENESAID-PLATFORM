@@ -386,9 +386,9 @@ export default function DashboardPage() {
             </div>
           </CardHeader>
 
-          <CardContent className="p-0">
-            {pendingTasks.length > 0 && (
-              <div>
+            <CardContent className="p-0">
+              {pendingTasks.length > 0 && (
+                <div>
                 <div className="border-b border-slate-50 bg-slate-50/60 px-5 py-2.5">
                   <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">To Do - {pendingTasks.length} remaining</p>
                 </div>
@@ -397,10 +397,10 @@ export default function DashboardPage() {
                     <TaskRow key={task.id} task={task} onToggle={toggleTask} />
                   ))}
                 </div>
-              </div>
-            )}
-            {doneTasks.length > 0 && (
-              <div>
+                </div>
+              )}
+              {doneTasks.length > 0 && (
+                <div>
                 <div className="border-y border-emerald-50 bg-emerald-50/40 px-5 py-2.5">
                   <p className="text-[10px] font-black uppercase tracking-wider text-emerald-500">Completed - {doneTasks.length}</p>
                 </div>
@@ -409,10 +409,15 @@ export default function DashboardPage() {
                     <TaskRow key={task.id} task={task} onToggle={toggleTask} />
                   ))}
                 </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                </div>
+              )}
+              {!pendingTasks.length && !doneTasks.length && (
+                <div className="p-8 text-center text-sm text-slate-500">
+                  No real dashboard tasks yet.
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <QuickLauncher title="Housing" sub="Find accommodation" icon={<Home className="h-5 w-5" />} href="/accommodation" />

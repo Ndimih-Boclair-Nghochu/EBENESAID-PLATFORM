@@ -123,80 +123,6 @@ export function toSafeUser(dbUser: DbUser): SafeUser {
   };
 }
 
-type DashboardSeedTask = {
-  title: string;
-  desc: string;
-  category: string;
-  href: string;
-  sortOrder: number;
-};
-
-const defaultDashboardTasks: DashboardSeedTask[] = [
-  {
-    title: 'Finalize Housing',
-    desc: 'Confirm verified accommodation before arrival.',
-    category: 'Housing',
-    href: '/accommodation',
-    sortOrder: 1,
-  },
-  {
-    title: 'Plan Airport Transfer',
-    desc: 'Book airport-to-city transport in advance.',
-    category: 'Logistics',
-    href: '/arrival',
-    sortOrder: 2,
-  },
-  {
-    title: 'University Enrollment',
-    desc: 'Prepare documents for orientation day.',
-    category: 'Academic',
-    href: '/docs',
-    sortOrder: 3,
-  },
-  {
-    title: 'Residence Permit',
-    desc: 'Prepare your permit and local registration paperwork.',
-    category: 'Legal',
-    href: '/docs',
-    sortOrder: 4,
-  },
-  {
-    title: 'Get a Local SIM Card',
-    desc: 'Set up your Latvian phone number after arrival.',
-    category: 'Setup',
-    href: '/settings',
-    sortOrder: 5,
-  },
-  {
-    title: 'Open a Bank Account',
-    desc: 'Open a local IBAN for rent, salary, and daily payments.',
-    category: 'Finance',
-    href: '/dashboard',
-    sortOrder: 6,
-  },
-  {
-    title: 'Register for E-talons',
-    desc: 'Get your public transport card ready for Riga travel.',
-    category: 'Logistics',
-    href: '/arrival',
-    sortOrder: 7,
-  },
-  {
-    title: 'Explore Career Services',
-    desc: 'Browse verified part-time roles and student-friendly employers.',
-    category: 'Career',
-    href: '/jobs',
-    sortOrder: 8,
-  },
-  {
-    title: 'Cultural Orientation',
-    desc: 'Review local guidance and join the student community.',
-    category: 'Culture',
-    href: '/community',
-    sortOrder: 9,
-  },
-];
-
 let schemaReady: Promise<void> | null = null;
 
 async function ensurePlatformTables(): Promise<void> {
@@ -248,54 +174,6 @@ async function ensurePlatformTables(): Promise<void> {
   await schemaReady;
 }
 
-type ListingSeed = {
-  title: string;
-  location: string;
-  price: number;
-  type: string;
-  status: string;
-  details: string;
-  imageUrl: string;
-  leads: number;
-  trustScore: number;
-};
-
-const defaultPropertyListings: ListingSeed[] = [
-  {
-    title: 'Premium Riga Center Studio',
-    location: 'K. Valdemara iela, Riga',
-    price: 380,
-    type: 'Studio',
-    status: 'Verified',
-    details: 'Luxury student studio in a historic building. Fully furnished, 24sqm, five minutes from the University of Latvia with utilities averaging EUR 80 per month.',
-    imageUrl: 'https://picsum.photos/seed/apt-verified-1/900/700',
-    leads: 12,
-    trustScore: 92,
-  },
-  {
-    title: 'International Student Hub',
-    location: 'Zunda krastmala, Riga',
-    price: 270,
-    type: 'Shared Room',
-    status: 'Verified',
-    details: 'Modern shared apartment near RTU with a private bedroom, all bills included, and a strong student community atmosphere.',
-    imageUrl: 'https://picsum.photos/seed/apt-verified-2/900/700',
-    leads: 8,
-    trustScore: 88,
-  },
-  {
-    title: 'Modern Old Town Apartment',
-    location: 'Kalku iela, Riga',
-    price: 450,
-    type: 'Whole Apartment',
-    status: 'Pending',
-    details: 'Bright central apartment with updated kitchen, flexible lease options, and quick access to transport, cafes, and student services.',
-    imageUrl: 'https://picsum.photos/seed/apt-verified-3/900/700',
-    leads: 4,
-    trustScore: 74,
-  },
-];
-
 function toPropertyListing(row: {
   id: number;
   title: string;
@@ -328,39 +206,11 @@ function toPropertyListing(row: {
   };
 }
 
-async function seedPropertyListings(): Promise<void> {
-  await ensurePlatformTables();
-
-  const existing = await pool.query('SELECT COUNT(*)::int AS count FROM property_listings');
-  if ((existing.rows[0]?.count ?? 0) > 0) {
-    return;
-  }
-
-  for (const listing of defaultPropertyListings) {
-    await pool.query(
-      `INSERT INTO property_listings
-       (title, location, price, type, status, details, image_url, leads, trust_score)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-      [
-        listing.title,
-        listing.location,
-        listing.price,
-        listing.type,
-        listing.status,
-        listing.details,
-        listing.imageUrl,
-        listing.leads,
-        listing.trustScore,
-      ]
-    );
-  }
-}
-
 export async function getPropertyListings(options?: {
   createdByUserId?: number;
   includePending?: boolean;
 }): Promise<PropertyListing[]> {
-  await seedPropertyListings();
+  await ensurePlatformTables();
 
   const conditions: string[] = [];
   const values: Array<number | string | boolean> = [];
@@ -504,21 +354,8 @@ function buildStudentDashboardGuidance(user: SafeUser, tasks: StudentDashboardTa
   return `Your next priority is "${nextPendingTask.title}" for ${university}. Since you are relocating from ${origin}, focus on one completed admin step at a time and use the linked module to keep your move organized.`;
 }
 
-async function seedStudentDashboardTasks(userId: number): Promise<void> {
-  await ensurePlatformTables();
-
-  for (const task of defaultDashboardTasks) {
-    await pool.query(
-      `INSERT INTO student_dashboard_tasks (user_id, title, description, done, category, href, sort_order)
-       VALUES ($1, $2, $3, false, $4, $5, $6)
-       ON CONFLICT (user_id, title) DO NOTHING`,
-      [userId, task.title, task.desc, task.category, task.href, task.sortOrder]
-    );
-  }
-}
-
 export async function getStudentDashboardData(user: SafeUser): Promise<StudentDashboardData> {
-  await seedStudentDashboardTasks(user.id);
+  await ensurePlatformTables();
 
   const result = await pool.query(
     `SELECT id, user_id, title, description, done, category, href, sort_order, created_at, updated_at

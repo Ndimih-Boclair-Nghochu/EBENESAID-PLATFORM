@@ -173,6 +173,11 @@ export default function CommunityPage() {
                   )}
                 </button>
               ))}
+              {!circles.length && (
+                <div className="rounded-2xl border border-dashed border-slate-200 p-8 text-center text-sm text-slate-500">
+                  No real community circles are available yet.
+                </div>
+              )}
             </CardContent>
           </Card>
 

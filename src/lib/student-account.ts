@@ -252,134 +252,8 @@ async function ensureStudentTables() {
   await studentSchemaReady;
 }
 
-const seedDocuments = [
-  ['Passport (Data Page)', 'Verified', 'Jan 12, 2025', 'Identity', 'https://example.com/passport.pdf'],
-  ['University Acceptance Letter', 'Verified', 'Dec 15, 2024', 'Education', 'https://example.com/acceptance.pdf'],
-  ['Student Visa (Long Stay)', 'Expiring Soon', 'Feb 01, 2025', 'Legal', 'https://example.com/visa.pdf'],
-  ['Proof of Financial Means', 'Pending', 'Jan 20, 2025', 'Finance', ''],
-  ['International Health Insurance', 'Not Uploaded', '-', 'Health', ''],
-  ['Lease Agreement (Certified)', 'Not Uploaded', '-', 'Housing', ''],
-];
-
-const seedJobs = [
-  ['Part-time Delivery Associate', 'Wolt Latvia', 'Riga, Latvia', 'EUR 800 - EUR 1,200', 'Flexible', 'WL', 'Flexible student-friendly delivery role with onboarding support.'],
-  ['Junior IT Support (Internship)', 'Accenture Baltics', 'Teika, Riga', 'EUR 600 stipend', 'Part-time', 'AC', 'Junior internship for students with basic IT troubleshooting skills.'],
-  ['English Tutor for Kids', 'Language Hub', 'Remote/Riga', 'EUR 15/hour', 'Hourly', 'LH', 'Tutoring role for native or fluent English speakers working with children.'],
-];
-
-const seedCircles = [
-  ['RTU International', '1.2k', 'Official hub for all international students at RTU.'],
-  ['Riga Flatmates', '800', 'Find verified roommates and shared housing tips.'],
-  ['West African Students', '150', 'Cultural connection and support for West African talent.'],
-  ['Tech & Innovation', '450', 'For the builders and dreamers in the Baltic tech scene.'],
-];
-
-const seedFood = [
-  ['Jollof Rice & Plantain', 8.5, 1.5, 'West African Hub', '25m', 4.9, 'https://picsum.photos/seed/jollof/400/300', JSON.stringify(['Bestseller', 'Spicy'])],
-  ['Latvian Dumplings (Pelmeni)', 6.5, 1.0, 'Riga Local Eats', '15m', 4.7, 'https://picsum.photos/seed/dumplings/400/300', JSON.stringify(['Local', 'Student Favorite'])],
-  ['Chicken Tikka Masala', 9.0, 2.0, 'Indo-Baltic Spice', '30m', 4.8, 'https://picsum.photos/seed/curry/400/300', JSON.stringify(['Verified', 'Halal'])],
-];
-
-async function seedStudentData(user: SafeUser) {
+async function ensureStudentDataTables() {
   await ensureStudentTables();
-
-  const docCount = await pool.query('SELECT COUNT(*)::int AS count FROM student_documents WHERE user_id = $1', [user.id]);
-  if ((docCount.rows[0]?.count ?? 0) === 0) {
-    for (const [name, status, dateLabel, type, fileUrl] of seedDocuments) {
-      await pool.query(
-        'INSERT INTO student_documents (user_id, name, status, date_label, doc_type, file_url) VALUES ($1, $2, $3, $4, $5, $6)',
-        [user.id, name, status, dateLabel, type, fileUrl]
-      );
-    }
-  }
-
-  const jobsCount = await pool.query('SELECT COUNT(*)::int AS count FROM job_listings');
-  if ((jobsCount.rows[0]?.count ?? 0) === 0) {
-    for (const [title, company, location, salary, type, logo, description] of seedJobs) {
-      await pool.query(
-        'INSERT INTO job_listings (title, company, location, salary, job_type, logo, description) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-        [title, company, location, salary, type, logo, description]
-      );
-    }
-  }
-
-  const circlesCount = await pool.query('SELECT COUNT(*)::int AS count FROM community_circles');
-  if ((circlesCount.rows[0]?.count ?? 0) === 0) {
-    for (const [name, membersLabel, description] of seedCircles) {
-      await pool.query(
-        'INSERT INTO community_circles (name, members_label, description) VALUES ($1, $2, $3)',
-        [name, membersLabel, description]
-      );
-    }
-  }
-
-  const circleMessageCount = await pool.query('SELECT COUNT(*)::int AS count FROM community_messages');
-  if ((circleMessageCount.rows[0]?.count ?? 0) === 0) {
-    await pool.query(
-      `INSERT INTO community_messages (circle_id, author_name, content)
-       SELECT id, 'Kofi Mensah', 'Does anyone know the fastest way to get to the Immigration Office (PMLP)?'
-       FROM community_circles WHERE name = 'RTU International' LIMIT 1`
-    );
-    await pool.query(
-      `INSERT INTO community_messages (circle_id, author_name, content)
-       SELECT id, 'Ananya S.', 'Looking for more people for a weekend trip to Sigulda. We have a car.'
-       FROM community_circles WHERE name = 'Tech & Innovation' LIMIT 1`
-    );
-  }
-
-  const convoCount = await pool.query('SELECT COUNT(*)::int AS count FROM student_conversations WHERE user_id = $1', [user.id]);
-  if ((convoCount.rows[0]?.count ?? 0) === 0) {
-    const seedConversations = [
-      ['Louis D.', 'Student', 'User'],
-      ['Sia LatProp', 'Housing Agent', 'Hotel'],
-      ['West African Hub', 'Food Supplier', 'Soup'],
-      ['RTU Riga', 'University', 'Building2'],
-      ['EBENESAID Support', 'Support', 'LifeBuoy'],
-    ];
-
-    for (const [name, type, icon] of seedConversations) {
-      const result = await pool.query(
-        'INSERT INTO student_conversations (user_id, name, contact_type, icon) VALUES ($1, $2, $3, $4) RETURNING id',
-        [user.id, name, type, icon]
-      );
-      const conversationId = result.rows[0].id;
-      await pool.query(
-        'INSERT INTO student_conversation_messages (conversation_id, role, sender_name, content) VALUES ($1, $2, $3, $4)',
-        [conversationId, 'other', name, `Welcome to your secure conversation with ${name}.`]
-      );
-    }
-  }
-
-  const foodCount = await pool.query('SELECT COUNT(*)::int AS count FROM food_menu_items');
-  if ((foodCount.rows[0]?.count ?? 0) === 0) {
-    for (const [name, price, fee, kitchen, prepTime, rating, imageUrl, tags] of seedFood) {
-      await pool.query(
-        'INSERT INTO food_menu_items (name, price, delivery_fee, kitchen, prep_time, rating, image_url, tags) VALUES ($1,$2,$3,$4,$5,$6,$7,$8::jsonb)',
-        [name, price, fee, kitchen, prepTime, rating, imageUrl, tags]
-      );
-    }
-  }
-
-  await pool.query(
-    `INSERT INTO student_arrival_bookings (user_id, airport_code, destination, pickup_status, pickup_booked, notes)
-     VALUES ($1, 'RIX', 'K. Valdemara iela 21, Centrs', 'Not booked', false, '')
-     ON CONFLICT (user_id) DO NOTHING`,
-    [user.id]
-  );
-
-  const supportCount = await pool.query('SELECT COUNT(*)::int AS count FROM student_support_messages WHERE user_id = $1', [user.id]);
-  if ((supportCount.rows[0]?.count ?? 0) === 0) {
-    await pool.query(
-      'INSERT INTO student_support_messages (user_id, role, content) VALUES ($1, $2, $3), ($1, $4, $5)',
-      [
-        user.id,
-        'system',
-        'Welcome to the official EBENESAID support channel. How can we assist your relocation today?',
-        'admin',
-        'Your support inbox is active. Send a message any time and the operations team will respond.',
-      ]
-    );
-  }
 }
 
 function formatTimeLabel(value: string | Date) {
@@ -392,7 +266,7 @@ function formatTimeLabel(value: string | Date) {
 }
 
 export async function getStudentDocuments(user: SafeUser): Promise<StudentDocument[]> {
-  await seedStudentData(user);
+  await ensureStudentDataTables();
   const result = await pool.query(
     `SELECT id, name, status, date_label, doc_type, file_url
      FROM student_documents WHERE user_id = $1 ORDER BY id ASC`,
@@ -412,7 +286,7 @@ export async function saveStudentDocument(
   user: SafeUser,
   data: { name: string; type: string; fileUrl: string }
 ) {
-  await seedStudentData(user);
+  await ensureStudentDataTables();
   await pool.query(
     `INSERT INTO student_documents (user_id, name, status, date_label, doc_type, file_url)
      VALUES ($1, $2, 'Pending', $3, $4, $5)`,
@@ -421,7 +295,7 @@ export async function saveStudentDocument(
 }
 
 export async function getStudentJobs(user: SafeUser): Promise<StudentJob[]> {
-  await seedStudentData(user);
+  await ensureStudentDataTables();
   const result = await pool.query(
     `SELECT j.id, j.title, j.company, j.location, j.salary, j.job_type, j.logo, j.description,
             CASE WHEN a.id IS NULL THEN false ELSE true END AS applied
@@ -444,7 +318,7 @@ export async function getStudentJobs(user: SafeUser): Promise<StudentJob[]> {
 }
 
 export async function applyToJob(user: SafeUser, jobId: number) {
-  await seedStudentData(user);
+  await ensureStudentDataTables();
   await pool.query(
     `INSERT INTO student_job_applications (user_id, job_id, status)
      VALUES ($1, $2, 'Applied')
@@ -454,7 +328,7 @@ export async function applyToJob(user: SafeUser, jobId: number) {
 }
 
 export async function getCommunityData(user: SafeUser) {
-  await seedStudentData(user);
+  await ensureStudentDataTables();
   const circles = await pool.query(
     `SELECT c.id, c.name, c.members_label, c.description,
             CASE WHEN m.id IS NULL THEN false ELSE true END AS joined
@@ -490,7 +364,7 @@ export async function getCommunityData(user: SafeUser) {
 }
 
 export async function joinCircle(user: SafeUser, circleId: number) {
-  await seedStudentData(user);
+  await ensureStudentDataTables();
   await pool.query(
     `INSERT INTO community_memberships (user_id, circle_id)
      VALUES ($1, $2)
@@ -500,7 +374,7 @@ export async function joinCircle(user: SafeUser, circleId: number) {
 }
 
 export async function createCircleMessage(user: SafeUser, circleId: number, content: string) {
-  await seedStudentData(user);
+  await ensureStudentDataTables();
   await pool.query(
     `INSERT INTO community_messages (circle_id, author_name, content)
      VALUES ($1, $2, $3)`,
@@ -509,7 +383,7 @@ export async function createCircleMessage(user: SafeUser, circleId: number, cont
 }
 
 export async function getConversations(user: SafeUser) {
-  await seedStudentData(user);
+  await ensureStudentDataTables();
 
   const conversations = await pool.query(
     `SELECT c.id, c.name, c.contact_type, c.icon, c.unread,
@@ -559,7 +433,7 @@ export async function getConversations(user: SafeUser) {
 }
 
 export async function sendConversationMessage(user: SafeUser, conversationId: number, content: string) {
-  await seedStudentData(user);
+  await ensureStudentDataTables();
   await pool.query(
     `INSERT INTO student_conversation_messages (conversation_id, role, sender_name, content)
      VALUES ($1, 'me', $2, $3)`,
@@ -568,7 +442,7 @@ export async function sendConversationMessage(user: SafeUser, conversationId: nu
 }
 
 export async function getFoodData(user: SafeUser) {
-  await seedStudentData(user);
+  await ensureStudentDataTables();
   const items = await pool.query(
     `SELECT id, name, price, delivery_fee, kitchen, prep_time, rating, image_url, tags
      FROM food_menu_items ORDER BY id ASC`
@@ -608,7 +482,7 @@ export async function createFoodOrder(
   user: SafeUser,
   data: { itemName: string; total: number; fulfillment: string }
 ) {
-  await seedStudentData(user);
+  await ensureStudentDataTables();
   await pool.query(
     `INSERT INTO student_food_orders (user_id, item_name, total, fulfillment, status)
      VALUES ($1, $2, $3, $4, 'Initialized')`,
@@ -617,7 +491,7 @@ export async function createFoodOrder(
 }
 
 export async function getArrivalBooking(user: SafeUser): Promise<ArrivalBooking> {
-  await seedStudentData(user);
+  await ensureStudentDataTables();
   const result = await pool.query(
     `SELECT id, airport_code, destination, pickup_status, pickup_booked, notes
      FROM student_arrival_bookings WHERE user_id = $1`,
@@ -638,21 +512,22 @@ export async function saveArrivalBooking(
   user: SafeUser,
   data: { destination: string; pickupBooked: boolean; notes: string }
 ) {
-  await seedStudentData(user);
+  await ensureStudentDataTables();
   await pool.query(
-    `UPDATE student_arrival_bookings
-     SET destination = $2,
-         pickup_booked = $3,
-         pickup_status = $4,
-         notes = $5,
-         updated_at = NOW()
-     WHERE user_id = $1`,
-    [user.id, data.destination.trim(), data.pickupBooked, data.pickupBooked ? 'Booked' : 'Not booked', data.notes.trim()]
+    `INSERT INTO student_arrival_bookings (user_id, airport_code, destination, pickup_status, pickup_booked, notes, updated_at)
+     VALUES ($1, 'RIX', $2, $3, $4, $5, NOW())
+     ON CONFLICT (user_id)
+     DO UPDATE SET destination = EXCLUDED.destination,
+                   pickup_status = EXCLUDED.pickup_status,
+                   pickup_booked = EXCLUDED.pickup_booked,
+                   notes = EXCLUDED.notes,
+                   updated_at = NOW()`,
+    [user.id, data.destination.trim(), data.pickupBooked ? 'Booked' : 'Not booked', data.pickupBooked, data.notes.trim()]
   );
 }
 
 export async function getSupportMessages(user: SafeUser): Promise<SupportMessage[]> {
-  await seedStudentData(user);
+  await ensureStudentDataTables();
   const result = await pool.query(
     `SELECT id, role, content, created_at
      FROM student_support_messages
@@ -669,7 +544,7 @@ export async function getSupportMessages(user: SafeUser): Promise<SupportMessage
 }
 
 export async function createSupportMessage(user: SafeUser, content: string) {
-  await seedStudentData(user);
+  await ensureStudentDataTables();
   await pool.query(
     `INSERT INTO student_support_messages (user_id, role, content)
      VALUES ($1, 'user', $2), ($1, 'admin', $3)`,
