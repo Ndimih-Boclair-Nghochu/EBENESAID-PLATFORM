@@ -1,51 +1,49 @@
 'use client';
 
-import { useState, useEffect } from "react";
-import { SidebarShell } from "@/components/layout/sidebar-shell";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import {
+  AlertCircle,
+  ArrowUpRight,
+  BookOpen,
+  Briefcase,
+  CalendarDays,
+  CheckCircle2,
+  Clock,
+  Compass,
+  Euro,
+  FileText,
+  Home,
+  Loader2,
+  LogOut,
+  MapPin,
+  PartyPopper,
+  PlaneTakeoff,
+  ShieldCheck,
+  TrendingUp,
+  Users,
+  Wallet,
+  X,
+  Zap,
+} from "lucide-react";
+
+import { useAuthContext } from "@/auth/provider";
 import { PageHeader } from "@/components/layout/page-header";
+import { SidebarShell } from "@/components/layout/sidebar-shell";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
-import { Button } from "@/components/ui/button";
-import {
-  Home,
-  FileText,
-  Briefcase,
-  Users,
-  ArrowUpRight,
-  MapPin,
-  Wallet,
-  Compass,
-  ShieldCheck,
-  Zap,
-  CheckCircle2,
-  Clock,
-  TrendingUp,
-  BookOpen,
-  Utensils,
-  PlaneTakeoff,
-  X,
-  PartyPopper,
-  CalendarDays,
-  Euro,
-  LogOut,
-  Loader2
-} from "lucide-react";
-import Link from "next/link";
-import { useAuthContext } from "@/auth/provider";
-import { useRouter } from "next/navigation";
 
-const initialTasks = [
-  { id: 1, title: "Finalize Housing", desc: "Confirm verified accommodation before arrival.", done: false, category: "Housing", href: "/accommodation" },
-  { id: 2, title: "Plan Airport Transfer", desc: "Book airport-to-city transport in advance.", done: false, category: "Logistics", href: "/arrival" },
-  { id: 3, title: "University Enrollment", desc: "Prepare documents for orientation day.", done: false, category: "Academic", href: "/docs" },
-  { id: 4, title: "Residence Permit", desc: "OCMA registration appointment booked.", done: true, category: "Legal", href: "/docs" },
-  { id: 5, title: "Get a Local SIM Card", desc: "Set up your Latvian phone number.", done: false, category: "Setup", href: "/dashboard" },
-  { id: 6, title: "Open a Bank Account", desc: "Open a local IBAN for transactions.", done: false, category: "Finance", href: "/dashboard" },
-  { id: 7, title: "Register for e-talons", desc: "Public transport card registration.", done: false, category: "Logistics", href: "/arrival" },
-  { id: 8, title: "Explore Career Services", desc: "Browse verified part-time roles.", done: false, category: "Career", href: "/jobs" },
-  { id: 9, title: "Cultural Orientation", desc: "Review local laws and customs guide.", done: false, category: "Culture", href: "/community" },
-];
+type DashboardTask = {
+  id: number;
+  title: string;
+  desc: string;
+  done: boolean;
+  category: string;
+  href: string;
+};
 
 const categoryColors: Record<string, string> = {
   Housing: "bg-green-50 text-green-700 border-green-100",
@@ -61,23 +59,70 @@ const categoryColors: Record<string, string> = {
 export default function DashboardPage() {
   const { user, isLoading, isFirstLogin, clearFirstLogin, logout } = useAuthContext();
   const router = useRouter();
-  const [tasks, setTasks] = useState(initialTasks);
+  const [tasks, setTasks] = useState<DashboardTask[]>([]);
+  const [guidance, setGuidance] = useState("");
+  const [dashboardError, setDashboardError] = useState<string | null>(null);
+  const [isDashboardLoading, setIsDashboardLoading] = useState(true);
   const [showWelcome, setShowWelcome] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  // Redirect if not logged in
   useEffect(() => {
     if (!isLoading && !user) {
-      router.push('/login');
+      router.push("/login");
     }
   }, [user, isLoading, router]);
 
-  // Show welcome popup on first login or registration
   useEffect(() => {
     if (user && isFirstLogin) {
       setShowWelcome(true);
     }
   }, [user, isFirstLogin]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadDashboard() {
+      if (!user) {
+        if (isMounted) {
+          setTasks([]);
+          setGuidance("");
+          setDashboardError(null);
+          setIsDashboardLoading(false);
+        }
+        return;
+      }
+
+      try {
+        setIsDashboardLoading(true);
+        const res = await fetch("/api/dashboard", { credentials: "include" });
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || "Failed to load dashboard.");
+        }
+
+        if (isMounted) {
+          setTasks(data.tasks ?? []);
+          setGuidance(data.guidance ?? "");
+          setDashboardError(null);
+        }
+      } catch (error) {
+        if (isMounted) {
+          setDashboardError(error instanceof Error ? error.message : "Failed to load dashboard.");
+        }
+      } finally {
+        if (isMounted) {
+          setIsDashboardLoading(false);
+        }
+      }
+    }
+
+    loadDashboard();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user]);
 
   const handleCloseWelcome = () => {
     setShowWelcome(false);
@@ -87,15 +132,39 @@ export default function DashboardPage() {
   const handleLogout = async () => {
     setIsLoggingOut(true);
     await logout();
-    router.push('/login');
+    router.push("/login");
   };
 
-  const toggleTask = (id: number) => {
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, done: !t.done } : t));
+  const toggleTask = async (id: number) => {
+    const currentTask = tasks.find(task => task.id === id);
+    if (!currentTask) return;
+
+    const nextDone = !currentTask.done;
+    setTasks(prev => prev.map(task => task.id === id ? { ...task, done: nextDone } : task));
+    setDashboardError(null);
+
+    try {
+      const res = await fetch("/api/dashboard", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ taskId: id, done: nextDone }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to update task.");
+      }
+
+      setTasks(data.tasks ?? []);
+      setGuidance(data.guidance ?? "");
+    } catch (error) {
+      setTasks(prev => prev.map(task => task.id === id ? { ...task, done: !nextDone } : task));
+      setDashboardError(error instanceof Error ? error.message : "Failed to update task.");
+    }
   };
 
-  // Show loading while checking auth
-  if (isLoading || !user) {
+  if (isLoading || !user || isDashboardLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-3">
@@ -106,86 +175,80 @@ export default function DashboardPage() {
     );
   }
 
-  // Calculate trial info
   const trialEndDate = new Date(user.trialEndDate);
   const now = new Date();
   const daysLeft = Math.max(0, Math.ceil((trialEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
   const trialActive = daysLeft > 0 && !user.hasPaid;
 
-  const completedCount = tasks.filter(t => t.done).length;
-  const progressPercent = Math.round((completedCount / tasks.length) * 100);
-
-  const pendingTasks = tasks.filter(t => !t.done);
-  const doneTasks = tasks.filter(t => t.done);
+  const completedCount = tasks.filter(task => task.done).length;
+  const progressPercent = tasks.length ? Math.round((completedCount / tasks.length) * 100) : 0;
+  const pendingCount = tasks.length - completedCount;
+  const pendingTasks = tasks.filter(task => !task.done);
+  const doneTasks = tasks.filter(task => task.done);
+  const totalModules = new Set(tasks.map(task => task.category)).size;
+  const activeModules = new Set(tasks.filter(task => task.done).map(task => task.category)).size;
 
   return (
     <SidebarShell>
-      <div className="flex flex-col gap-6 max-w-7xl mx-auto pb-10">
-
-        {/* Welcome Modal */}
+      <div className="mx-auto flex max-w-7xl flex-col gap-6 pb-10">
         {showWelcome && (
-          <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden animate-in zoom-in-95 fade-in duration-300">
-              {/* Header */}
-              <div className="bg-gradient-to-br from-green-700 to-green-800 p-8 text-center relative">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl animate-in zoom-in-95 fade-in duration-300">
+              <div className="relative bg-gradient-to-br from-green-700 to-green-800 p-8 text-center">
                 <button
                   onClick={handleCloseWelcome}
-                  className="absolute top-4 right-4 text-white/60 hover:text-white transition-colors p-1 rounded-lg"
+                  className="absolute right-4 top-4 rounded-lg p-1 text-white/60 transition-colors hover:text-white"
                 >
                   <X className="h-5 w-5" />
                 </button>
-                <div className="h-16 w-16 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/20">
                   <PartyPopper className="h-8 w-8 text-white" />
                 </div>
-                <h2 className="text-2xl font-black text-white tracking-tight">
-                  Welcome, {user.firstName}!
-                </h2>
-                <p className="text-green-100 text-sm font-medium mt-2">
-                  Your EBENESAID account is ready
-                </p>
+                <h2 className="text-2xl font-black tracking-tight text-white">Welcome, {user.firstName}!</h2>
+                <p className="mt-2 text-sm font-medium text-green-100">Your EBENESAID account is ready</p>
               </div>
 
-              {/* Body */}
-              <div className="p-8 space-y-5">
-                <p className="text-slate-600 text-sm leading-relaxed text-center">
+              <div className="space-y-5 p-8">
+                <p className="text-center text-sm leading-relaxed text-slate-600">
                   We&apos;re thrilled to have you on board! Your relocation journey just got a whole lot easier.
                 </p>
 
-                {/* Trial info card */}
-                <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-100 rounded-2xl p-5 space-y-3">
+                <div className="space-y-3 rounded-2xl border border-amber-100 bg-gradient-to-br from-amber-50 to-orange-50 p-5">
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 bg-amber-100 rounded-xl flex items-center justify-center text-amber-600 shrink-0">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
                       <CalendarDays className="h-5 w-5" />
                     </div>
                     <div>
                       <p className="text-sm font-black text-slate-900">1 Month Free Trial</p>
-                      <p className="text-xs text-slate-500 font-medium">Your trial ends on {trialEndDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                      <p className="text-xs font-medium text-slate-500">
+                        Your trial ends on {trialEndDate.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
+                      </p>
                     </div>
                   </div>
 
                   <div className="h-px bg-amber-200/60" />
 
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 bg-green-100 rounded-xl flex items-center justify-center text-green-600 shrink-0">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-green-100 text-green-600">
                       <Euro className="h-5 w-5" />
                     </div>
                     <div>
-                      <p className="text-sm font-black text-slate-900">Platform Fee: €100</p>
-                      <p className="text-xs text-slate-500 font-medium">After your free trial, pay once to continue using all features</p>
+                      <p className="text-sm font-black text-slate-900">Platform Fee: EUR 100</p>
+                      <p className="text-xs font-medium text-slate-500">After your free trial, pay once to continue using all features</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-2 p-3 rounded-xl bg-green-50 border border-green-100">
-                  <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
-                  <p className="text-xs text-green-700 font-medium leading-relaxed">
+                <div className="flex items-start gap-2 rounded-xl border border-green-100 bg-green-50 p-3">
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-green-600" />
+                  <p className="text-xs font-medium leading-relaxed text-green-700">
                     Enjoy full access to housing search, document storage, airport transfers, community, career board, and all platform features during your trial.
                   </p>
                 </div>
 
                 <Button
                   onClick={handleCloseWelcome}
-                  className="w-full h-12 rounded-xl font-black text-sm bg-green-700 hover:bg-green-800 text-white border-none shadow-lg shadow-green-700/20"
+                  className="h-12 w-full rounded-xl border-none bg-green-700 text-sm font-black text-white shadow-lg shadow-green-700/20 hover:bg-green-800"
                 >
                   Let&apos;s Get Started!
                 </Button>
@@ -196,27 +259,31 @@ export default function DashboardPage() {
 
         <PageHeader
           title={`Welcome, ${user.firstName}!`}
-          subtitle={`${user.university || 'Student Portal'} · ${user.email}`}
+          subtitle={`${user.university || "Student Portal"} | ${user.email}`}
           actions={
             <>
               {trialActive && (
-                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-xl">
+                <div className="hidden items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-1.5 sm:flex">
                   <Clock className="h-3.5 w-3.5 text-amber-600" />
                   <span className="text-xs font-bold text-amber-700">{daysLeft} days left in trial</span>
                 </div>
               )}
-              <Button size="sm" variant="outline" className="rounded-xl font-bold h-9 px-4 gap-2 text-xs border-slate-200" asChild>
-                <Link href="/arrival"><PlaneTakeoff className="h-3.5 w-3.5" /> Arrival</Link>
+              <Button size="sm" variant="outline" className="h-9 rounded-xl border-slate-200 px-4 text-xs font-bold" asChild>
+                <Link href="/arrival">
+                  <PlaneTakeoff className="h-3.5 w-3.5" /> Arrival
+                </Link>
               </Button>
-              <Button size="sm" className="rounded-xl font-bold h-9 px-4 shadow-md shadow-green-700/20 gap-2 text-xs bg-green-700 hover:bg-green-800 text-white border-none" asChild>
-                <Link href="/docs"><Wallet className="h-3.5 w-3.5" /> My Wallet</Link>
+              <Button size="sm" className="h-9 rounded-xl border-none bg-green-700 px-4 text-xs font-bold text-white shadow-md shadow-green-700/20 hover:bg-green-800" asChild>
+                <Link href="/docs">
+                  <Wallet className="h-3.5 w-3.5" /> My Wallet
+                </Link>
               </Button>
               <Button
                 size="sm"
                 variant="ghost"
                 onClick={handleLogout}
                 disabled={isLoggingOut}
-                className="rounded-xl font-bold h-9 px-3 gap-2 text-xs text-slate-500 hover:text-red-600 hover:bg-red-50"
+                className="h-9 rounded-xl px-3 text-xs font-bold text-slate-500 hover:bg-red-50 hover:text-red-600"
               >
                 {isLoggingOut ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <LogOut className="h-3.5 w-3.5" />}
                 <span className="hidden sm:inline">Logout</span>
@@ -225,53 +292,57 @@ export default function DashboardPage() {
           }
         />
 
-        {/* Trial Banner */}
+        {dashboardError && (
+          <div className="flex items-start gap-3 rounded-2xl border border-red-100 bg-red-50 p-4 text-red-700">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            <p className="text-sm font-medium">{dashboardError}</p>
+          </div>
+        )}
+
         {trialActive && (
-          <div className="bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="h-10 w-10 bg-amber-100 rounded-xl flex items-center justify-center text-amber-600 shrink-0">
+          <div className="flex items-center justify-between gap-4 rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 p-4">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
                 <CalendarDays className="h-5 w-5" />
               </div>
               <div className="min-w-0">
-                <p className="text-sm font-black text-slate-900">Free Trial Active — {daysLeft} days remaining</p>
-                <p className="text-xs text-slate-500 font-medium mt-0.5">After your trial ends, pay the platform fee of <span className="font-bold text-slate-700">€100</span> to continue.</p>
+                <p className="text-sm font-black text-slate-900">Free Trial Active - {daysLeft} days remaining</p>
+                <p className="mt-0.5 text-xs font-medium text-slate-500">
+                  After your trial ends, pay the platform fee of <span className="font-bold text-slate-700">EUR 100</span> to continue.
+                </p>
               </div>
             </div>
           </div>
         )}
 
-        {/* Stats Row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <StatCard label="Tasks Done" value={`${completedCount}/${tasks.length}`} icon={<CheckCircle2 className="h-4 w-4" />} color="text-emerald-600" bg="bg-emerald-50" />
-          <StatCard label="Days Until Start" value="47" icon={<Clock className="h-4 w-4" />} color="text-green-700" bg="bg-green-50" />
+          <StatCard label="Tasks Pending" value={String(pendingCount)} icon={<Clock className="h-4 w-4" />} color="text-green-700" bg="bg-green-50" />
           <StatCard label="Compliance" value={`${progressPercent}%`} icon={<TrendingUp className="h-4 w-4" />} color="text-violet-600" bg="bg-violet-50" />
-          <StatCard label="Modules Active" value="4/9" icon={<Zap className="h-4 w-4" />} color="text-amber-600" bg="bg-amber-50" />
+          <StatCard label="Modules Active" value={`${activeModules}/${totalModules || 0}`} icon={<Zap className="h-4 w-4" />} color="text-amber-600" bg="bg-amber-50" />
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-          {/* Personalized Roadmap */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
           <div className="lg:col-span-8">
-            <Card className="rounded-2xl border-slate-100 shadow-sm bg-white h-full">
-              <CardHeader className="p-5 border-b border-slate-50 flex flex-row items-center gap-3">
-                <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+            <Card className="h-full rounded-2xl border-slate-100 bg-white shadow-sm">
+              <CardHeader className="flex flex-row items-center gap-3 border-b border-slate-50 p-5">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                   <Compass className="h-4 w-4" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <CardTitle className="text-sm font-black text-slate-900 leading-none">Your Relocation Roadmap</CardTitle>
-                  <p className="text-xs text-slate-400 font-medium mt-1">AI-generated guidance based on your profile</p>
+                <div className="min-w-0 flex-1">
+                  <CardTitle className="text-sm font-black leading-none text-slate-900">Your Relocation Roadmap</CardTitle>
+                  <p className="mt-1 text-xs font-medium text-slate-400">Profile-based guidance powered by your account data</p>
                 </div>
               </CardHeader>
               <CardContent className="p-5">
-                <blockquote className="text-sm leading-relaxed text-slate-600 font-medium border-l-4 border-primary/30 pl-4 py-1 italic bg-primary/3 rounded-r-xl">
-                  &quot;Your next priority is confirming verified housing. Once confirmed, your airport-to-city transfer details will be unlocked and we&apos;ll guide you through the e-talons registration process.&quot;
+                <blockquote className="rounded-r-xl border-l-4 border-primary/30 bg-primary/3 py-1 pl-4 text-sm font-medium italic leading-relaxed text-slate-600">
+                  &quot;{guidance || "Your personalized relocation guidance will appear here as your account data loads."}&quot;
                 </blockquote>
-                <div className="flex flex-wrap gap-x-5 gap-y-1.5 mt-4">
-                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wide flex items-center gap-1.5">
-                    <BookOpen className="h-3 w-3" /> University: {user.university || 'Not set'}
+                <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1.5">
+                  <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-slate-400">
+                    <BookOpen className="h-3 w-3" /> University: {user.university || "Not set"}
                   </p>
-                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wide flex items-center gap-1.5">
+                  <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-slate-400">
                     <ShieldCheck className="h-3 w-3 text-emerald-500" /> Account: Active
                   </p>
                 </div>
@@ -279,50 +350,50 @@ export default function DashboardPage() {
             </Card>
           </div>
 
-          {/* System Status */}
           <div className="lg:col-span-4">
-            <Card className="border-slate-100 shadow-sm rounded-2xl bg-white h-full">
-              <CardHeader className="p-5 pb-3 border-b border-slate-50">
+            <Card className="h-full rounded-2xl border-slate-100 bg-white shadow-sm">
+              <CardHeader className="border-b border-slate-50 p-5 pb-3">
                 <CardTitle className="text-xs font-black uppercase tracking-wider text-slate-400">Account Status</CardTitle>
               </CardHeader>
-              <CardContent className="p-5 space-y-4">
+              <CardContent className="space-y-4 p-5">
                 <StatusItem label="Name" value={`${user.firstName} ${user.lastName}`} icon={<MapPin className="h-4 w-4" />} status="default" />
                 <StatusItem label="Account Type" value={user.userType.charAt(0).toUpperCase() + user.userType.slice(1)} icon={<ShieldCheck className="h-4 w-4" />} status="active" />
-                <StatusItem label="Trial Status" value={trialActive ? `${daysLeft} days left` : (user.hasPaid ? 'Paid' : 'Expired')} icon={<Zap className="h-4 w-4" />} status={trialActive || user.hasPaid ? "active" : "default"} />
+                <StatusItem label="Trial Status" value={trialActive ? `${daysLeft} days left` : (user.hasPaid ? "Paid" : "Expired")} icon={<Zap className="h-4 w-4" />} status={trialActive || user.hasPaid ? "active" : "default"} />
               </CardContent>
             </Card>
           </div>
         </div>
 
-        {/* Relocation Blueprint */}
-        <Card className="shadow-sm border-slate-100 rounded-2xl bg-white overflow-hidden">
-          <CardHeader className="p-5 border-b border-slate-50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <Card className="overflow-hidden rounded-2xl border-slate-100 bg-white shadow-sm">
+          <CardHeader className="flex flex-col items-start justify-between gap-3 border-b border-slate-50 p-5 sm:flex-row sm:items-center">
             <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                 <Compass className="h-4 w-4" />
               </div>
               <div>
-                <CardTitle className="text-sm font-black text-slate-900 leading-none">Relocation Checklist</CardTitle>
-                <p className="text-[11px] text-slate-400 font-medium mt-1">{completedCount} of {tasks.length} tasks completed</p>
+                <CardTitle className="text-sm font-black leading-none text-slate-900">Relocation Checklist</CardTitle>
+                <p className="mt-1 text-[11px] font-medium text-slate-400">
+                  {completedCount} of {tasks.length} tasks completed
+                </p>
               </div>
             </div>
-            <div className="flex items-center gap-3 w-full sm:w-auto">
+            <div className="flex w-full items-center gap-3 sm:w-auto">
               <div className="text-right">
-                <p className="text-xl font-black text-primary leading-none">{progressPercent}%</p>
-                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wide mt-0.5">Complete</p>
+                <p className="text-xl font-black leading-none text-primary">{progressPercent}%</p>
+                <p className="mt-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-400">Complete</p>
               </div>
-              <Progress value={progressPercent} className="h-2 w-28 rounded-full bg-slate-100 hidden sm:block" />
+              <Progress value={progressPercent} className="hidden h-2 w-28 rounded-full bg-slate-100 sm:block" />
             </div>
           </CardHeader>
 
           <CardContent className="p-0">
             {pendingTasks.length > 0 && (
               <div>
-                <div className="px-5 py-2.5 bg-slate-50/60 border-b border-slate-50">
-                  <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">To Do · {pendingTasks.length} remaining</p>
+                <div className="border-b border-slate-50 bg-slate-50/60 px-5 py-2.5">
+                  <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">To Do - {pendingTasks.length} remaining</p>
                 </div>
                 <div className="divide-y divide-slate-50">
-                  {pendingTasks.map((task) => (
+                  {pendingTasks.map(task => (
                     <TaskRow key={task.id} task={task} onToggle={toggleTask} />
                   ))}
                 </div>
@@ -330,11 +401,11 @@ export default function DashboardPage() {
             )}
             {doneTasks.length > 0 && (
               <div>
-                <div className="px-5 py-2.5 bg-emerald-50/40 border-y border-emerald-50">
-                  <p className="text-[10px] font-black uppercase tracking-wider text-emerald-500">Completed · {doneTasks.length}</p>
+                <div className="border-y border-emerald-50 bg-emerald-50/40 px-5 py-2.5">
+                  <p className="text-[10px] font-black uppercase tracking-wider text-emerald-500">Completed - {doneTasks.length}</p>
                 </div>
                 <div className="divide-y divide-slate-50">
-                  {doneTasks.map((task) => (
+                  {doneTasks.map(task => (
                     <TaskRow key={task.id} task={task} onToggle={toggleTask} />
                   ))}
                 </div>
@@ -343,8 +414,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Quick Launchers */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <QuickLauncher title="Housing" sub="Find accommodation" icon={<Home className="h-5 w-5" />} href="/accommodation" />
           <QuickLauncher title="Documents" sub="Secure wallet" icon={<FileText className="h-5 w-5" />} href="/docs" />
           <QuickLauncher title="Jobs" sub="Career board" icon={<Briefcase className="h-5 w-5" />} href="/jobs" />
@@ -357,37 +427,37 @@ export default function DashboardPage() {
 
 function TaskRow({
   task,
-  onToggle
+  onToggle,
 }: {
-  task: typeof initialTasks[number];
-  onToggle: (id: number) => void;
+  task: DashboardTask;
+  onToggle: (id: number) => void | Promise<void>;
 }) {
   return (
     <div
-      className={`group flex items-center gap-4 px-5 py-3.5 hover:bg-slate-50/60 transition-all cursor-pointer ${task.done ? 'opacity-60' : ''}`}
+      className={`group flex cursor-pointer items-center gap-4 px-5 py-3.5 transition-all hover:bg-slate-50/60 ${task.done ? "opacity-60" : ""}`}
       onClick={() => onToggle(task.id)}
     >
       <Checkbox
         checked={task.done}
         onCheckedChange={() => onToggle(task.id)}
-        className="h-4 w-4 rounded-md border-slate-300 shrink-0"
+        className="h-4 w-4 shrink-0 rounded-md border-slate-300"
         onClick={e => e.stopPropagation()}
       />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <p className={`text-sm font-bold leading-none transition-colors ${task.done ? 'line-through text-slate-400' : 'text-slate-800 group-hover:text-primary'}`}>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className={`text-sm font-bold leading-none transition-colors ${task.done ? "line-through text-slate-400" : "text-slate-800 group-hover:text-primary"}`}>
             {task.title}
           </p>
-          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md border ${categoryColors[task.category] ?? 'bg-slate-50 text-slate-500 border-slate-100'}`}>
+          <span className={`rounded-md border px-1.5 py-0.5 text-[9px] font-bold ${categoryColors[task.category] ?? "border-slate-100 bg-slate-50 text-slate-500"}`}>
             {task.category}
           </span>
         </div>
-        <p className="text-[11px] font-medium text-slate-400 mt-1 line-clamp-1">{task.desc}</p>
+        <p className="mt-1 line-clamp-1 text-[11px] font-medium text-slate-400">{task.desc}</p>
       </div>
       <Link
         href={task.href}
         onClick={e => e.stopPropagation()}
-        className="shrink-0 p-1.5 rounded-lg hover:bg-primary/10 text-slate-300 hover:text-primary transition-all"
+        className="shrink-0 rounded-lg p-1.5 text-slate-300 transition-all hover:bg-primary/10 hover:text-primary"
       >
         <ArrowUpRight className="h-3.5 w-3.5" />
       </Link>
@@ -400,7 +470,7 @@ function StatCard({
   value,
   icon,
   color,
-  bg
+  bg,
 }: {
   label: string;
   value: string;
@@ -409,12 +479,12 @@ function StatCard({
   bg: string;
 }) {
   return (
-    <Card className="rounded-2xl border-slate-100 shadow-sm bg-white p-4">
-      <div className={`h-8 w-8 rounded-xl ${bg} ${color} flex items-center justify-center mb-3`}>
+    <Card className="rounded-2xl border-slate-100 bg-white p-4 shadow-sm">
+      <div className={`mb-3 flex h-8 w-8 items-center justify-center rounded-xl ${bg} ${color}`}>
         {icon}
       </div>
-      <p className="text-xl font-black text-slate-900 leading-none">{value}</p>
-      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1.5">{label}</p>
+      <p className="text-xl font-black leading-none text-slate-900">{value}</p>
+      <p className="mt-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">{label}</p>
     </Card>
   );
 }
@@ -423,7 +493,7 @@ function QuickLauncher({
   title,
   sub,
   icon,
-  href
+  href,
 }: {
   title: string;
   sub: string;
@@ -432,13 +502,13 @@ function QuickLauncher({
 }) {
   return (
     <Link href={href}>
-      <div className="group p-4 rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-md hover:border-primary/20 transition-all flex flex-col items-center text-center gap-2.5 cursor-pointer">
-        <div className="h-11 w-11 rounded-xl bg-slate-50 text-slate-400 group-hover:bg-green-700 group-hover:text-white transition-all flex items-center justify-center shadow-inner">
+      <div className="group flex cursor-pointer flex-col items-center gap-2.5 rounded-2xl border border-slate-100 bg-white p-4 text-center shadow-sm transition-all hover:border-primary/20 hover:shadow-md">
+        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-50 text-slate-400 shadow-inner transition-all group-hover:bg-green-700 group-hover:text-white">
           {icon}
         </div>
         <div>
-          <h4 className="text-xs font-black text-slate-900 group-hover:text-primary transition-colors">{title}</h4>
-          <p className="text-[10px] font-medium text-slate-400 mt-0.5">{sub}</p>
+          <h4 className="text-xs font-black text-slate-900 transition-colors group-hover:text-primary">{title}</h4>
+          <p className="mt-0.5 text-[10px] font-medium text-slate-400">{sub}</p>
         </div>
       </div>
     </Link>
@@ -449,27 +519,25 @@ function StatusItem({
   label,
   value,
   icon,
-  status
+  status,
 }: {
   label: string;
   value: string;
   icon: React.ReactNode;
-  status?: 'active' | 'default';
+  status?: "active" | "default";
 }) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <div className="flex items-center gap-3 min-w-0">
-        <div className={`h-9 w-9 rounded-xl flex items-center justify-center shrink-0 ${status === 'active' ? 'bg-primary/10 text-primary' : 'bg-slate-50 text-slate-400'}`}>
+      <div className="flex min-w-0 items-center gap-3">
+        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${status === "active" ? "bg-primary/10 text-primary" : "bg-slate-50 text-slate-400"}`}>
           {icon}
         </div>
         <div className="min-w-0">
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide leading-none">{label}</p>
-          <p className="text-xs font-bold text-slate-800 leading-none mt-1 truncate">{value}</p>
+          <p className="text-[10px] font-bold uppercase tracking-wide leading-none text-slate-400">{label}</p>
+          <p className="mt-1 truncate text-xs font-bold leading-none text-slate-800">{value}</p>
         </div>
       </div>
-      {status === 'active' && (
-        <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
-      )}
+      {status === "active" && <div className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" />}
     </div>
   );
 }

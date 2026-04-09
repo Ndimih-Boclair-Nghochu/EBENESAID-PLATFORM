@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Look up session
-    const session = getSessionByToken(sessionToken);
+    const session = await getSessionByToken(sessionToken);
     if (!session) {
       // Session expired or invalid — clear the cookie
       const response = NextResponse.json(
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get user
-    const dbUser = getUserById(session.user_id);
+    const dbUser = await getUserById(session.user_id);
     if (!dbUser) {
       const response = NextResponse.json(
         { error: 'User not found.' },

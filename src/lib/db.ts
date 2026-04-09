@@ -70,6 +70,24 @@ export interface SafeUser {
   lastLoginAt: string | null;
 }
 
+export interface StudentDashboardTask {
+  id: number;
+  userId: number;
+  title: string;
+  desc: string;
+  done: boolean;
+  category: string;
+  href: string;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StudentDashboardData {
+  tasks: StudentDashboardTask[];
+  guidance: string;
+}
+
 export function toSafeUser(dbUser: DbUser): SafeUser {
   return {
     id: dbUser.id,
@@ -87,6 +105,202 @@ export function toSafeUser(dbUser: DbUser): SafeUser {
     createdAt: dbUser.created_at,
     lastLoginAt: dbUser.last_login_at,
   };
+}
+
+type DashboardSeedTask = {
+  title: string;
+  desc: string;
+  category: string;
+  href: string;
+  sortOrder: number;
+};
+
+const defaultDashboardTasks: DashboardSeedTask[] = [
+  {
+    title: 'Finalize Housing',
+    desc: 'Confirm verified accommodation before arrival.',
+    category: 'Housing',
+    href: '/accommodation',
+    sortOrder: 1,
+  },
+  {
+    title: 'Plan Airport Transfer',
+    desc: 'Book airport-to-city transport in advance.',
+    category: 'Logistics',
+    href: '/arrival',
+    sortOrder: 2,
+  },
+  {
+    title: 'University Enrollment',
+    desc: 'Prepare documents for orientation day.',
+    category: 'Academic',
+    href: '/docs',
+    sortOrder: 3,
+  },
+  {
+    title: 'Residence Permit',
+    desc: 'Prepare your permit and local registration paperwork.',
+    category: 'Legal',
+    href: '/docs',
+    sortOrder: 4,
+  },
+  {
+    title: 'Get a Local SIM Card',
+    desc: 'Set up your Latvian phone number after arrival.',
+    category: 'Setup',
+    href: '/settings',
+    sortOrder: 5,
+  },
+  {
+    title: 'Open a Bank Account',
+    desc: 'Open a local IBAN for rent, salary, and daily payments.',
+    category: 'Finance',
+    href: '/dashboard',
+    sortOrder: 6,
+  },
+  {
+    title: 'Register for E-talons',
+    desc: 'Get your public transport card ready for Riga travel.',
+    category: 'Logistics',
+    href: '/arrival',
+    sortOrder: 7,
+  },
+  {
+    title: 'Explore Career Services',
+    desc: 'Browse verified part-time roles and student-friendly employers.',
+    category: 'Career',
+    href: '/jobs',
+    sortOrder: 8,
+  },
+  {
+    title: 'Cultural Orientation',
+    desc: 'Review local guidance and join the student community.',
+    category: 'Culture',
+    href: '/community',
+    sortOrder: 9,
+  },
+];
+
+let schemaReady: Promise<void> | null = null;
+
+async function ensurePlatformTables(): Promise<void> {
+  if (!schemaReady) {
+    schemaReady = (async () => {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS student_dashboard_tasks (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          title TEXT NOT NULL,
+          description TEXT NOT NULL,
+          done BOOLEAN NOT NULL DEFAULT FALSE,
+          category TEXT NOT NULL,
+          href TEXT NOT NULL,
+          sort_order INTEGER NOT NULL DEFAULT 0,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+      `);
+
+      await pool.query(`
+        CREATE UNIQUE INDEX IF NOT EXISTS student_dashboard_tasks_user_title_idx
+        ON student_dashboard_tasks (user_id, title)
+      `);
+    })().catch(error => {
+      schemaReady = null;
+      throw error;
+    });
+  }
+
+  await schemaReady;
+}
+
+function toStudentDashboardTask(row: {
+  id: number;
+  user_id: number;
+  title: string;
+  description: string;
+  done: boolean;
+  category: string;
+  href: string;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}): StudentDashboardTask {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    title: row.title,
+    desc: row.description,
+    done: row.done,
+    category: row.category,
+    href: row.href,
+    sortOrder: row.sort_order,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function buildStudentDashboardGuidance(user: SafeUser, tasks: StudentDashboardTask[]): string {
+  const nextPendingTask = tasks.find(task => !task.done);
+  const university = user.university || 'your university';
+  const origin = user.countryOfOrigin || 'your home country';
+
+  if (!nextPendingTask) {
+    return `You have completed your current relocation checklist for ${university}. Keep your documents updated, monitor messages, and use the platform modules to stay ready for each next step.`;
+  }
+
+  return `Your next priority is "${nextPendingTask.title}" for ${university}. Since you are relocating from ${origin}, focus on one completed admin step at a time and use the linked module to keep your move organized.`;
+}
+
+async function seedStudentDashboardTasks(userId: number): Promise<void> {
+  await ensurePlatformTables();
+
+  for (const task of defaultDashboardTasks) {
+    await pool.query(
+      `INSERT INTO student_dashboard_tasks (user_id, title, description, done, category, href, sort_order)
+       VALUES ($1, $2, $3, false, $4, $5, $6)
+       ON CONFLICT (user_id, title) DO NOTHING`,
+      [userId, task.title, task.desc, task.category, task.href, task.sortOrder]
+    );
+  }
+}
+
+export async function getStudentDashboardData(user: SafeUser): Promise<StudentDashboardData> {
+  await seedStudentDashboardTasks(user.id);
+
+  const result = await pool.query(
+    `SELECT id, user_id, title, description, done, category, href, sort_order, created_at, updated_at
+     FROM student_dashboard_tasks
+     WHERE user_id = $1
+     ORDER BY sort_order ASC, id ASC`,
+    [user.id]
+  );
+
+  const tasks = result.rows.map(toStudentDashboardTask);
+
+  return {
+    tasks,
+    guidance: buildStudentDashboardGuidance(user, tasks),
+  };
+}
+
+export async function updateStudentDashboardTask(
+  userId: number,
+  taskId: number,
+  done: boolean
+): Promise<StudentDashboardTask | undefined> {
+  await ensurePlatformTables();
+
+  const result = await pool.query(
+    `UPDATE student_dashboard_tasks
+     SET done = $3, updated_at = NOW()
+     WHERE id = $1 AND user_id = $2
+     RETURNING id, user_id, title, description, done, category, href, sort_order, created_at, updated_at`,
+    [taskId, userId, done]
+  );
+
+  const row = result.rows[0];
+  return row ? toStudentDashboardTask(row) : undefined;
 }
 
 // ─── User CRUD (PostgreSQL) ────────────────────────────────────────────────────

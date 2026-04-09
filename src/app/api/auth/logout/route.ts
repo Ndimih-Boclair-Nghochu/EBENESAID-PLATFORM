@@ -6,7 +6,7 @@ export async function POST(request: NextRequest) {
     const sessionToken = request.cookies.get('eb_session')?.value;
 
     if (sessionToken) {
-      deleteSession(sessionToken);
+      await deleteSession(sessionToken);
     }
 
     const response = NextResponse.json(
