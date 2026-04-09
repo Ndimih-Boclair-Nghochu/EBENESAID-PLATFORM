@@ -28,6 +28,39 @@ async function getAuthenticatedUser(request: NextRequest) {
   return toSafeUser(dbUser);
 }
 
+function getDashboardErrorDetails(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  const lower = message.toLowerCase();
+
+  if (
+    lower.includes('connect') ||
+    lower.includes('connection') ||
+    lower.includes('database') ||
+    lower.includes('pool') ||
+    lower.includes('timeout')
+  ) {
+    return {
+      error: 'Dashboard database connection failed.',
+      detail: message,
+      source: 'database',
+    };
+  }
+
+  if (lower.includes('student_dashboard_tasks') || lower.includes('relation')) {
+    return {
+      error: 'Dashboard table is missing or not ready.',
+      detail: message,
+      source: 'schema',
+    };
+  }
+
+  return {
+    error: 'Dashboard failed to load.',
+    detail: message,
+    source: 'unknown',
+  };
+}
+
 export async function GET(request: NextRequest) {
   try {
     const user = await getAuthenticatedUser(request);
@@ -40,20 +73,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ user, ...dashboard }, { status: 200 });
   } catch (error: unknown) {
     console.error('Dashboard load error:', error);
-    const user = await getAuthenticatedUser(request);
-
-    if (!user) {
-      return NextResponse.json({ error: 'Not authenticated.' }, { status: 401 });
-    }
-
-    return NextResponse.json(
-      {
-        user,
-        tasks: [],
-        guidance: 'No real dashboard tasks are available yet. As you create or receive real relocation tasks, they will appear here.',
-      },
-      { status: 200 }
-    );
+    return NextResponse.json(getDashboardErrorDetails(error), { status: 500 });
   }
 }
 

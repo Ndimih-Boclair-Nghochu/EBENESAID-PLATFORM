@@ -58,6 +58,14 @@ async function readJsonSafely<T>(response: Response): Promise<T | null> {
   }
 }
 
+type DashboardResponse = {
+  tasks?: DashboardTask[];
+  guidance?: string;
+  error?: string;
+  detail?: string;
+  source?: string;
+};
+
 const categoryColors: Record<string, string> = {
   Housing: "bg-green-50 text-green-700 border-green-100",
   Logistics: "bg-violet-50 text-violet-700 border-violet-100",
@@ -108,10 +116,15 @@ export default function DashboardPage() {
       try {
         setIsDashboardLoading(true);
         const res = await fetch("/api/dashboard", { credentials: "include" });
-        const data = await readJsonSafely<{ tasks?: DashboardTask[]; guidance?: string; error?: string }>(res);
+        const data = await readJsonSafely<DashboardResponse>(res);
 
         if (!res.ok) {
-          throw new Error(data?.error || "Failed to load dashboard.");
+          const pieces = [
+            data?.error || "Failed to load dashboard.",
+            data?.source ? `Source: ${data.source}.` : "",
+            data?.detail ? `Detail: ${data.detail}` : "",
+          ].filter(Boolean);
+          throw new Error(pieces.join(" "));
         }
 
         if (isMounted) {
@@ -163,10 +176,15 @@ export default function DashboardPage() {
         credentials: "include",
         body: JSON.stringify({ taskId: id, done: nextDone }),
       });
-      const data = await readJsonSafely<{ tasks?: DashboardTask[]; guidance?: string; error?: string }>(res);
+      const data = await readJsonSafely<DashboardResponse>(res);
 
       if (!res.ok) {
-        throw new Error(data?.error || "Failed to update task.");
+        const pieces = [
+          data?.error || "Failed to update task.",
+          data?.source ? `Source: ${data.source}.` : "",
+          data?.detail ? `Detail: ${data.detail}` : "",
+        ].filter(Boolean);
+        throw new Error(pieces.join(" "));
       }
 
       setTasks(data?.tasks ?? []);
