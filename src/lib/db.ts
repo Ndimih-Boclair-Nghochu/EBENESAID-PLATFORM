@@ -70,6 +70,10 @@ export interface SafeUser {
   lastLoginAt: string | null;
 }
 
+export interface AdminDirectoryUser extends SafeUser {
+  updatedAt: string;
+}
+
 export interface StudentDashboardTask {
   id: number;
   userId: number;
@@ -111,6 +115,18 @@ export interface PropertyListing {
 
 export const PLATFORM_FEE_EUR = 5;
 
+export const PLATFORM_ROLE_OPTIONS = [
+  { value: 'student', label: 'Student' },
+  { value: 'admin', label: 'Admin' },
+  { value: 'staff', label: 'Staff' },
+  { value: 'university', label: 'University' },
+  { value: 'agent', label: 'House Agent' },
+  { value: 'supplier', label: 'Food Supplier' },
+  { value: 'transport', label: 'Transport Partner' },
+] as const;
+
+export type PlatformUserType = typeof PLATFORM_ROLE_OPTIONS[number]['value'];
+
 export function toSafeUser(dbUser: DbUser): SafeUser {
   return {
     id: dbUser.id,
@@ -128,6 +144,23 @@ export function toSafeUser(dbUser: DbUser): SafeUser {
     createdAt: dbUser.created_at,
     lastLoginAt: dbUser.last_login_at,
   };
+}
+
+function normalizeUserType(userType?: string): PlatformUserType {
+  const normalized = String(userType ?? 'student').trim().toLowerCase();
+  if (
+    normalized === 'admin' ||
+    normalized === 'staff' ||
+    normalized === 'university' ||
+    normalized === 'agent' ||
+    normalized === 'supplier' ||
+    normalized === 'transport' ||
+    normalized === 'student'
+  ) {
+    return normalized;
+  }
+
+  return 'student';
 }
 
 let schemaReady: Promise<void> | null = null;
@@ -614,7 +647,7 @@ export async function createUser(data: {
   const { hash, salt } = hashPassword(data.password);
   const now = new Date();
   const trialEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days
-  const userType = data.userType || 'student';
+  const userType = normalizeUserType(data.userType);
 
   const result = await pool.query(
     `INSERT INTO users (email, password_hash, password_salt, first_name, last_name, phone, university, country_of_origin, user_type, is_active, trial_start_date, trial_end_date, has_paid, created_at, updated_at)
@@ -671,6 +704,46 @@ export async function getSessionByToken(token: string): Promise<{ user_id: numbe
     [token]
   );
   return result.rows[0];
+}
+
+export async function listUsersForAdmin(): Promise<AdminDirectoryUser[]> {
+  const result = await pool.query(
+    `SELECT id, email, first_name, last_name, phone, university, country_of_origin, user_type, is_active,
+            trial_start_date, trial_end_date, has_paid, created_at, updated_at, last_login_at
+     FROM users
+     ORDER BY created_at DESC, id DESC`
+  );
+
+  return result.rows.map((row) => ({
+    ...toSafeUser(row),
+    updatedAt: row.updated_at,
+  }));
+}
+
+export async function setUserActiveState(userId: number, isActive: boolean): Promise<SafeUser | undefined> {
+  const result = await pool.query(
+    `UPDATE users
+     SET is_active = $2,
+         updated_at = NOW()
+     WHERE id = $1
+     RETURNING id, email, first_name, last_name, phone, university, country_of_origin, user_type, is_active, trial_start_date, trial_end_date, has_paid, created_at, updated_at, last_login_at`,
+    [userId, isActive]
+  );
+
+  const row = result.rows[0];
+  return row ? toSafeUser(row) : undefined;
+}
+
+export async function updateUserPassword(userId: number, password: string): Promise<void> {
+  const { hash, salt } = hashPassword(password);
+  await pool.query(
+    `UPDATE users
+     SET password_hash = $2,
+         password_salt = $3,
+         updated_at = NOW()
+     WHERE id = $1`,
+    [userId, hash, salt]
+  );
 }
 
 export async function deleteSession(token: string): Promise<void> {

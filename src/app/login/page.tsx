@@ -32,7 +32,7 @@ export default function LoginPage() {
   useEffect(() => {
     if (user) {
       // Route based on user type
-      if (user.userType === 'admin') router.push('/admin/dashboard');
+      if (user.userType === 'admin' || user.userType === 'staff') router.push('/admin/dashboard');
       else if (user.userType === 'university') router.push('/university/dashboard');
       else if (user.userType === 'supplier') router.push('/supplier/dashboard');
       else if (user.userType === 'agent') router.push('/agent/dashboard');

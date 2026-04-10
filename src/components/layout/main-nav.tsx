@@ -105,7 +105,7 @@ export function MainNav() {
 
 
   // Role detection based on userType from backend
-  const isAdmin = user?.userType === 'admin' || pathname.startsWith('/admin');
+  const isAdmin = user?.userType === 'admin' || user?.userType === 'staff' || pathname.startsWith('/admin');
   const isUniversity = user?.userType === 'university' || pathname.startsWith('/university');
   const isSupplier = user?.userType === 'supplier' || pathname.startsWith('/supplier');
   const isAgent = user?.userType === 'agent' || pathname.startsWith('/agent');

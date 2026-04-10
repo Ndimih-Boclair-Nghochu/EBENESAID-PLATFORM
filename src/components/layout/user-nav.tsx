@@ -43,6 +43,8 @@ export function UserNav() {
     router.push(href);
   };
 
+  const dashboardHref = user?.userType === 'admin' || user?.userType === 'staff' ? '/admin/dashboard' : '/dashboard';
+
   if (!mounted) {
     return (
       <div className="h-16 w-full flex items-center gap-3 px-3">
@@ -96,7 +98,7 @@ export function UserNav() {
             <UserIcon className="h-4 w-4 text-slate-400" /> My Profile
           </DropdownMenuItem>
           <DropdownMenuItem
-            onSelect={() => handleNavigate('/dashboard')}
+            onSelect={() => handleNavigate(dashboardHref)}
             className="rounded-xl px-3 py-2.5 font-bold hover:bg-slate-50 cursor-pointer transition-colors gap-2 text-xs"
           >
             <ShieldCheck className="h-4 w-4 text-slate-400" /> Verification Status

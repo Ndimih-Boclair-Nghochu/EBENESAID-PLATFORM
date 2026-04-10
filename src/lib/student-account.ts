@@ -102,6 +102,16 @@ export type SupportMessage = {
   content: string;
 };
 
+export type AdminSupportThread = {
+  userId: number;
+  name: string;
+  email: string;
+  type: string;
+  lastMsg: string;
+  time: string;
+  unread: number;
+};
+
 export type StudentBillingProfile = {
   billingName: string;
   billingEmail: string;
@@ -751,6 +761,68 @@ export async function createSupportMessage(user: SafeUser, content: string) {
       content.trim(),
       'Thanks for contacting support. A team member will review your request and follow up shortly.',
     ]
+  );
+}
+
+export async function getAdminSupportInbox() {
+  await ensureStudentDataTables();
+
+  const threads = await pool.query(
+    `SELECT u.id AS user_id, u.first_name, u.last_name, u.email, u.user_type,
+            COALESCE(last_msg.content, '') AS last_msg,
+            COALESCE(last_msg.created_at, u.created_at) AS last_time,
+            COUNT(*) FILTER (WHERE s.role = 'user') AS unread
+     FROM users u
+     LEFT JOIN student_support_messages s ON s.user_id = u.id
+     LEFT JOIN LATERAL (
+       SELECT content, created_at
+       FROM student_support_messages
+       WHERE user_id = u.id
+       ORDER BY created_at DESC
+       LIMIT 1
+     ) last_msg ON TRUE
+     WHERE EXISTS (
+       SELECT 1 FROM student_support_messages existing WHERE existing.user_id = u.id
+     )
+     GROUP BY u.id, u.first_name, u.last_name, u.email, u.user_type, last_msg.content, last_msg.created_at, u.created_at
+     ORDER BY last_time DESC`
+  );
+
+  return threads.rows.map(row => ({
+    userId: row.user_id,
+    name: `${row.first_name} ${row.last_name}`.trim(),
+    email: row.email,
+    type: row.user_type,
+    lastMsg: row.last_msg,
+    time: formatTimeLabel(row.last_time),
+    unread: Number(row.unread ?? 0),
+  })) as AdminSupportThread[];
+}
+
+export async function getAdminSupportMessages(userId: number): Promise<SupportMessage[]> {
+  await ensureStudentDataTables();
+  const result = await pool.query(
+    `SELECT id, role, content, created_at
+     FROM student_support_messages
+     WHERE user_id = $1
+     ORDER BY created_at ASC`,
+    [userId]
+  );
+
+  return result.rows.map(row => ({
+    id: row.id,
+    role: row.role,
+    content: row.content,
+    time: formatTimeLabel(row.created_at),
+  }));
+}
+
+export async function sendAdminSupportReply(userId: number, content: string) {
+  await ensureStudentDataTables();
+  await pool.query(
+    `INSERT INTO student_support_messages (user_id, role, content)
+     VALUES ($1, 'admin', $2)`,
+    [userId, content.trim()]
   );
 }
 

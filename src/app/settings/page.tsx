@@ -24,6 +24,12 @@ type ProfileForm = {
   countryOfOrigin: string;
 };
 
+type PasswordForm = {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+};
+
 const emptyForm: ProfileForm = {
   firstName: "",
   lastName: "",
@@ -39,6 +45,13 @@ export default function SettingsPage() {
   const [form, setForm] = useState<ProfileForm>(emptyForm);
   const [status, setStatus] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [passwordStatus, setPasswordStatus] = useState<string | null>(null);
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordForm, setPasswordForm] = useState<PasswordForm>({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
 
   useEffect(() => {
     if (user) {
@@ -100,6 +113,32 @@ export default function SettingsPage() {
 
   function updateField<K extends keyof ProfileForm>(field: K, value: ProfileForm[K]) {
     setForm(current => ({ ...current, [field]: value }));
+  }
+
+  async function savePassword() {
+    setPasswordSaving(true);
+    setPasswordStatus(null);
+
+    const res = await fetch("/api/student/password", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(passwordForm),
+    });
+    const data = await res.json();
+    setPasswordSaving(false);
+
+    if (!res.ok) {
+      setPasswordStatus(data.error || "Failed to update password.");
+      return;
+    }
+
+    setPasswordForm({
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    });
+    setPasswordStatus(data.message || "Password updated successfully.");
   }
 
   return (
@@ -189,6 +228,36 @@ export default function SettingsPage() {
               <Label>Country of Origin</Label>
               <Input value={form.countryOfOrigin} onChange={event => updateField("countryOfOrigin", event.target.value)} />
             </div>
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-[2rem] border-slate-100 bg-white shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-base font-black">Password & Access</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Current Password</Label>
+              <Input type="password" value={passwordForm.currentPassword} onChange={event => setPasswordForm(current => ({ ...current, currentPassword: event.target.value }))} />
+            </div>
+            <div />
+            <div className="space-y-2">
+              <Label>New Password</Label>
+              <Input type="password" value={passwordForm.newPassword} onChange={event => setPasswordForm(current => ({ ...current, newPassword: event.target.value }))} />
+            </div>
+            <div className="space-y-2">
+              <Label>Confirm New Password</Label>
+              <Input type="password" value={passwordForm.confirmPassword} onChange={event => setPasswordForm(current => ({ ...current, confirmPassword: event.target.value }))} />
+            </div>
+            <div className="md:col-span-2 flex items-center justify-between gap-4">
+              <div className="text-sm text-slate-500">
+                Users created by the admin can update their password here after their first login.
+              </div>
+              <Button className="rounded-xl bg-green-700 hover:bg-green-800" onClick={savePassword} disabled={passwordSaving}>
+                <Save className="mr-2 h-4 w-4" /> {passwordSaving ? "Updating..." : "Update Password"}
+              </Button>
+            </div>
+            {passwordStatus && <p className="md:col-span-2 text-sm font-medium text-slate-600">{passwordStatus}</p>}
           </CardContent>
         </Card>
       </div>
