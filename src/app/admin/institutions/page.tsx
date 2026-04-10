@@ -1,103 +1,96 @@
-
 'use client';
 
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { Building2, Mail, Plus, Search, Users } from "lucide-react";
+
 import { SidebarShell } from "@/components/layout/sidebar-shell";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Building2, 
-  Plus, 
-  Search, 
-  ExternalLink, 
-  Users, 
-  ShieldCheck, 
-  Settings,
-  MoreVertical,
-  Globe,
-  MapPin,
-  CheckCircle2,
-  Activity
-} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { UNIVERSITIES } from "@/lib/constants";
+
+type Institution = {
+  id: number;
+  name: string;
+  contactEmail: string;
+  students: number;
+  createdAt: string;
+};
 
 export default function InstitutionsManagementPage() {
+  const [institutions, setInstitutions] = useState<Institution[]>([]);
+  const [status, setStatus] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+
+  useEffect(() => {
+    fetch("/api/admin/institutions", { credentials: "include" })
+      .then(async (res) => {
+        const body = await res.json();
+        if (!res.ok) throw new Error(body.error || "Failed to load institutions.");
+        setInstitutions(body.institutions ?? []);
+      })
+      .catch((error) => setStatus(error instanceof Error ? error.message : "Failed to load institutions."));
+  }, []);
+
+  const filtered = institutions.filter((institution) =>
+    `${institution.name} ${institution.contactEmail}`.toLowerCase().includes(query.toLowerCase())
+  );
+
   return (
     <SidebarShell>
-      <div className="max-w-7xl mx-auto flex flex-col gap-6">
-        {/* Compact Professional Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-slate-100 pb-5">
+      <div className="mx-auto flex max-w-7xl flex-col gap-6 pb-10">
+        <div className="flex flex-col items-start justify-between gap-4 border-b border-slate-100 pb-5 md:flex-row md:items-end">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="border-indigo-400/20 bg-indigo-50 text-indigo-600 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5">
-                Institutional Node • Partner Registry
+              <Badge variant="outline" className="border-indigo-400/20 bg-indigo-50 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest text-indigo-600">
+                Institutional Node - Live Partners
               </Badge>
             </div>
-            <h1 className="text-xl font-black text-slate-900 tracking-tight leading-none">University Partners</h1>
-            <p className="text-slate-400 text-[10px] font-medium max-w-lg uppercase tracking-wider">Manage formal partnerships and data-sharing protocols with global institutions.</p>
+            <h1 className="text-xl font-black text-slate-900">University Partners</h1>
+            <p className="text-[10px] font-medium uppercase tracking-wider text-slate-400">Real university partner accounts and linked student counts.</p>
           </div>
-          <div className="flex items-center gap-2 w-full md:w-auto">
-            <Button size="sm" className="h-9 px-5 rounded-xl font-black shadow-lg shadow-indigo-600/20 bg-indigo-600 hover:bg-indigo-700 gap-2 text-[10px] w-full sm:w-auto text-white border-none">
-              <Plus className="h-3.5 w-3.5" /> Add New Institution
-            </Button>
-          </div>
+          <Button className="rounded-xl bg-indigo-600 hover:bg-indigo-700" asChild>
+            <Link href="/admin/users">
+              <Plus className="mr-2 h-4 w-4" /> Add University Partner
+            </Link>
+          </Button>
         </div>
 
-        {/* Action Bar */}
-        <div className="flex flex-col sm:flex-row gap-2 p-1.5 bg-white rounded-xl shadow-sm border border-slate-100">
-           <div className="flex-1 relative">
-             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-             <Input placeholder="Search partners, cities or status..." className="h-10 pl-9 rounded-lg bg-slate-50 border-none focus:bg-white transition-all font-bold text-xs" />
-           </div>
-           <Button variant="outline" className="h-10 rounded-lg font-black border-slate-200 gap-2 text-[10px] px-4">
-             Export Registry
-           </Button>
+        {status && <p className="text-sm font-medium text-slate-600">{status}</p>}
+
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+          <Input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search institution or partner email..." className="h-11 rounded-xl bg-white pl-9" />
         </div>
 
-        {/* Institutions Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-10">
-          {UNIVERSITIES.map((uni) => (
-            <Card key={uni.id} className="rounded-[2.5rem] border-slate-100 shadow-sm bg-white overflow-hidden group hover:shadow-xl transition-all duration-500">
-              <CardHeader className="p-6 pb-4 border-b border-slate-50">
-                <div className="flex justify-between items-start">
-                  <div className="h-12 w-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shadow-inner group-hover:bg-indigo-600 group-hover:text-white transition-all">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {filtered.length > 0 ? filtered.map((institution) => (
+            <Card key={institution.id} className="rounded-[2rem] border-slate-100 bg-white shadow-sm">
+              <CardHeader>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="rounded-2xl bg-indigo-50 p-3 text-indigo-600">
                     <Building2 className="h-6 w-6" />
                   </div>
-                  <Badge className="bg-emerald-50 text-emerald-600 border-none text-[7px] font-black uppercase tracking-widest px-2 py-0.5">
-                    Formal Partner
-                  </Badge>
+                  <Badge variant="outline">Live Partner</Badge>
                 </div>
-                <div className="mt-4 space-y-1">
-                  <CardTitle className="text-sm font-black text-slate-900 group-hover:text-indigo-600 transition-colors leading-tight">{uni.name}</CardTitle>
-                  <div className="flex items-center gap-2 text-[9px] font-bold text-slate-400 uppercase">
-                    <MapPin className="h-2.5 w-2.5 text-indigo-600" /> Riga, Latvia
-                  </div>
-                </div>
+                <CardTitle className="mt-4 text-base font-black">{institution.name}</CardTitle>
               </CardHeader>
-              <CardContent className="p-6 space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest">Active Students</p>
-                    <p className="text-xs font-black text-slate-700">1,240</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest">Housing Vacancy</p>
-                    <p className="text-xs font-black text-slate-700">14%</p>
-                  </div>
+              <CardContent className="space-y-3 text-sm text-slate-600">
+                <div className="flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-indigo-600" /> {institution.contactEmail}
                 </div>
-                <div className="pt-4 border-t border-slate-50 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Live API Sync</span>
-                  </div>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-slate-300 hover:text-indigo-600 hover:bg-indigo-50">
-                    <Settings className="h-4 w-4" />
-                  </Button>
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-indigo-600" /> {institution.students} linked students
                 </div>
+                <p>Created {new Date(institution.createdAt).toLocaleDateString("en-GB")}</p>
               </CardContent>
             </Card>
-          ))}
+          )) : (
+            <Card className="rounded-[2rem] border-slate-100 bg-white shadow-sm md:col-span-2 lg:col-span-3">
+              <CardContent className="p-8 text-center text-sm text-slate-500">No live university partners matched your search.</CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </SidebarShell>
