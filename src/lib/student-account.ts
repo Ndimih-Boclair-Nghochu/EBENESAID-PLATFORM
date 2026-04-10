@@ -33,6 +33,9 @@ export type CommunityCircle = {
   members: string;
   description: string;
   joined: boolean;
+  status: 'pending' | 'approved' | 'rejected';
+  isMine: boolean;
+  rejectionReason: string;
 };
 
 export type CircleMessage = {
@@ -120,6 +123,16 @@ export type StudentBillingProfile = {
   autoRenew: boolean;
 };
 
+export type CommunityApprovalRequest = {
+  id: number;
+  name: string;
+  description: string;
+  createdBy: string;
+  createdAt: string;
+  status: 'pending' | 'approved' | 'rejected';
+  rejectionReason: string;
+};
+
 let studentSchemaReady: Promise<void> | null = null;
 
 async function ensureStudentTables() {
@@ -170,6 +183,36 @@ async function ensureStudentTables() {
           members_label TEXT NOT NULL,
           description TEXT NOT NULL
         );
+      `);
+
+      await pool.query(`
+        ALTER TABLE community_circles
+        ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'approved';
+      `);
+
+      await pool.query(`
+        ALTER TABLE community_circles
+        ADD COLUMN IF NOT EXISTS created_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL;
+      `);
+
+      await pool.query(`
+        ALTER TABLE community_circles
+        ADD COLUMN IF NOT EXISTS approved_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL;
+      `);
+
+      await pool.query(`
+        ALTER TABLE community_circles
+        ADD COLUMN IF NOT EXISTS approved_at TIMESTAMPTZ;
+      `);
+
+      await pool.query(`
+        ALTER TABLE community_circles
+        ADD COLUMN IF NOT EXISTS rejection_reason TEXT NOT NULL DEFAULT '';
+      `);
+
+      await pool.query(`
+        ALTER TABLE community_circles
+        ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
       `);
 
       await pool.query(`
@@ -378,11 +421,13 @@ export async function applyToJob(user: SafeUser, jobId: number) {
 export async function getCommunityData(user: SafeUser) {
   await ensureStudentDataTables();
   const circles = await pool.query(
-    `SELECT c.id, c.name, c.members_label, c.description,
-            CASE WHEN m.id IS NULL THEN false ELSE true END AS joined
+    `SELECT c.id, c.name, c.members_label, c.description, c.status, c.rejection_reason,
+            CASE WHEN m.id IS NULL THEN false ELSE true END AS joined,
+            CASE WHEN c.created_by_user_id = $1 THEN true ELSE false END AS is_mine
      FROM community_circles c
      LEFT JOIN community_memberships m ON m.circle_id = c.id AND m.user_id = $1
-     ORDER BY c.id ASC`,
+     WHERE c.status = 'approved' OR c.created_by_user_id = $1
+     ORDER BY CASE c.status WHEN 'approved' THEN 0 WHEN 'pending' THEN 1 ELSE 2 END, c.id ASC`,
     [user.id]
   );
 
@@ -400,6 +445,9 @@ export async function getCommunityData(user: SafeUser) {
       members: row.members_label,
       description: row.description,
       joined: row.joined,
+      status: row.status,
+      isMine: row.is_mine,
+      rejectionReason: row.rejection_reason ?? '',
     })) as CommunityCircle[],
     messages: messages.rows.map(row => ({
       id: row.id,
@@ -413,6 +461,19 @@ export async function getCommunityData(user: SafeUser) {
 
 export async function joinCircle(user: SafeUser, circleId: number) {
   await ensureStudentDataTables();
+  const circle = await pool.query(
+    `SELECT status FROM community_circles WHERE id = $1`,
+    [circleId]
+  );
+
+  if (!circle.rows[0]) {
+    throw new Error('Community circle not found.');
+  }
+
+  if (circle.rows[0].status !== 'approved') {
+    throw new Error('Only approved circles can be joined.');
+  }
+
   await pool.query(
     `INSERT INTO community_memberships (user_id, circle_id)
      VALUES ($1, $2)
@@ -423,11 +484,100 @@ export async function joinCircle(user: SafeUser, circleId: number) {
 
 export async function createCircleMessage(user: SafeUser, circleId: number, content: string) {
   await ensureStudentDataTables();
+  const membership = await pool.query(
+    `SELECT 1
+     FROM community_memberships
+     WHERE user_id = $1 AND circle_id = $2`,
+    [user.id, circleId]
+  );
+
+  if (!membership.rows[0]) {
+    throw new Error('Join the circle before posting messages.');
+  }
+
   await pool.query(
     `INSERT INTO community_messages (circle_id, author_name, content)
      VALUES ($1, $2, $3)`,
     [circleId, `${user.firstName} ${user.lastName}`.trim(), content.trim()]
   );
+}
+
+export async function requestCommunityCircle(
+  user: SafeUser,
+  data: { name: string; description: string }
+) {
+  await ensureStudentDataTables();
+
+  const name = data.name.trim();
+  const description = data.description.trim();
+
+  if (!name || !description) {
+    throw new Error('Circle name and description are required.');
+  }
+
+  await pool.query(
+    `INSERT INTO community_circles (name, members_label, description, status, created_by_user_id, rejection_reason)
+     VALUES ($1, 'Pending approval', $2, 'pending', $3, '')`,
+    [name, description, user.id]
+  );
+}
+
+export async function getCommunityApprovalRequests(): Promise<CommunityApprovalRequest[]> {
+  await ensureStudentDataTables();
+
+  const result = await pool.query(
+    `SELECT c.id, c.name, c.description, c.status, c.rejection_reason, c.created_at,
+            u.first_name, u.last_name
+     FROM community_circles c
+     LEFT JOIN users u ON u.id = c.created_by_user_id
+     WHERE c.status IN ('pending', 'rejected')
+     ORDER BY c.created_at DESC, c.id DESC`
+  );
+
+  return result.rows.map(row => ({
+    id: row.id,
+    name: row.name,
+    description: row.description,
+    createdBy: `${row.first_name ?? ''} ${row.last_name ?? ''}`.trim() || 'Unknown student',
+    createdAt: formatTimeLabel(row.created_at),
+    status: row.status,
+    rejectionReason: row.rejection_reason ?? '',
+  }));
+}
+
+export async function reviewCommunityApprovalRequest(
+  adminUser: SafeUser,
+  circleId: number,
+  decision: 'approved' | 'rejected',
+  rejectionReason: string
+) {
+  await ensureStudentDataTables();
+
+  const result = await pool.query(
+    `UPDATE community_circles
+     SET status = $2,
+         approved_by_user_id = $3,
+         approved_at = CASE WHEN $2 = 'approved' THEN NOW() ELSE approved_at END,
+         members_label = CASE WHEN $2 = 'approved' THEN '1' ELSE members_label END,
+         rejection_reason = CASE WHEN $2 = 'rejected' THEN $4 ELSE '' END
+     WHERE id = $1
+     RETURNING id, created_by_user_id, status`,
+    [circleId, decision, adminUser.id, rejectionReason.trim()]
+  );
+
+  const row = result.rows[0];
+  if (!row) {
+    throw new Error('Community request not found.');
+  }
+
+  if (decision === 'approved' && row.created_by_user_id) {
+    await pool.query(
+      `INSERT INTO community_memberships (user_id, circle_id)
+       VALUES ($1, $2)
+       ON CONFLICT (user_id, circle_id) DO NOTHING`,
+      [row.created_by_user_id, circleId]
+    );
+  }
 }
 
 export async function getConversations(user: SafeUser) {

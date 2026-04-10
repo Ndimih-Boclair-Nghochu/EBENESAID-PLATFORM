@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { getAuthenticatedUserFromRequest } from '@/lib/auth';
-import { createCircleMessage, getCommunityData, joinCircle } from '@/lib/student-account';
+import { createCircleMessage, getCommunityData, joinCircle, requestCommunityCircle } from '@/lib/student-account';
 
 export async function GET(request: NextRequest) {
   const user = await getAuthenticatedUserFromRequest(request);
@@ -23,6 +23,11 @@ export async function POST(request: NextRequest) {
       await joinCircle(user, Number(body.circleId));
     } else if (action === 'message') {
       await createCircleMessage(user, Number(body.circleId), String(body.content ?? ''));
+    } else if (action === 'request-circle') {
+      await requestCommunityCircle(user, {
+        name: String(body.name ?? ''),
+        description: String(body.description ?? ''),
+      });
     } else {
       return NextResponse.json({ error: 'Invalid action.' }, { status: 400 });
     }
@@ -31,6 +36,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(data, { status: 200 });
   } catch (error) {
     console.error('Community action error:', error);
-    return NextResponse.json({ error: 'Failed to update community data.' }, { status: 500 });
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Failed to update community data.' },
+      { status: 500 }
+    );
   }
 }

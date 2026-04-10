@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 
 import { SidebarShell } from "@/components/layout/sidebar-shell";
+import { useAuthContext } from "@/auth/provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -66,10 +67,12 @@ const emptyBilling: BillingProfile = {
 };
 
 export default function BillingPage() {
+  const { refreshUser } = useAuthContext();
   const [form, setForm] = useState<BillingProfile>(emptyBilling);
   const [status, setStatus] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isPaying, setIsPaying] = useState(false);
 
   useEffect(() => {
     fetch("/api/student/billing", { credentials: "include" })
@@ -108,6 +111,28 @@ export default function BillingPage() {
 
     setForm(data.billing ?? form);
     setStatus("Billing settings saved successfully.");
+  }
+
+  async function completePayment() {
+    setIsPaying(true);
+    setStatus(null);
+
+    const res = await fetch("/api/student/billing", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ providerPreference: form.providerPreference }),
+    });
+    const data = await res.json();
+    setIsPaying(false);
+
+    if (!res.ok) {
+      setStatus(data.error || "Failed to complete payment.");
+      return;
+    }
+
+    await refreshUser();
+    setStatus(data.message || "Platform fee paid successfully.");
   }
 
   if (loading) {
@@ -307,6 +332,26 @@ export default function BillingPage() {
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
+          <Card className="rounded-[2rem] border-primary/20 bg-primary/5 shadow-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base font-black">
+                <Wallet className="h-4 w-4 text-primary" /> Platform Fee
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm text-slate-600">
+              <p>
+                <span className="font-black text-slate-900">Amount due:</span> EUR 5
+              </p>
+              <p>
+                <span className="font-black text-slate-900">Gateway:</span> {form.providerPreference === "stripe" ? "Stripe" : "Flutterwave"}
+              </p>
+              <p>Use your selected billing gateway to unlock the student platform after the trial period ends.</p>
+              <Button className="w-full rounded-xl bg-green-700 hover:bg-green-800" onClick={completePayment} disabled={isPaying}>
+                <Wallet className="mr-2 h-4 w-4" /> {isPaying ? "Processing..." : "Pay EUR 5 Now"}
+              </Button>
+            </CardContent>
+          </Card>
+
           <Card className="rounded-[2rem] border-slate-100 bg-white shadow-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base font-black">

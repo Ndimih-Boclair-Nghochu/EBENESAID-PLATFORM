@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from "react";
 import { SidebarShell } from "@/components/layout/sidebar-shell";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -105,6 +106,41 @@ const institutionsQueue = [
 ];
 
 export default function VerificationQueuePage() {
+  const [communityRequests, setCommunityRequests] = useState<any[]>([]);
+  const [communityStatus, setCommunityStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/admin/community-circles", { credentials: "include" })
+      .then(async res => {
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || "Failed to load community approvals.");
+        }
+        setCommunityRequests(data.requests ?? []);
+      })
+      .catch(error => setCommunityStatus(error instanceof Error ? error.message : "Failed to load community approvals."));
+  }, []);
+
+  async function reviewCommunityRequest(circleId: number, decision: "approved" | "rejected") {
+    const res = await fetch("/api/admin/community-circles", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        circleId,
+        decision,
+        rejectionReason: decision === "rejected" ? "Rejected from admin verification queue." : "",
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      setCommunityStatus(data.error || "Failed to review community request.");
+      return;
+    }
+    setCommunityRequests(data.requests ?? []);
+    setCommunityStatus(`Community request ${decision === "approved" ? "approved" : "rejected"} successfully.`);
+  }
+
   return (
     <SidebarShell>
       <div className="max-w-7xl mx-auto flex flex-col gap-6">
@@ -145,6 +181,9 @@ export default function VerificationQueuePage() {
               <TabsTrigger value="institutions" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white font-black text-[10px] uppercase tracking-widest h-9 px-5 transition-all">
                 <Building2 className="h-3.5 w-3.5 mr-2" /> Partners
               </TabsTrigger>
+              <TabsTrigger value="communities" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white font-black text-[10px] uppercase tracking-widest h-9 px-5 transition-all">
+                <Users className="h-3.5 w-3.5 mr-2" /> Student Circles
+              </TabsTrigger>
             </TabsList>
             <div className="hidden md:flex items-center gap-4 px-4 border-l border-slate-100">
               <div className="text-right">
@@ -176,6 +215,41 @@ export default function VerificationQueuePage() {
             {institutionsQueue.map((item) => (
               <VerificationCard key={item.id} item={item} />
             ))}
+          </TabsContent>
+
+          <TabsContent value="communities" className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-500">
+            {communityStatus && (
+              <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600">
+                {communityStatus}
+              </div>
+            )}
+            {communityRequests.length > 0 ? communityRequests.map((item) => (
+              <Card key={item.id} className="rounded-[2rem] border-slate-100 bg-white shadow-sm">
+                <CardHeader>
+                  <CardTitle className="text-base font-black">{item.name}</CardTitle>
+                  <p className="text-xs uppercase tracking-wider text-slate-400">
+                    Requested by {item.createdBy} • {item.createdAt}
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-slate-600">{item.description}</p>
+                  <div className="flex gap-3">
+                    <Button variant="ghost" className="rounded-xl text-red-600 hover:bg-red-50" onClick={() => reviewCommunityRequest(item.id, "rejected")}>
+                      <XCircle className="mr-2 h-4 w-4" /> Reject
+                    </Button>
+                    <Button className="rounded-xl bg-green-700 hover:bg-green-800" onClick={() => reviewCommunityRequest(item.id, "approved")}>
+                      <CheckCircle2 className="mr-2 h-4 w-4" /> Approve
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )) : (
+              <Card className="rounded-[2rem] border-slate-100 bg-white shadow-sm">
+                <CardContent className="p-8 text-center text-sm text-slate-500">
+                  No pending community requests right now.
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
         </Tabs>
       </div>

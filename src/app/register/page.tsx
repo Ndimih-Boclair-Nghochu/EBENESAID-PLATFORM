@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,6 +11,8 @@ import {
   ArrowRight,
   User,
   Lock,
+  Eye,
+  EyeOff,
   Globe,
   Home,
   Star,
@@ -33,7 +36,8 @@ import {
 import Autoplay from "embla-carousel-autoplay";
 import { useAuthContext } from "@/auth/provider";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { COUNTRIES, UNIVERSITIES } from "@/lib/constants";
 
 const testimonials = [
   {
@@ -61,6 +65,8 @@ export default function RegisterPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Form fields
   const [firstName, setFirstName] = useState('');
@@ -78,7 +84,7 @@ export default function RegisterPage() {
     }
   }, [user, router]);
 
-  const handleRegister = async (e: React.FormEvent) => {
+  const handleRegister = async (e: FormEvent) => {
     e.preventDefault();
     setFormError(null);
     setIsLoading(true);
@@ -276,20 +282,52 @@ export default function RegisterPage() {
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <FormInput label="University" placeholder="e.g. RTU Riga" icon={<GraduationCap className="h-3.5 w-3.5" />} value={university} onChange={setUniversity} />
-                    <FormInput label="Country of Origin" placeholder="e.g. Nigeria" icon={<MapPin className="h-3.5 w-3.5" />} value={countryOfOrigin} onChange={setCountryOfOrigin} />
+                    <FormSelect
+                      label="University"
+                      placeholder="Select your university"
+                      icon={<GraduationCap className="h-3.5 w-3.5" />}
+                      value={university}
+                      onChange={setUniversity}
+                      options={UNIVERSITIES.map((universityOption) => universityOption.name)}
+                    />
+                    <FormSelect
+                      label="Country of Origin"
+                      placeholder="Select your country"
+                      icon={<MapPin className="h-3.5 w-3.5" />}
+                      value={countryOfOrigin}
+                      onChange={setCountryOfOrigin}
+                      options={COUNTRIES}
+                    />
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <FormInput label="Password" placeholder="Min. 6 characters" type="password" icon={<Lock className="h-3.5 w-3.5" />} value={password} onChange={setPassword} required />
-                    <FormInput label="Confirm Password" placeholder="Confirm password" type="password" icon={<Lock className="h-3.5 w-3.5" />} value={confirmPassword} onChange={setConfirmPassword} required />
+                    <PasswordInput
+                      label="Password"
+                      placeholder="Min. 6 characters"
+                      icon={<Lock className="h-3.5 w-3.5" />}
+                      value={password}
+                      onChange={setPassword}
+                      required
+                      isVisible={showPassword}
+                      onToggleVisibility={() => setShowPassword((current) => !current)}
+                    />
+                    <PasswordInput
+                      label="Confirm Password"
+                      placeholder="Confirm password"
+                      icon={<Lock className="h-3.5 w-3.5" />}
+                      value={confirmPassword}
+                      onChange={setConfirmPassword}
+                      required
+                      isVisible={showConfirmPassword}
+                      onToggleVisibility={() => setShowConfirmPassword((current) => !current)}
+                    />
                   </div>
 
                   {/* Trial info */}
                   <div className="flex items-center gap-3 p-3 rounded-xl bg-green-50 border border-green-100">
                     <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
                     <p className="text-xs font-medium text-green-700">
-                      Your account includes a <span className="font-black">1-month free trial</span>. After that, the platform fee is <span className="font-black">€100</span>.
+                      Your account includes a <span className="font-black">1-month free trial</span>. After that, the platform fee is <span className="font-black">€5</span>.
                     </p>
                   </div>
 
@@ -351,7 +389,7 @@ function FormInput({
   label: string;
   placeholder: string;
   type?: string;
-  icon?: React.ReactNode;
+  icon?: ReactNode;
   value: string;
   onChange: (value: string) => void;
   required?: boolean;
@@ -374,12 +412,96 @@ function FormInput({
   );
 }
 
+function FormSelect({
+  label,
+  placeholder,
+  icon,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  placeholder: string;
+  icon?: ReactNode;
+  value: string;
+  onChange: (value: string) => void;
+  options: string[];
+}) {
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center gap-1.5">
+        {icon && <span className="text-slate-300">{icon}</span>}
+        <Label className="font-bold text-xs text-slate-600">{label}</Label>
+      </div>
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger className="h-11 rounded-xl bg-slate-50 border-slate-200 focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all font-medium px-4 text-sm">
+          <SelectValue placeholder={placeholder} />
+        </SelectTrigger>
+        <SelectContent className="max-h-80">
+          {options.map((option) => (
+            <SelectItem key={option} value={option}>
+              {option}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
+function PasswordInput({
+  label,
+  placeholder,
+  icon,
+  value,
+  onChange,
+  required = false,
+  isVisible,
+  onToggleVisibility,
+}: {
+  label: string;
+  placeholder: string;
+  icon?: ReactNode;
+  value: string;
+  onChange: (value: string) => void;
+  required?: boolean;
+  isVisible: boolean;
+  onToggleVisibility: () => void;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center gap-1.5">
+        {icon && <span className="text-slate-300">{icon}</span>}
+        <Label className="font-bold text-xs text-slate-600">{label}</Label>
+      </div>
+      <div className="relative">
+        <Input
+          type={isVisible ? "text" : "password"}
+          placeholder={placeholder}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          required={required}
+          className="h-11 rounded-xl bg-slate-50 border-slate-200 focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all font-medium px-4 pr-12 text-sm placeholder:text-slate-300"
+        />
+        <button
+          type="button"
+          onClick={onToggleVisibility}
+          className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-slate-400 transition-colors hover:text-slate-700"
+          aria-label={isVisible ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`}
+        >
+          {isVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function HighlightItem({
   icon,
   title,
   desc
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   title: string;
   desc: string;
 }) {

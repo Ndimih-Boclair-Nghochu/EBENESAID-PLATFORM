@@ -88,6 +88,11 @@ export interface StudentDashboardData {
   guidance: string;
 }
 
+export interface StudentOnboardingProfile {
+  programDurationBand: 'under_3_months' | 'over_3_months' | null;
+  onboardingCompleted: boolean;
+}
+
 export interface PropertyListing {
   id: number;
   title: string;
@@ -103,6 +108,8 @@ export interface PropertyListing {
   createdAt: string;
   updatedAt: string;
 }
+
+export const PLATFORM_FEE_EUR = 5;
 
 export function toSafeUser(dbUser: DbUser): SafeUser {
   return {
@@ -163,6 +170,31 @@ async function ensurePlatformTables(): Promise<void> {
           created_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
           created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
           updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+      `);
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS student_onboarding_profiles (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+          program_duration_band TEXT,
+          onboarding_completed BOOLEAN NOT NULL DEFAULT FALSE,
+          selected_at TIMESTAMPTZ,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+      `);
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS student_platform_payments (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          provider TEXT NOT NULL,
+          amount_eur NUMERIC(10, 2) NOT NULL,
+          status TEXT NOT NULL DEFAULT 'completed',
+          reference TEXT NOT NULL,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          completed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         )
       `);
     })().catch(error => {
@@ -354,6 +386,100 @@ function buildStudentDashboardGuidance(user: SafeUser, tasks: StudentDashboardTa
   return `Your next priority is "${nextPendingTask.title}" for ${university}. Since you are relocating from ${origin}, focus on one completed admin step at a time and use the linked module to keep your move organized.`;
 }
 
+const shortProgramTaskTemplates = [
+  {
+    title: 'Upload Passport Copy',
+    description: 'Add the identification page of your valid passport to your secure wallet.',
+    category: 'Legal',
+    href: '/docs',
+  },
+  {
+    title: 'Upload Admission Or Invitation Letter',
+    description: 'Store the letter that confirms your short course or exchange placement.',
+    category: 'Academic',
+    href: '/docs',
+  },
+  {
+    title: 'Upload Travel Insurance',
+    description: 'Keep proof of insurance that covers your stay in Latvia.',
+    category: 'Legal',
+    href: '/docs',
+  },
+  {
+    title: 'Upload Accommodation Proof',
+    description: 'Add your housing confirmation, hotel booking, or lease document.',
+    category: 'Housing',
+    href: '/docs',
+  },
+  {
+    title: 'Upload Proof Of Funds',
+    description: 'Store your bank statement or sponsor letter for immigration checks.',
+    category: 'Finance',
+    href: '/docs',
+  },
+  {
+    title: 'Plan Arrival In Riga',
+    description: 'Set your destination and pickup status for airport arrival support.',
+    category: 'Logistics',
+    href: '/arrival',
+  },
+];
+
+const longProgramTaskTemplates = [
+  {
+    title: 'Upload Passport Copy',
+    description: 'Add the identification page of your valid passport to your secure wallet.',
+    category: 'Legal',
+    href: '/docs',
+  },
+  {
+    title: 'Upload University Acceptance Letter',
+    description: 'Store the official admission letter for your full study program.',
+    category: 'Academic',
+    href: '/docs',
+  },
+  {
+    title: 'Upload Visa Or Residence Permit Documents',
+    description: 'Keep all long-stay visa or residence permit paperwork in one place.',
+    category: 'Legal',
+    href: '/docs',
+  },
+  {
+    title: 'Upload Health Insurance',
+    description: 'Add your health insurance certificate for the full study period.',
+    category: 'Legal',
+    href: '/docs',
+  },
+  {
+    title: 'Upload Accommodation Contract',
+    description: 'Store the signed lease or housing confirmation for your program.',
+    category: 'Housing',
+    href: '/docs',
+  },
+  {
+    title: 'Upload Proof Of Funds',
+    description: 'Keep your tuition or maintenance funds evidence ready for review.',
+    category: 'Finance',
+    href: '/docs',
+  },
+  {
+    title: 'Plan Arrival In Riga',
+    description: 'Set your destination and pickup status for airport arrival support.',
+    category: 'Logistics',
+    href: '/arrival',
+  },
+  {
+    title: 'Track Enrollment Originals',
+    description: 'Prepare your original academic documents for enrollment and registration.',
+    category: 'Academic',
+    href: '/docs',
+  },
+];
+
+function getProgramTaskTemplates(programDurationBand: 'under_3_months' | 'over_3_months') {
+  return programDurationBand === 'under_3_months' ? shortProgramTaskTemplates : longProgramTaskTemplates;
+}
+
 export async function getStudentDashboardData(user: SafeUser): Promise<StudentDashboardData> {
   await ensurePlatformTables();
 
@@ -373,6 +499,62 @@ export async function getStudentDashboardData(user: SafeUser): Promise<StudentDa
   };
 }
 
+export async function getStudentOnboardingProfile(userId: number): Promise<StudentOnboardingProfile> {
+  await ensurePlatformTables();
+
+  const result = await pool.query(
+    `SELECT program_duration_band, onboarding_completed
+     FROM student_onboarding_profiles
+     WHERE user_id = $1`,
+    [userId]
+  );
+
+  const row = result.rows[0];
+  const band = row?.program_duration_band;
+
+  return {
+    programDurationBand:
+      band === 'under_3_months' || band === 'over_3_months' ? band : null,
+    onboardingCompleted: Boolean(row?.onboarding_completed ?? false),
+  };
+}
+
+export async function saveStudentOnboardingSelection(
+  userId: number,
+  programDurationBand: 'under_3_months' | 'over_3_months'
+): Promise<StudentDashboardData> {
+  await ensurePlatformTables();
+
+  await pool.query(
+    `INSERT INTO student_onboarding_profiles (user_id, program_duration_band, onboarding_completed, selected_at, updated_at)
+     VALUES ($1, $2, TRUE, NOW(), NOW())
+     ON CONFLICT (user_id)
+     DO UPDATE SET program_duration_band = EXCLUDED.program_duration_band,
+                   onboarding_completed = TRUE,
+                   selected_at = NOW(),
+                   updated_at = NOW()`,
+    [userId, programDurationBand]
+  );
+
+  await pool.query(`DELETE FROM student_dashboard_tasks WHERE user_id = $1`, [userId]);
+
+  const tasks = getProgramTaskTemplates(programDurationBand);
+  for (const [index, task] of tasks.entries()) {
+    await pool.query(
+      `INSERT INTO student_dashboard_tasks (user_id, title, description, done, category, href, sort_order, created_at, updated_at)
+       VALUES ($1, $2, $3, FALSE, $4, $5, $6, NOW(), NOW())`,
+      [userId, task.title, task.description, task.category, task.href, index]
+    );
+  }
+
+  const dbUser = await getUserById(userId);
+  if (!dbUser) {
+    throw new Error('User not found while saving onboarding selection.');
+  }
+
+  return getStudentDashboardData(toSafeUser(dbUser));
+}
+
 export async function updateStudentDashboardTask(
   userId: number,
   taskId: number,
@@ -390,6 +572,31 @@ export async function updateStudentDashboardTask(
 
   const row = result.rows[0];
   return row ? toStudentDashboardTask(row) : undefined;
+}
+
+export async function completePlatformPayment(
+  userId: number,
+  provider: 'stripe' | 'flutterwave'
+): Promise<{ reference: string; amount: number }> {
+  await ensurePlatformTables();
+
+  const reference = `EB-${provider.toUpperCase()}-${Date.now()}`;
+
+  await pool.query(
+    `INSERT INTO student_platform_payments (user_id, provider, amount_eur, status, reference, created_at, completed_at)
+     VALUES ($1, $2, $3, 'completed', $4, NOW(), NOW())`,
+    [userId, provider, PLATFORM_FEE_EUR, reference]
+  );
+
+  await pool.query(
+    `UPDATE users
+     SET has_paid = TRUE,
+         updated_at = NOW()
+     WHERE id = $1`,
+    [userId]
+  );
+
+  return { reference, amount: PLATFORM_FEE_EUR };
 }
 
 // ─── User CRUD (PostgreSQL) ────────────────────────────────────────────────────

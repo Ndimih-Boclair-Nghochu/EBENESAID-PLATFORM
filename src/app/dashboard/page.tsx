@@ -64,6 +64,10 @@ type DashboardResponse = {
   error?: string;
   detail?: string;
   source?: string;
+  onboarding?: {
+    programDurationBand: "under_3_months" | "over_3_months" | null;
+    onboardingCompleted: boolean;
+  };
 };
 
 const categoryColors: Record<string, string> = {
@@ -78,7 +82,7 @@ const categoryColors: Record<string, string> = {
 };
 
 export default function DashboardPage() {
-  const { user, isLoading, isFirstLogin, clearFirstLogin, logout } = useAuthContext();
+  const { user, isLoading, isFirstLogin, clearFirstLogin, logout, refreshUser } = useAuthContext();
   const router = useRouter();
   const [tasks, setTasks] = useState<DashboardTask[]>([]);
   const [guidance, setGuidance] = useState("");
@@ -86,6 +90,9 @@ export default function DashboardPage() {
   const [isDashboardLoading, setIsDashboardLoading] = useState(true);
   const [showWelcome, setShowWelcome] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [showProgramSetup, setShowProgramSetup] = useState(false);
+  const [isSavingProgram, setIsSavingProgram] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -131,6 +138,7 @@ export default function DashboardPage() {
           setTasks(data?.tasks ?? []);
           setGuidance(data?.guidance ?? "");
           setDashboardError(null);
+          setShowProgramSetup(Boolean(user && !data?.onboarding?.onboardingCompleted));
         }
       } catch (error) {
         if (isMounted) {
@@ -155,10 +163,41 @@ export default function DashboardPage() {
     clearFirstLogin();
   };
 
+  const handleProgramSelection = async (programDurationBand: "under_3_months" | "over_3_months") => {
+    setIsSavingProgram(true);
+    setDashboardError(null);
+
+    try {
+      const res = await fetch("/api/dashboard", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ programDurationBand }),
+      });
+      const data = await readJsonSafely<DashboardResponse>(res);
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to save your program setup.");
+      }
+
+      setTasks(data?.tasks ?? []);
+      setGuidance(data?.guidance ?? "");
+      setShowProgramSetup(false);
+    } catch (error) {
+      setDashboardError(error instanceof Error ? error.message : "Failed to save your program setup.");
+    } finally {
+      setIsSavingProgram(false);
+    }
+  };
+
   const handleLogout = async () => {
     setIsLoggingOut(true);
     await logout();
     router.push("/login");
+  };
+
+  const handlePayment = () => {
+    router.push("/billing");
   };
 
   const toggleTask = async (id: number) => {
@@ -210,6 +249,7 @@ export default function DashboardPage() {
   const now = new Date();
   const daysLeft = Math.max(0, Math.ceil((trialEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
   const trialActive = daysLeft > 0 && !user.hasPaid;
+  const trialExpiredUnpaid = !trialActive && !user.hasPaid;
 
   const completedCount = tasks.filter(task => task.done).length;
   const progressPercent = tasks.length ? Math.round((completedCount / tasks.length) * 100) : 0;
@@ -264,8 +304,8 @@ export default function DashboardPage() {
                       <Euro className="h-5 w-5" />
                     </div>
                     <div>
-                      <p className="text-sm font-black text-slate-900">Platform Fee: EUR 100</p>
-                      <p className="text-xs font-medium text-slate-500">After your free trial, pay once to continue using all features</p>
+                      <p className="text-sm font-black text-slate-900">Platform Fee: EUR 5</p>
+                      <p className="text-xs font-medium text-slate-500">After your free trial, pay EUR 5 once to continue using all features</p>
                     </div>
                   </div>
                 </div>
@@ -282,6 +322,69 @@ export default function DashboardPage() {
                   className="h-12 w-full rounded-xl border-none bg-green-700 text-sm font-black text-white shadow-lg shadow-green-700/20 hover:bg-green-800"
                 >
                   Let&apos;s Get Started!
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!showWelcome && showProgramSetup && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-xl rounded-3xl bg-white p-8 shadow-2xl">
+              <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">Program Setup</p>
+              <h2 className="mt-3 text-2xl font-black text-slate-900">How long is your study journey?</h2>
+              <p className="mt-2 text-sm text-slate-600">
+                Choose your program length so EBENESAID can build the right relocation checklist and required document flow for you.
+              </p>
+              <div className="mt-6 grid gap-4 md:grid-cols-2">
+                <button
+                  type="button"
+                  className="rounded-2xl border border-slate-200 p-5 text-left transition hover:border-primary hover:bg-primary/5"
+                  onClick={() => handleProgramSelection("under_3_months")}
+                  disabled={isSavingProgram}
+                >
+                  <p className="text-sm font-black text-slate-900">Under 3 Months</p>
+                  <p className="mt-2 text-sm text-slate-600">Short course, exchange, or other short-stay academic journey.</p>
+                </button>
+                <button
+                  type="button"
+                  className="rounded-2xl border border-slate-200 p-5 text-left transition hover:border-primary hover:bg-primary/5"
+                  onClick={() => handleProgramSelection("over_3_months")}
+                  disabled={isSavingProgram}
+                >
+                  <p className="text-sm font-black text-slate-900">3 Months Or More</p>
+                  <p className="mt-2 text-sm text-slate-600">Degree program, long exchange, or extended academic relocation.</p>
+                </button>
+              </div>
+              {isSavingProgram && (
+                <p className="mt-4 text-sm text-slate-500">Saving your setup and generating your checklist...</p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {trialExpiredUnpaid && (
+          <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-lg rounded-3xl bg-white p-8 shadow-2xl">
+              <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">Payment Required</p>
+              <h2 className="mt-3 text-2xl font-black text-slate-900">Your free trial has ended</h2>
+              <p className="mt-2 text-sm text-slate-600">
+                Complete the EUR 5 platform fee payment to keep using your student tools, relocation checklist, and support modules.
+              </p>
+              {paymentStatus && <p className="mt-3 text-sm text-slate-600">{paymentStatus}</p>}
+              <div className="mt-6 flex gap-3">
+                <Button className="rounded-xl bg-green-700 hover:bg-green-800" onClick={handlePayment}>
+                  Make Payment
+                </Button>
+                <Button
+                  variant="outline"
+                  className="rounded-xl"
+                  onClick={async () => {
+                    await refreshUser();
+                    setPaymentStatus("Account payment status refreshed.");
+                  }}
+                >
+                  Refresh Status
                 </Button>
               </div>
             </div>
@@ -339,7 +442,7 @@ export default function DashboardPage() {
               <div className="min-w-0">
                 <p className="text-sm font-black text-slate-900">Free Trial Active - {daysLeft} days remaining</p>
                 <p className="mt-0.5 text-xs font-medium text-slate-500">
-                  After your trial ends, pay the platform fee of <span className="font-bold text-slate-700">EUR 100</span> to continue.
+                  After your trial ends, pay the platform fee of <span className="font-bold text-slate-700">EUR 5</span> to continue.
                 </p>
               </div>
             </div>

@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import {
+  getStudentOnboardingProfile,
   getSessionByToken,
   getStudentDashboardData,
   getUserById,
+  saveStudentOnboardingSelection,
   toSafeUser,
   updateStudentDashboardTask,
 } from '@/lib/db';
@@ -70,10 +72,35 @@ export async function GET(request: NextRequest) {
     }
 
     const dashboard = await getStudentDashboardData(user);
-    return NextResponse.json({ user, ...dashboard }, { status: 200 });
+    const onboarding = await getStudentOnboardingProfile(user.id);
+    return NextResponse.json({ user, onboarding, ...dashboard }, { status: 200 });
   } catch (error: unknown) {
     console.error('Dashboard load error:', error);
     return NextResponse.json(getDashboardErrorDetails(error), { status: 500 });
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const user = await getAuthenticatedUser(request);
+
+    if (!user) {
+      return NextResponse.json({ error: 'Not authenticated.' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const programDurationBand =
+      String(body.programDurationBand) === 'under_3_months' ? 'under_3_months' : 'over_3_months';
+
+    const dashboard = await saveStudentOnboardingSelection(user.id, programDurationBand);
+    const onboarding = await getStudentOnboardingProfile(user.id);
+    return NextResponse.json({ onboarding, ...dashboard }, { status: 200 });
+  } catch (error: unknown) {
+    console.error('Dashboard onboarding error:', error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Failed to save onboarding selection.' },
+      { status: 500 }
+    );
   }
 }
 

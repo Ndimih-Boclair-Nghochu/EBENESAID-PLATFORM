@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 type CommunityCircle = {
   id: number;
@@ -17,6 +18,9 @@ type CommunityCircle = {
   members: string;
   description: string;
   joined: boolean;
+  status: "pending" | "approved" | "rejected";
+  isMine: boolean;
+  rejectionReason: string;
 };
 
 type CircleMessage = {
@@ -33,6 +37,9 @@ export default function CommunityPage() {
   const [activeCircleId, setActiveCircleId] = useState<number | null>(null);
   const [chatInput, setChatInput] = useState("");
   const [status, setStatus] = useState<string | null>(null);
+  const [circleName, setCircleName] = useState("");
+  const [circleDescription, setCircleDescription] = useState("");
+  const [isSubmittingCircle, setIsSubmittingCircle] = useState(false);
 
   async function loadCommunity() {
     const res = await fetch("/api/student/community", { credentials: "include" });
@@ -85,6 +92,38 @@ export default function CommunityPage() {
     setMessages(data.messages ?? []);
     setChatInput("");
     setStatus("Community message sent.");
+  }
+
+  async function submitCircleRequest() {
+    if (!circleName.trim() || !circleDescription.trim()) {
+      setStatus("Community name and description are required.");
+      return;
+    }
+
+    setIsSubmittingCircle(true);
+    const res = await fetch("/api/student/community", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        action: "request-circle",
+        name: circleName,
+        description: circleDescription,
+      }),
+    });
+    const data = await res.json();
+    setIsSubmittingCircle(false);
+
+    if (!res.ok) {
+      setStatus(data.error || "Failed to submit community request.");
+      return;
+    }
+
+    setCircles(data.circles ?? []);
+    setMessages(data.messages ?? []);
+    setCircleName("");
+    setCircleDescription("");
+    setStatus("Community request submitted. An admin must approve it before it is published.");
   }
 
   const activeCircle = useMemo(
@@ -143,6 +182,34 @@ export default function CommunityPage() {
               <CardTitle className="text-base font-black">Available Circles</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
+              <div className="rounded-2xl border border-dashed border-primary/20 bg-primary/5 p-4">
+                <p className="text-sm font-black text-slate-900">Create A Student Circle</p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Student-created communities must be approved by an admin before they are published.
+                </p>
+                <div className="mt-4 space-y-3">
+                  <Input
+                    value={circleName}
+                    onChange={event => setCircleName(event.target.value)}
+                    placeholder="Circle name"
+                    className="h-11 rounded-xl bg-white"
+                  />
+                  <Textarea
+                    value={circleDescription}
+                    onChange={event => setCircleDescription(event.target.value)}
+                    placeholder="Describe what this circle is for"
+                    className="min-h-[88px] rounded-xl bg-white"
+                  />
+                  <Button
+                    className="w-full rounded-xl bg-green-700 hover:bg-green-800"
+                    onClick={submitCircleRequest}
+                    disabled={isSubmittingCircle}
+                  >
+                    {isSubmittingCircle ? "Submitting..." : "Submit For Approval"}
+                  </Button>
+                </div>
+              </div>
+
               {circles.map(circle => (
                 <button
                   key={circle.id}
@@ -157,10 +224,22 @@ export default function CommunityPage() {
                       <p className="font-black text-slate-900">{circle.name}</p>
                       <p className="mt-1 text-xs uppercase tracking-wider text-slate-400">{circle.members} members</p>
                     </div>
-                    <Badge variant={circle.joined ? "default" : "outline"}>{circle.joined ? "Joined" : "Open"}</Badge>
+                    <Badge variant={circle.status === "approved" ? (circle.joined ? "default" : "outline") : "secondary"}>
+                      {circle.status === "approved" ? (circle.joined ? "Joined" : "Open") : circle.status}
+                    </Badge>
                   </div>
                   <p className="mt-3 text-sm text-slate-600">{circle.description}</p>
-                  {!circle.joined && (
+                  {circle.status === "rejected" && circle.isMine && (
+                    <p className="mt-3 text-xs font-medium text-red-600">
+                      Rejected: {circle.rejectionReason || "No reason was provided by the admin."}
+                    </p>
+                  )}
+                  {circle.status === "pending" && circle.isMine && (
+                    <p className="mt-3 text-xs font-medium text-amber-600">
+                      Waiting for admin approval before this circle goes live.
+                    </p>
+                  )}
+                  {circle.status === "approved" && !circle.joined && (
                     <Button
                       className="mt-4 rounded-xl bg-green-700 hover:bg-green-800"
                       onClick={event => {
@@ -187,7 +266,7 @@ export default function CommunityPage() {
                 <div>
                   <CardTitle className="text-base font-black">{activeCircle?.name ?? "Select a Circle"}</CardTitle>
                   <p className="mt-1 text-xs uppercase tracking-wider text-slate-400">
-                    {activeCircle?.description ?? "Pick a community space to read and post updates."}
+                  {activeCircle?.description ?? "Pick a community space to read and post updates."}
                   </p>
                 </div>
                 {activeCircle && <Badge>{activeCircle.members} members</Badge>}
@@ -215,13 +294,23 @@ export default function CommunityPage() {
                   value={chatInput}
                   onChange={event => setChatInput(event.target.value)}
                   placeholder={activeCircle ? `Message ${activeCircle.name}...` : "Select a circle first"}
-                  disabled={!activeCircle}
+                  disabled={!activeCircle || !activeCircle.joined || activeCircle.status !== "approved"}
                   className="h-11 rounded-xl bg-slate-50"
                 />
-                <Button className="rounded-xl bg-green-700 hover:bg-green-800" onClick={sendMessage} disabled={!activeCircle}>
+                <Button
+                  className="rounded-xl bg-green-700 hover:bg-green-800"
+                  onClick={sendMessage}
+                  disabled={!activeCircle || !activeCircle.joined || activeCircle.status !== "approved"}
+                >
                   <Send className="mr-2 h-4 w-4" /> Send
                 </Button>
               </div>
+              {activeCircle && activeCircle.status !== "approved" && (
+                <p className="text-xs text-amber-600">This circle cannot receive messages until an admin approves it.</p>
+              )}
+              {activeCircle && activeCircle.status === "approved" && !activeCircle.joined && (
+                <p className="text-xs text-slate-500">Join this circle first to post messages.</p>
+              )}
 
               <Button variant="outline" className="rounded-xl" asChild>
                 <a href="/messages">

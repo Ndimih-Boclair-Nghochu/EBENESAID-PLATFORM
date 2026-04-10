@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { getAuthenticatedUserFromRequest } from '@/lib/auth';
+import { completePlatformPayment, PLATFORM_FEE_EUR } from '@/lib/db';
 import { getStudentBillingProfile, updateStudentBillingProfile } from '@/lib/student-account';
 
 export async function GET(request: NextRequest) {
@@ -51,5 +52,30 @@ export async function PATCH(request: NextRequest) {
   } catch (error) {
     console.error('Billing update error:', error);
     return NextResponse.json({ error: 'Failed to update billing profile.' }, { status: 500 });
+  }
+}
+
+export async function POST(request: NextRequest) {
+  const user = await getAuthenticatedUserFromRequest(request);
+  if (!user) {
+    return NextResponse.json({ error: 'Not authenticated.' }, { status: 401 });
+  }
+
+  try {
+    const body = await request.json();
+    const provider = String(body.providerPreference ?? 'stripe') === 'flutterwave' ? 'flutterwave' : 'stripe';
+    const payment = await completePlatformPayment(user.id, provider);
+
+    return NextResponse.json(
+      {
+        payment,
+        platformFee: PLATFORM_FEE_EUR,
+        message: `Platform fee paid successfully with ${provider === 'stripe' ? 'Stripe' : 'Flutterwave'}.`,
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error('Billing payment error:', error);
+    return NextResponse.json({ error: 'Failed to complete platform payment.' }, { status: 500 });
   }
 }
