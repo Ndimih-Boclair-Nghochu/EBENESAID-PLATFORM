@@ -25,6 +25,10 @@ export type GeneratePersonalizedRelocationGuidanceOutput = {
 export async function generatePersonalizedRelocationGuidance(
   input: GeneratePersonalizedRelocationGuidanceInput
 ): Promise<GeneratePersonalizedRelocationGuidanceOutput> {
+  if (!process.env.OPENAI_API_KEY) {
+    return buildRelocationFallback(input);
+  }
+
   const openai = getOpenAIClient();
   const systemPrompt = `You are EBENESAID AI, the Relocation Strategist.\n\nYour job is to generate a personalized relocation checklist and guidance for international students moving to Latvia.\n\nChecklist should be actionable, step-by-step, and tailored to the student's university, nationality, and arrival status.\n\nOutput JSON with two fields: checklist (array of {task, isCompleted}) and guidance (string with contextual tips).`;
 
@@ -48,65 +52,29 @@ export async function generatePersonalizedRelocationGuidance(
       guidance: parsed.guidance || 'No guidance available.'
     };
   } catch {
-    return {
-      checklist: [],
-      guidance: completion.choices[0].message.content || 'Sorry, I could not process your request.'
-    };
+    return buildRelocationFallback(input, completion.choices[0].message.content || undefined);
   }
 }
 
-// Genkit/Google Gemini logic removed. Now powered by OpenAI.
-      {
-        category: 'HARM_CATEGORY_HARASSMENT',
-        threshold: 'BLOCK_NONE',
-      },
-      {
-        category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
-        threshold: 'BLOCK_NONE',
-      },
+function buildRelocationFallback(
+  input: GeneratePersonalizedRelocationGuidanceInput,
+  guidance?: string
+): GeneratePersonalizedRelocationGuidanceOutput {
+  const university = input.university || 'your university';
+  const nationality = input.nationality || 'your home country';
+  const arrivalStatus = input.arrivalStatus || 'planning your arrival';
+
+  return {
+    checklist: [
+      { task: `Confirm your admission or invitation letter from ${university}`, isCompleted: false },
+      { task: 'Prepare passport, insurance, and immigration documents', isCompleted: false },
+      { task: 'Secure verified accommodation before travel', isCompleted: false },
+      { task: 'Plan airport pickup and first-week transport in Latvia', isCompleted: false },
+      { task: 'Upload key documents to your EBENESAID secure wallet', isCompleted: false },
+      { task: 'Check student work and local registration requirements', isCompleted: false },
     ],
-  },
-  prompt: `You are an AI assistant for EBENESAID, a relocation operating system for international students.
-Your goal is to provide a personalized, dynamically updated relocation checklist and contextual guidance.
-
-Based on the student's details, generate a comprehensive checklist of necessary steps and relevant guidance to help them confidently navigate their relocation without missing crucial deadlines or information.
-
-Student Details:
-University: {{{university}}}
-Nationality: {{{nationality}}}
-Arrival Status: {{{arrivalStatus}}}
-
-Consider typical challenges for international students, such as housing, visa requirements, administrative registrations (SIM card, public transport), cultural adjustments, and employment opportunities.
-
-Generate a checklist of at least 5-10 key tasks. For each task, set 'isCompleted' to false initially.
-Provide contextual guidance that is encouraging, informative, and addresses potential pain points based on the provided status.
-`,
-});
-
-const personalizedRelocationGuidanceFlow = ai.defineFlow(
-  {
-    name: 'personalizedRelocationGuidanceFlow',
-    inputSchema: GeneratePersonalizedRelocationGuidanceInputSchema,
-    outputSchema: GeneratePersonalizedRelocationGuidanceOutputSchema,
-  },
-  async input => {
-    try {
-      const {output} = await prompt(input);
-      if (!output) {
-        throw new Error('AI failed to generate a response');
-      }
-      return output;
-    } catch (error) {
-      console.error('Relocation Guidance Flow Error:', error);
-      // Fallback for UI safety
-      return {
-        checklist: [
-          { task: "Finalize Housing", isCompleted: false },
-          { task: "Secure Visa", isCompleted: true },
-          { task: "University Orientation", isCompleted: false }
-        ],
-        guidance: "We're experiencing a minor synchronization delay. Please proceed with your primary pre-arrival logistics."
-      };
-    }
-  }
-);
+    guidance:
+      guidance ||
+      `You are currently ${arrivalStatus}. As a student relocating from ${nationality}, focus first on verified documents, housing confirmation, and arrival logistics for ${university}. EBENESAID test mode is active, so this guidance is safe to use for planning while provider credentials are not configured.`,
+  };
+}

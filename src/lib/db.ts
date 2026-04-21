@@ -62,6 +62,7 @@ export interface SafeUser {
   university: string;
   countryOfOrigin: string;
   userType: string;
+  avatar?: string | null;
   isActive: boolean;
   trialStartDate: string;
   trialEndDate: string;
@@ -114,13 +115,16 @@ export interface PropertyListing {
 }
 
 export const PLATFORM_FEE_EUR = 5;
+export const DEFAULT_PARTNER_DEDUCTION_PERCENT = 10;
 
 export const PLATFORM_ROLE_OPTIONS = [
   { value: 'student', label: 'Student' },
   { value: 'admin', label: 'Admin' },
   { value: 'staff', label: 'Staff' },
+  { value: 'investor', label: 'Investor' },
   { value: 'university', label: 'University' },
   { value: 'agent', label: 'House Agent' },
+  { value: 'job_partner', label: 'Job Supplier' },
   { value: 'supplier', label: 'Food Supplier' },
   { value: 'transport', label: 'Transport Partner' },
 ] as const;
@@ -137,6 +141,7 @@ export function toSafeUser(dbUser: DbUser): SafeUser {
     university: dbUser.university,
     countryOfOrigin: dbUser.country_of_origin,
     userType: dbUser.user_type,
+    avatar: null,
     isActive: dbUser.is_active,
     trialStartDate: dbUser.trial_start_date,
     trialEndDate: dbUser.trial_end_date,
@@ -151,8 +156,10 @@ function normalizeUserType(userType?: string): PlatformUserType {
   if (
     normalized === 'admin' ||
     normalized === 'staff' ||
+    normalized === 'investor' ||
     normalized === 'university' ||
     normalized === 'agent' ||
+    normalized === 'job_partner' ||
     normalized === 'supplier' ||
     normalized === 'transport' ||
     normalized === 'student'
@@ -164,25 +171,31 @@ function normalizeUserType(userType?: string): PlatformUserType {
 }
 
 let schemaReady: Promise<void> | null = null;
+let coreSchemaReady: Promise<void> | null = null;
 
-async function ensurePlatformTables(): Promise<void> {
-  if (!schemaReady) {
-    schemaReady = (async () => {
+export type PlatformPricingSettings = {
+  studentFeeEur: number;
+  partnerDeductionPercent: number;
+};
+
+export async function ensureCoreTables(): Promise<void> {
+  if (!coreSchemaReady) {
+    coreSchemaReady = (async () => {
       await pool.query(`
         CREATE TABLE IF NOT EXISTS users (
           id SERIAL PRIMARY KEY,
           email TEXT NOT NULL UNIQUE,
           password_hash TEXT NOT NULL,
           password_salt TEXT NOT NULL,
-          first_name TEXT NOT NULL DEFAULT '',
-          last_name TEXT NOT NULL DEFAULT '',
+          first_name TEXT NOT NULL,
+          last_name TEXT NOT NULL,
           phone TEXT NOT NULL DEFAULT '',
           university TEXT NOT NULL DEFAULT '',
           country_of_origin TEXT NOT NULL DEFAULT '',
           user_type TEXT NOT NULL DEFAULT 'student',
           is_active BOOLEAN NOT NULL DEFAULT TRUE,
           trial_start_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-          trial_end_date TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '30 days'),
+          trial_end_date TIMESTAMPTZ NOT NULL DEFAULT NOW() + INTERVAL '30 days',
           has_paid BOOLEAN NOT NULL DEFAULT FALSE,
           created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
           updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -203,6 +216,96 @@ async function ensurePlatformTables(): Promise<void> {
       await pool.query(`
         CREATE INDEX IF NOT EXISTS sessions_token_idx ON sessions (token)
       `);
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS platform_settings (
+          key TEXT PRIMARY KEY,
+          value TEXT NOT NULL,
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+      `);
+
+      await pool.query(
+        `INSERT INTO platform_settings (key, value)
+         VALUES ('student_fee_eur', $1), ('partner_deduction_percent', $2)
+         ON CONFLICT (key) DO NOTHING`,
+        [String(PLATFORM_FEE_EUR), String(DEFAULT_PARTNER_DEDUCTION_PERCENT)]
+      );
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS partner_profiles (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+          partner_type TEXT NOT NULL,
+          business_name TEXT NOT NULL DEFAULT '',
+          contact_person TEXT NOT NULL DEFAULT '',
+          commission_percent NUMERIC(5,2),
+          metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+      `);
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS partner_transactions (
+          id SERIAL PRIMARY KEY,
+          partner_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          provider TEXT NOT NULL DEFAULT 'manual',
+          gross_amount_eur NUMERIC(10,2) NOT NULL,
+          deduction_percent NUMERIC(5,2) NOT NULL,
+          deduction_amount_eur NUMERIC(10,2) NOT NULL,
+          net_amount_eur NUMERIC(10,2) NOT NULL,
+          status TEXT NOT NULL DEFAULT 'completed',
+          reference TEXT NOT NULL UNIQUE,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+      `);
+
+      await seedInitialAdminAccount();
+    })().catch(error => {
+      coreSchemaReady = null;
+      throw error;
+    });
+  }
+
+  await coreSchemaReady;
+}
+
+async function seedInitialAdminAccount(): Promise<void> {
+  const email = process.env.INITIAL_ADMIN_EMAIL?.trim().toLowerCase();
+  const password = process.env.INITIAL_ADMIN_PASSWORD;
+
+  if (!email || !password) {
+    return;
+  }
+
+  const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
+  if (existing.rows[0]) {
+    return;
+  }
+
+  const { hash, salt } = hashPassword(password);
+  await pool.query(
+    `INSERT INTO users (
+       email, password_hash, password_salt, first_name, last_name, phone, university,
+       country_of_origin, user_type, is_active, trial_start_date, trial_end_date, has_paid,
+       created_at, updated_at
+     )
+     VALUES ($1, $2, $3, $4, $5, '', 'EBENESAID', '', 'admin', TRUE, NOW(), NOW() + INTERVAL '30 days', TRUE, NOW(), NOW())`,
+    [
+      email,
+      hash,
+      salt,
+      process.env.INITIAL_ADMIN_FIRST_NAME?.trim() || 'Platform',
+      process.env.INITIAL_ADMIN_LAST_NAME?.trim() || 'Admin',
+    ]
+  );
+}
+
+async function ensurePlatformTables(): Promise<void> {
+  if (!schemaReady) {
+    schemaReady = (async () => {
+      await ensureCoreTables();
 
       await pool.query(`
         CREATE TABLE IF NOT EXISTS student_dashboard_tasks (
@@ -649,12 +752,13 @@ export async function completePlatformPayment(
 ): Promise<{ reference: string; amount: number }> {
   await ensurePlatformTables();
 
+  const pricing = await getPlatformPricingSettings();
   const reference = `EB-${provider.toUpperCase()}-${Date.now()}`;
 
   await pool.query(
     `INSERT INTO student_platform_payments (user_id, provider, amount_eur, status, reference, created_at, completed_at)
      VALUES ($1, $2, $3, 'completed', $4, NOW(), NOW())`,
-    [userId, provider, PLATFORM_FEE_EUR, reference]
+    [userId, provider, pricing.studentFeeEur, reference]
   );
 
   await pool.query(
@@ -665,7 +769,7 @@ export async function completePlatformPayment(
     [userId]
   );
 
-  return { reference, amount: PLATFORM_FEE_EUR };
+  return { reference, amount: pricing.studentFeeEur };
 }
 
 // ─── User CRUD (PostgreSQL) ────────────────────────────────────────────────────
@@ -680,7 +784,8 @@ export async function createUser(data: {
   countryOfOrigin?: string;
   userType?: string;
 }): Promise<SafeUser> {
-  await ensurePlatformTables();
+  await ensureCoreTables();
+
   const { hash, salt } = hashPassword(data.password);
   const now = new Date();
   const trialEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days
@@ -708,25 +813,26 @@ export async function createUser(data: {
 }
 
 export async function getUserByEmail(email: string): Promise<DbUser | undefined> {
-  await ensurePlatformTables();
+  await ensureCoreTables();
   const result = await pool.query('SELECT * FROM users WHERE email = $1', [email.toLowerCase().trim()]);
   return result.rows[0];
 }
 
 export async function getUserById(id: number): Promise<DbUser | undefined> {
-  await ensurePlatformTables();
+  await ensureCoreTables();
   const result = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
   return result.rows[0];
 }
 
 export async function updateLastLogin(userId: number): Promise<void> {
+  await ensureCoreTables();
   await pool.query('UPDATE users SET last_login_at = NOW() WHERE id = $1', [userId]);
 }
 
 // ─── Session CRUD (PostgreSQL) ────────────────────────────────────────────────
 
 export async function createSession(userId: number): Promise<{ token: string; expiresAt: string }> {
-  await ensurePlatformTables();
+  await ensureCoreTables();
   const token = generateSessionToken();
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 7 days
   await pool.query(
@@ -737,6 +843,7 @@ export async function createSession(userId: number): Promise<{ token: string; ex
 }
 
 export async function getSessionByToken(token: string): Promise<{ user_id: number; expires_at: string } | undefined> {
+  await ensureCoreTables();
   // Clean expired sessions
   await pool.query("DELETE FROM sessions WHERE expires_at::timestamptz < NOW()");
   const result = await pool.query(
@@ -747,6 +854,7 @@ export async function getSessionByToken(token: string): Promise<{ user_id: numbe
 }
 
 export async function listUsersForAdmin(): Promise<AdminDirectoryUser[]> {
+  await ensureCoreTables();
   const result = await pool.query(
     `SELECT id, email, first_name, last_name, phone, university, country_of_origin, user_type, is_active,
             trial_start_date, trial_end_date, has_paid, created_at, updated_at, last_login_at
@@ -761,6 +869,7 @@ export async function listUsersForAdmin(): Promise<AdminDirectoryUser[]> {
 }
 
 export async function setUserActiveState(userId: number, isActive: boolean): Promise<SafeUser | undefined> {
+  await ensureCoreTables();
   const result = await pool.query(
     `UPDATE users
      SET is_active = $2,
@@ -775,6 +884,7 @@ export async function setUserActiveState(userId: number, isActive: boolean): Pro
 }
 
 export async function updateUserPassword(userId: number, password: string): Promise<void> {
+  await ensureCoreTables();
   const { hash, salt } = hashPassword(password);
   await pool.query(
     `UPDATE users
@@ -787,9 +897,49 @@ export async function updateUserPassword(userId: number, password: string): Prom
 }
 
 export async function deleteSession(token: string): Promise<void> {
+  await ensureCoreTables();
   await pool.query('DELETE FROM sessions WHERE token = $1', [token]);
 }
 
 export async function deleteAllUserSessions(userId: number): Promise<void> {
+  await ensureCoreTables();
   await pool.query('DELETE FROM sessions WHERE user_id = $1', [userId]);
+}
+
+export async function getPlatformPricingSettings(): Promise<PlatformPricingSettings> {
+  await ensureCoreTables();
+
+  const result = await pool.query(
+    `SELECT key, value FROM platform_settings
+     WHERE key IN ('student_fee_eur', 'partner_deduction_percent')`
+  );
+
+  const values = new Map(result.rows.map(row => [row.key, row.value]));
+  return {
+    studentFeeEur: Number(values.get('student_fee_eur') ?? PLATFORM_FEE_EUR),
+    partnerDeductionPercent: Number(values.get('partner_deduction_percent') ?? DEFAULT_PARTNER_DEDUCTION_PERCENT),
+  };
+}
+
+export async function updatePlatformPricingSettings(data: PlatformPricingSettings): Promise<PlatformPricingSettings> {
+  await ensureCoreTables();
+
+  const studentFee = Number.isFinite(data.studentFeeEur) && data.studentFeeEur >= 0 ? data.studentFeeEur : PLATFORM_FEE_EUR;
+  const partnerDeduction =
+    Number.isFinite(data.partnerDeductionPercent) && data.partnerDeductionPercent >= 0
+      ? Math.min(data.partnerDeductionPercent, 100)
+      : DEFAULT_PARTNER_DEDUCTION_PERCENT;
+
+  await pool.query(
+    `INSERT INTO platform_settings (key, value, updated_at)
+     VALUES ('student_fee_eur', $1, NOW()), ('partner_deduction_percent', $2, NOW())
+     ON CONFLICT (key)
+     DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()`,
+    [String(studentFee), String(partnerDeduction)]
+  );
+
+  return {
+    studentFeeEur: studentFee,
+    partnerDeductionPercent: partnerDeduction,
+  };
 }

@@ -12,6 +12,7 @@ export interface AuthUser {
   university: string;
   countryOfOrigin: string;
   userType: string;
+  avatar?: string | null;
   isActive: boolean;
   trialStartDate: string;
   trialEndDate: string;

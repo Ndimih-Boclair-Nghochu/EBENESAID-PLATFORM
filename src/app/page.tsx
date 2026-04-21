@@ -40,6 +40,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useAuthContext } from "@/auth/provider";
+import { LanguageSwitcher } from "@/components/language-switcher";
 
 const partners = [
   { name: "RTU RIGA", abbr: "RT" },
@@ -50,42 +51,35 @@ const partners = [
 ];
 
 const ecosystemPartners = [
-  { name: "WOLT", type: "Careers" },
-  { name: "ACCENTURE", type: "Careers" },
-  { name: "SIA LATPROP", type: "Housing" },
-  { name: "RIGA RENTALS", type: "Housing" },
-  { name: "PRINTFUL", type: "Careers" },
-  { name: "BOLT", type: "Logistics" },
+  { name: "Verified Housing", type: "Module" },
+  { name: "Secure Wallet", type: "Module" },
+  { name: "Career Bridge", type: "Module" },
+  { name: "Arrival Support", type: "Module" },
+  { name: "Food Supply", type: "Module" },
+  { name: "Student Circle", type: "Module" },
 ];
 
 const testimonials = [
   {
-    name: "Kofi Mensah",
-    university: "RTU Riga",
-    content: "EBENESAID turned my relocation nightmare into a structured plan. The verified housing was an absolute lifesaver.",
-    avatar: "https://picsum.photos/seed/stu-1/100/100",
-    flag: "🇬🇭"
+    name: "Relocation Support",
+    university: "Platform Journey",
+    content: "The platform is designed to keep housing, documents, community, and support in one operational flow.",
+    avatar: "https://picsum.photos/seed/platform-relocation/100/100",
+    flag: ""
   },
   {
-    name: "Ananya S.",
-    university: "University of Latvia",
-    content: "The document vault and AI concierge made the visa process so much less stressful. Truly a platform every international student needs.",
-    avatar: "https://picsum.photos/seed/stu-2/100/100",
-    flag: "🇮🇳"
+    name: "Secure Records",
+    university: "Document Workflow",
+    content: "Document storage, account setup, and guided tasks are structured to reduce confusion during relocation.",
+    avatar: "https://picsum.photos/seed/platform-docs/100/100",
+    flag: ""
   },
   {
-    name: "John D.",
-    university: "Turiba University",
-    content: "Found my flatmates and my first part-time job through the platform. It's the only tool you need as an international student in Latvia.",
-    avatar: "https://picsum.photos/seed/stu-3/100/100",
-    flag: "🇳🇬"
-  },
-  {
-    name: "Maria K.",
-    university: "RISEBA",
-    content: "The cultural guides helped me settle in faster than expected. Precision guidance at every single step of the journey.",
-    avatar: "https://picsum.photos/seed/stu-4/100/100",
-    flag: "🇨🇲"
+    name: "Verified Modules",
+    university: "Service Access",
+    content: "Students, partners, and administrators use one connected platform instead of disconnected tools.",
+    avatar: "https://picsum.photos/seed/platform-modules/100/100",
+    flag: ""
   }
 ];
 
@@ -121,7 +115,7 @@ const platformFeatures = [
   {
     icon: <Utensils className="h-6 w-6" />,
     title: "Food & Dining",
-    desc: "Order familiar and local food from our verified supplier network, delivered to your door.",
+    desc: "Order familiar and local food from our verified supplier network, deReadyred to your door.",
     badge: null,
     href: "/food"
   },
@@ -223,6 +217,9 @@ export default function LandingPage() {
 
           {/* Actions */}
           <div className="flex items-center gap-2 md:gap-3 shrink-0">
+            <div className="hidden sm:block">
+              <LanguageSwitcher compact />
+            </div>
             <Link href="/login" className="hidden sm:block text-sm font-semibold text-white/80 hover:text-white px-3 py-2 rounded-lg hover:bg-white/10 transition-all">
               Sign In
             </Link>
@@ -255,6 +252,7 @@ export default function LandingPage() {
                     </Link>
                   ))}
                   <div className="h-px bg-white/10 my-4" />
+                  <LanguageSwitcher />
                   <Link href="/login" onClick={() => setIsMobileMenuOpen(false)} className="text-base font-semibold text-white/80 hover:text-white hover:bg-white/10 px-4 py-3 rounded-xl transition-all">
                     Sign In
                   </Link>
@@ -316,10 +314,10 @@ export default function LandingPage() {
                   ))}
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold text-white">2,840+ students</span>
+                  <span className="text-sm font-bold text-white">Platform access</span>
                   <div className="flex items-center gap-1.5 bg-emerald-500/20 border border-emerald-400/30 px-2 py-0.5 rounded-full">
                     <span className="h-1.5 w-1.5 bg-emerald-400 rounded-full animate-pulse" />
-                    <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wide">Live</span>
+                    <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wide">Ready</span>
                   </div>
                 </div>
               </div>
@@ -852,3 +850,4 @@ export default function LandingPage() {
     </div>
   );
 }
+

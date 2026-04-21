@@ -173,27 +173,18 @@ export default function AboutPage() {
             {/* Founders Section */}
             <div className="space-y-12">
               <div className="text-center space-y-3">
-                <Badge className="bg-primary/5 text-primary border-none font-black px-4 py-1 text-[9px] uppercase tracking-widest">Leadership</Badge>
-                <h2 className="text-3xl md:text-4xl font-black text-slate-900">The Minds Behind the Vision</h2>
+                <Badge className="bg-primary/5 text-primary border-none font-black px-4 py-1 text-[9px] uppercase tracking-widest">Operating Model</Badge>
+                <h2 className="text-3xl md:text-4xl font-black text-slate-900">How the Platform Operates</h2>
               </div>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
                 <FounderCard 
-                  name="Ebenezer S.A."
-                  role="Founder & CEO"
-                  img="https://picsum.photos/seed/ebenezer/400/400"
-                  bio="Former RTU student passionate about digitizing the relocation experience for the next generation."
+                  name="Platform Strategy" role="Leadership Pillar" img="https://picsum.photos/seed/platform-strategy/400/400" bio="Defines the operating model for student onboarding, relocation guidance, and long-term platform direction."
                 />
                 <FounderCard 
-                  name="Louis D."
-                  role="Co-Founder & CTO"
-                  img="https://picsum.photos/seed/louis/400/400"
-                  bio="Full-stack architect with a focus on bank-grade encryption and secure document management systems."
+                  name="Technology & Security" role="Leadership Pillar" img="https://picsum.photos/seed/platform-technology/400/400" bio="Owns secure account infrastructure, data protection, and the backend systems that connect platform modules."
                 />
                 <FounderCard 
-                  name="Anna K."
-                  role="Head of Operations"
-                  img="https://picsum.photos/seed/anna/400/400"
-                  bio="Logistics expert specialized in Baltic housing verification and university partnership orchestration."
+                  name="Operations & Partnerships" role="Leadership Pillar" img="https://picsum.photos/seed/platform-operations/400/400" bio="Coordinates housing workflows, student support operations, and institutional collaboration across the platform."
                 />
               </div>
             </div>
@@ -317,3 +308,4 @@ function ValueItem({ icon, title, desc }: any) {
     </div>
   );
 }
+

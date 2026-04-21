@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { getAuthenticatedUserFromRequest } from '@/lib/auth';
-import { completePlatformPayment, PLATFORM_FEE_EUR } from '@/lib/db';
+import { completePlatformPayment, getPlatformPricingSettings } from '@/lib/db';
 import { getStudentBillingProfile, updateStudentBillingProfile } from '@/lib/student-account';
 
 export async function GET(request: NextRequest) {
@@ -65,11 +65,12 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const provider = String(body.providerPreference ?? 'stripe') === 'flutterwave' ? 'flutterwave' : 'stripe';
     const payment = await completePlatformPayment(user.id, provider);
+    const pricing = await getPlatformPricingSettings();
 
     return NextResponse.json(
       {
         payment,
-        platformFee: PLATFORM_FEE_EUR,
+        platformFee: pricing.studentFeeEur,
         message: `Platform fee paid successfully with ${provider === 'stripe' ? 'Stripe' : 'Flutterwave'}.`,
       },
       { status: 200 }

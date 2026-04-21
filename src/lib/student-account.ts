@@ -1,6 +1,6 @@
 import { Pool } from 'pg';
 
-import type { SafeUser } from '@/lib/db';
+import { ensureCoreTables, type SafeUser } from '@/lib/db';
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -148,6 +148,8 @@ let studentSchemaReady: Promise<void> | null = null;
 async function ensureStudentTables() {
   if (!studentSchemaReady) {
     studentSchemaReady = (async () => {
+      await ensureCoreTables();
+
       await pool.query(`
         CREATE TABLE IF NOT EXISTS student_documents (
           id SERIAL PRIMARY KEY,

@@ -37,6 +37,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuthContext } from "@/auth/provider";
+import { LanguageSwitcher } from "@/components/language-switcher";
 
 const studentNavigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -187,6 +188,9 @@ export function MainNav() {
 
       <div className="pt-6 space-y-1 border-t border-white/10">
         <p className="px-4 text-[9px] font-black text-green-200/50 uppercase tracking-[0.4em] mb-4 mt-2">Preferences</p>
+        <div className="px-1">
+          <LanguageSwitcher compact />
+        </div>
         <Link
           href="/settings"
           className={cn(

@@ -17,7 +17,6 @@ import {
   CheckCircle2,
   AlertCircle,
   FileText,
-  Tool,
   Wrench,
   Gauge
 } from "lucide-react";

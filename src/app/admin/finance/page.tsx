@@ -5,7 +5,10 @@ import { Activity, DollarSign, Receipt } from "lucide-react";
 
 import { SidebarShell } from "@/components/layout/sidebar-shell";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 type SummaryResponse = {
   overview: {
@@ -17,9 +20,16 @@ type SummaryResponse = {
   };
 };
 
+type PricingSettings = {
+  studentFeeEur: number;
+  partnerDeductionPercent: number;
+};
+
 export default function FinancialAnalysisPage() {
   const [data, setData] = useState<SummaryResponse | null>(null);
+  const [pricing, setPricing] = useState<PricingSettings>({ studentFeeEur: 5, partnerDeductionPercent: 10 });
   const [status, setStatus] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetch("/api/admin/summary", { credentials: "include" })
@@ -29,7 +39,37 @@ export default function FinancialAnalysisPage() {
         setData(body);
       })
       .catch((error) => setStatus(error instanceof Error ? error.message : "Failed to load finance data."));
+
+    fetch("/api/admin/pricing", { credentials: "include" })
+      .then(async (res) => {
+        const body = await res.json();
+        if (!res.ok) throw new Error(body.error || "Failed to load pricing settings.");
+        setPricing(body.pricing);
+      })
+      .catch((error) => setStatus(error instanceof Error ? error.message : "Failed to load pricing settings."));
   }, []);
+
+  async function savePricing() {
+    setSaving(true);
+    setStatus(null);
+
+    const res = await fetch("/api/admin/pricing", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(pricing),
+    });
+    const body = await res.json();
+    setSaving(false);
+
+    if (!res.ok) {
+      setStatus(body.error || "Failed to save pricing settings.");
+      return;
+    }
+
+    setPricing(body.pricing);
+    setStatus("Pricing settings updated.");
+  }
 
   return (
     <SidebarShell>
@@ -54,10 +94,42 @@ export default function FinancialAnalysisPage() {
 
         <Card className="rounded-[2rem] border-slate-100 bg-white shadow-sm">
           <CardHeader>
+            <CardTitle className="text-base font-black">Pricing Controls</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-4 md:grid-cols-[1fr_1fr_auto] md:items-end">
+            <div className="space-y-2">
+              <Label>Student fee amount (EUR)</Label>
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                value={pricing.studentFeeEur}
+                onChange={(event) => setPricing(current => ({ ...current, studentFeeEur: Number(event.target.value) }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Partner deduction percentage</Label>
+              <Input
+                type="number"
+                min="0"
+                max="100"
+                step="0.01"
+                value={pricing.partnerDeductionPercent}
+                onChange={(event) => setPricing(current => ({ ...current, partnerDeductionPercent: Number(event.target.value) }))}
+              />
+            </div>
+            <Button className="rounded-xl bg-green-700 hover:bg-green-800" onClick={savePricing} disabled={saving}>
+              {saving ? "Saving..." : "Save Pricing"}
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-[2rem] border-slate-100 bg-white shadow-sm">
+          <CardHeader>
             <CardTitle className="text-base font-black">Ledger Summary</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm text-slate-600">
-            <p>Total revenue is calculated from recorded entries in `student_platform_payments`.</p>
+            <p>Total revenue is calculated from recorded entries in student platform payments.</p>
             <p>If this page shows zero, it means no real payment record has been saved yet in the backend.</p>
           </CardContent>
         </Card>

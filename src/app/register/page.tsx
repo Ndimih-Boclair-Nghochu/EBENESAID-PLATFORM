@@ -41,22 +41,22 @@ import { COUNTRIES, UNIVERSITIES } from "@/lib/constants";
 
 const testimonials = [
   {
-    name: "Kofi Mensah",
-    role: "RTU Riga · Class of 2025",
-    text: "EBENESAID made my move so simple. I found verified housing before I even landed in Riga.",
-    avatar: "https://picsum.photos/seed/reg-stu-1/100/100"
+    name: "Verified Housing",
+    role: "Platform Module",
+    text: "Browse backend-driven housing records and avoid disconnected relocation steps.",
+    avatar: "https://picsum.photos/seed/register-module-1/100/100"
   },
   {
-    name: "Ananya S.",
-    role: "University of Latvia · Class of 2024",
-    text: "The document storage saved me from a visa disaster. Everything is safe and easy to use.",
-    avatar: "https://picsum.photos/seed/reg-stu-2/100/100"
+    name: "Secure Wallet",
+    role: "Platform Module",
+    text: "Keep your important relocation documents in one organized account workspace.",
+    avatar: "https://picsum.photos/seed/register-module-2/100/100"
   },
   {
-    name: "John D.",
-    role: "Turiba University · Class of 2025",
-    text: "I found my flatmates and a great part-time job within a week of joining the platform.",
-    avatar: "https://picsum.photos/seed/reg-stu-3/100/100"
+    name: "Career Bridge",
+    role: "Platform Module",
+    text: "Move from onboarding to verified jobs, support, and operational services inside one platform.",
+    avatar: "https://picsum.photos/seed/register-module-3/100/100"
   }
 ];
 
@@ -517,3 +517,4 @@ function HighlightItem({
     </div>
   );
 }
+

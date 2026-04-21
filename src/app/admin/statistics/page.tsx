@@ -57,7 +57,7 @@ export default function StatisticsPage() {
             <CardTitle className="text-base font-black">Statistics Health</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm text-slate-600">
-            <p>These values are no longer demo values. They come from users, listings, jobs, and dashboard task completion in the database.</p>
+            <p>These values are loaded from live backend records. They come from users, listings, jobs, and dashboard task completion in the database.</p>
             <p>If a figure is low or zero, it means the backend currently has little or no real data for that module.</p>
           </CardContent>
         </Card>
@@ -75,3 +75,4 @@ function MetricCard({ icon, label, value }: { icon: ReactNode; label: string; va
     </Card>
   );
 }
+
