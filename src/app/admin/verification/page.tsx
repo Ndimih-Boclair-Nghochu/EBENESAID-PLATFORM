@@ -27,83 +27,10 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 
-const housingQueue = [
-  { 
-    id: "h1", 
-    type: "Housing", 
-    title: "Old Town Historic Studio", 
-    owner: "Sia LatProp", 
-    location: "Kalku iela 12, Riga",
-    date: "2h ago",
-    priority: "High",
-    img: "https://picsum.photos/seed/h1/400/300",
-    meta: { photos: "12 Photos", docs: "Lease Verified", trust: "Lvl 4" }
-  },
-  { 
-    id: "h2", 
-    type: "Housing", 
-    title: "RTU Shared Flat", 
-    owner: "Anna K. (Ambassador)", 
-    location: "Zunda krastmala, Riga",
-    date: "1d ago",
-    priority: "Standard",
-    img: "https://picsum.photos/seed/h2/400/300",
-    meta: { photos: "8 Photos", docs: "Pending", trust: "Lvl 5" }
-  }
-];
-
-const jobsQueue = [
-  { 
-    id: "j1", 
-    type: "Job", 
-    title: "IT Sales Associate", 
-    owner: "TechBaltics", 
-    location: "Remote/Riga",
-    date: "5h ago",
-    priority: "Medium",
-    img: "https://picsum.photos/seed/j1/400/300",
-    meta: { type: "Part-time", permit: "20h Compatible", vetted: "Known Partner" }
-  }
-];
-
-const identitiesQueue = [
-  { 
-    id: "u1", 
-    type: "Identity", 
-    title: "Louis D. (Student)", 
-    owner: "Identity Verification", 
-    location: "RTU Enrollment",
-    date: "10m ago",
-    priority: "Critical",
-    img: "https://picsum.photos/seed/u1/400/300",
-    meta: { passport: "Uploaded", uni_sync: "Confirmed", risk: "Low" }
-  },
-  { 
-    id: "u2", 
-    type: "Identity", 
-    title: "Latvian Rentals SIA", 
-    owner: "Corporate Partner", 
-    location: "Commercial Registry",
-    date: "4h ago",
-    priority: "High",
-    img: "https://picsum.photos/seed/u2/400/300",
-    meta: { reg_num: "Verified", bank: "Swedbank Link", vat: "Active" }
-  }
-];
-
-const institutionsQueue = [
-  { 
-    id: "i1", 
-    type: "Institution", 
-    title: "SSE Riga Partner Node", 
-    owner: "Platform Integration", 
-    location: "Strēlnieku iela 4a",
-    date: "2d ago",
-    priority: "Standard",
-    img: "https://picsum.photos/seed/i1/400/300",
-    meta: { api: "REST Active", protocol: "Formal", nodes: "3 Shards" }
-  }
-];
+const housingQueue: { id: string; type: string; title: string; owner: string; location: string; date: string; priority: string; img: string; meta: Record<string, string> }[] = [];
+const jobsQueue: typeof housingQueue = [];
+const identitiesQueue: typeof housingQueue = [];
+const institutionsQueue: typeof housingQueue = [];
 
 export default function VerificationQueuePage() {
   const [communityRequests, setCommunityRequests] = useState<any[]>([]);

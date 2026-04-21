@@ -65,7 +65,7 @@ const emptyForm: ListingForm = {
   type: "Studio",
   status: "Pending",
   details: "",
-  imageUrl: "https://picsum.photos/seed/new-listing/900/700",
+  imageUrl: "",
 };
 
 export default function ListingManagerPage() {

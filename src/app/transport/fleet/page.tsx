@@ -24,11 +24,7 @@ import {
 import { Input } from "@/components/ui/input";
 import Image from "next/image";
 
-const fleetData = [
-  { id: 1, model: "Volkswagen Transporter", plate: "LV-9921", capacity: "8 Students", status: "Active", service: "Passed", img: "https://picsum.photos/seed/van1/400/300" },
-  { id: 2, model: "Toyota Prius Hybrid", plate: "LV-4482", capacity: "3 Students", status: "Active", service: "Passed", img: "https://picsum.photos/seed/car1/400/300" },
-  { id: 3, model: "Mercedes Vito", plate: "LV-1102", capacity: "7 Students", status: "Maintenance", service: "Due in 2d", img: "https://picsum.photos/seed/van2/400/300" },
-];
+const fleetData: { id: number; model: string; plate: string; capacity: string; status: string; service: string; img: string }[] = [];
 
 export default function FleetManagerPage() {
   return (
@@ -67,6 +63,13 @@ export default function FleetManagerPage() {
         </div>
 
         {/* Fleet Grid */}
+        {fleetData.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <Car className="h-10 w-10 text-slate-200 mb-4" />
+            <p className="text-sm font-black text-slate-400 uppercase tracking-widest">No vehicles registered</p>
+            <p className="text-[10px] text-slate-300 uppercase tracking-widest mt-1">Register your first vehicle using the button above.</p>
+          </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {fleetData.map((v) => (
             <Card key={v.id} className="rounded-[2.5rem] border-none shadow-sm bg-white overflow-hidden group hover:shadow-xl transition-all duration-500">

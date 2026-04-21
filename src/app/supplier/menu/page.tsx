@@ -37,12 +37,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 
-const menuItems = [
-  { id: 1, name: "Jollof Rice & Plantain", price: 8.50, delivery: 1.50, status: "Available", category: "West African", orders: 124, img: "https://picsum.photos/seed/jollof/400/300" },
-  { id: 2, name: "Latvian Dumplings", price: 6.50, delivery: 0, status: "Available", category: "Local", orders: 86, img: "https://picsum.photos/seed/dumplings/400/300" },
-  { id: 3, name: "Chicken Tikka Masala", price: 9.00, delivery: 2.00, status: "Out of Stock", category: "Indian", orders: 45, img: "https://picsum.photos/seed/curry/400/300" },
-  { id: 4, name: "Egusi Soup with Eba", price: 10.50, delivery: 1.50, status: "Available", category: "West African", orders: 210, img: "https://picsum.photos/seed/egusi/400/300" },
-];
+const menuItems: { id: number; name: string; price: number; delivery: number; status: string; category: string; orders: number; img: string }[] = [];
 
 export default function MenuManagerPage() {
   return (
@@ -170,6 +165,13 @@ export default function MenuManagerPage() {
         </div>
 
         {/* Menu Grid */}
+        {menuItems.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <Utensils className="h-10 w-10 text-slate-200 mb-4" />
+            <p className="text-sm font-black text-slate-400 uppercase tracking-widest">No menu items yet</p>
+            <p className="text-[10px] text-slate-300 uppercase tracking-widest mt-1">Add your first dish using the button above.</p>
+          </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {menuItems.map((item) => (
             <Card key={item.id} className="rounded-[2.5rem] border-none shadow-sm bg-white overflow-hidden group hover:shadow-xl transition-all duration-500">

@@ -169,6 +169,42 @@ async function ensurePlatformTables(): Promise<void> {
   if (!schemaReady) {
     schemaReady = (async () => {
       await pool.query(`
+        CREATE TABLE IF NOT EXISTS users (
+          id SERIAL PRIMARY KEY,
+          email TEXT NOT NULL UNIQUE,
+          password_hash TEXT NOT NULL,
+          password_salt TEXT NOT NULL,
+          first_name TEXT NOT NULL DEFAULT '',
+          last_name TEXT NOT NULL DEFAULT '',
+          phone TEXT NOT NULL DEFAULT '',
+          university TEXT NOT NULL DEFAULT '',
+          country_of_origin TEXT NOT NULL DEFAULT '',
+          user_type TEXT NOT NULL DEFAULT 'student',
+          is_active BOOLEAN NOT NULL DEFAULT TRUE,
+          trial_start_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          trial_end_date TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '30 days'),
+          has_paid BOOLEAN NOT NULL DEFAULT FALSE,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          last_login_at TIMESTAMPTZ
+        )
+      `);
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS sessions (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          token TEXT NOT NULL UNIQUE,
+          expires_at TIMESTAMPTZ NOT NULL,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+      `);
+
+      await pool.query(`
+        CREATE INDEX IF NOT EXISTS sessions_token_idx ON sessions (token)
+      `);
+
+      await pool.query(`
         CREATE TABLE IF NOT EXISTS student_dashboard_tasks (
           id SERIAL PRIMARY KEY,
           user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -644,6 +680,7 @@ export async function createUser(data: {
   countryOfOrigin?: string;
   userType?: string;
 }): Promise<SafeUser> {
+  await ensurePlatformTables();
   const { hash, salt } = hashPassword(data.password);
   const now = new Date();
   const trialEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days
@@ -671,11 +708,13 @@ export async function createUser(data: {
 }
 
 export async function getUserByEmail(email: string): Promise<DbUser | undefined> {
+  await ensurePlatformTables();
   const result = await pool.query('SELECT * FROM users WHERE email = $1', [email.toLowerCase().trim()]);
   return result.rows[0];
 }
 
 export async function getUserById(id: number): Promise<DbUser | undefined> {
+  await ensurePlatformTables();
   const result = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
   return result.rows[0];
 }
@@ -687,6 +726,7 @@ export async function updateLastLogin(userId: number): Promise<void> {
 // ─── Session CRUD (PostgreSQL) ────────────────────────────────────────────────
 
 export async function createSession(userId: number): Promise<{ token: string; expiresAt: string }> {
+  await ensurePlatformTables();
   const token = generateSessionToken();
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 7 days
   await pool.query(
