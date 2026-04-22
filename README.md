@@ -26,4 +26,4 @@ Production-oriented Next.js platform for international student relocation, admin
 - `OPENAI_API_KEY` optional; AI falls back to test mode when absent.
 - `GOOGLE_GENAI_API_KEY` optional for Genkit/Gemini flows.
 - `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` for Stripe.
-- `FLUTTERWAVE_SECRET_KEY`, `NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY` for Flutterwave.
+- `FLUTTERWAVE_SECRET_KEY`, `FLUTTERWAVE_WEBHOOK_SECRET_HASH`, `NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY` for Flutterwave.

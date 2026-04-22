@@ -73,6 +73,7 @@ export default function BillingPage() {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isPaying, setIsPaying] = useState(false);
+  const [platformFee, setPlatformFee] = useState(5);
 
   useEffect(() => {
     fetch("/api/student/billing", { credentials: "include" })
@@ -82,6 +83,7 @@ export default function BillingPage() {
           throw new Error(data.error || "Failed to load billing profile.");
         }
         setForm(data.billing ?? emptyBilling);
+        setPlatformFee(Number(data.pricing?.studentFeeEur ?? 5));
       })
       .catch(error => setStatus(error instanceof Error ? error.message : "Failed to load billing profile."))
       .finally(() => setLoading(false));
@@ -132,6 +134,10 @@ export default function BillingPage() {
     }
 
     await refreshUser();
+    if (data.payment?.checkoutUrl) {
+      window.location.href = data.payment.checkoutUrl;
+      return;
+    }
     setStatus(data.message || "Platform fee paid successfully.");
   }
 
@@ -340,14 +346,14 @@ export default function BillingPage() {
             </CardHeader>
             <CardContent className="space-y-3 text-sm text-slate-600">
               <p>
-                <span className="font-black text-slate-900">Amount due:</span> EUR 5
+                <span className="font-black text-slate-900">Amount due:</span> EUR {platformFee.toFixed(2)}
               </p>
               <p>
                 <span className="font-black text-slate-900">Gateway:</span> {form.providerPreference === "stripe" ? "Stripe" : "Flutterwave"}
               </p>
               <p>Use your selected billing gateway to unlock the student platform after the trial period ends.</p>
               <Button className="w-full rounded-xl bg-green-700 hover:bg-green-800" onClick={completePayment} disabled={isPaying}>
-                <Wallet className="mr-2 h-4 w-4" /> {isPaying ? "Processing..." : "Pay EUR 5 Now"}
+                <Wallet className="mr-2 h-4 w-4" /> {isPaying ? "Processing..." : `Pay EUR ${platformFee.toFixed(2)} Now`}
               </Button>
             </CardContent>
           </Card>

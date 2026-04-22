@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { getAuthenticatedUserFromRequest } from '@/lib/auth';
-import { completePlatformPayment, getPlatformPricingSettings } from '@/lib/db';
+import { getPlatformPricingSettings } from '@/lib/db';
+import { normalizePaymentProvider, startStudentPlatformPayment } from '@/lib/payments';
 import { getStudentBillingProfile, updateStudentBillingProfile } from '@/lib/student-account';
 
 export async function GET(request: NextRequest) {
@@ -12,7 +13,8 @@ export async function GET(request: NextRequest) {
 
   try {
     const billing = await getStudentBillingProfile(user);
-    return NextResponse.json({ billing }, { status: 200 });
+    const pricing = await getPlatformPricingSettings();
+    return NextResponse.json({ billing, pricing }, { status: 200 });
   } catch (error) {
     console.error('Billing load error:', error);
     return NextResponse.json({ error: 'Failed to load billing profile.' }, { status: 500 });
@@ -63,15 +65,14 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const provider = String(body.providerPreference ?? 'stripe') === 'flutterwave' ? 'flutterwave' : 'stripe';
-    const payment = await completePlatformPayment(user.id, provider);
-    const pricing = await getPlatformPricingSettings();
+    const provider = normalizePaymentProvider(body.providerPreference);
+    const payment = await startStudentPlatformPayment(user, provider);
 
     return NextResponse.json(
       {
         payment,
-        platformFee: pricing.studentFeeEur,
-        message: `Platform fee paid successfully with ${provider === 'stripe' ? 'Stripe' : 'Flutterwave'}.`,
+        platformFee: payment.amount,
+        message: payment.message,
       },
       { status: 200 }
     );
