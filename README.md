@@ -24,6 +24,21 @@ Production-oriented Next.js platform for international student relocation, admin
 - `INITIAL_ADMIN_FIRST_NAME`
 - `INITIAL_ADMIN_LAST_NAME`
 
+## Hostinger VPS
+
+The repo now includes a Hostinger-ready VPS deployment path:
+
+- Guide: [`docs/hostinger-vps.md`](./docs/hostinger-vps.md)
+- VPS environment template: [`deploy/hostinger/hostinger.env.example`](./deploy/hostinger/hostinger.env.example)
+- Deployment script: `scripts/deploy-hostinger-vps.sh`
+
+The recommended production path is:
+
+1. Ubuntu VPS on Hostinger
+2. Docker for the app and PostgreSQL
+3. Nginx on the VPS as reverse proxy
+4. Certbot for SSL
+
 ## Runtime Environment Expectations
 
 - `DATABASE_URL` is required for data-backed flows.
