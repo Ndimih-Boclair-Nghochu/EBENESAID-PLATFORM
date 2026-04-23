@@ -86,7 +86,11 @@ export default function ContactPage() {
       <header className={`fixed top-0 z-50 w-full border-b border-green-400/30 bg-green-900 backdrop-blur-xl transition-transform duration-300 ${headerVisible ? 'translate-y-0' : '-translate-y-full'}`}>
         <div className="container mx-auto flex h-16 md:h-20 items-center justify-between px-4 sm:px-6 max-w-7xl">
           <Link href="/" className="flex items-center gap-2 group">
-            <BrandLogo imageClassName="w-24 md:w-28 group-hover:scale-105 transition-transform" priority />
+            <BrandLogo
+              frameClassName="border border-white/20 bg-white/95 p-1.5 shadow-lg shadow-black/15 transition-transform group-hover:scale-105"
+              imageClassName="w-12 md:w-14"
+              priority
+            />
           </Link>
 
           <nav className="hidden lg:flex gap-8 xl:gap-10">
@@ -111,7 +115,7 @@ export default function ContactPage() {
               <SheetContent side="right" className="bg-green-900 border-none text-white p-0 w-72">
                 <SheetHeader className="p-8 border-b border-white/10 text-left">
                   <SheetTitle className="text-white">
-                    <BrandLogo imageClassName="w-24" />
+                    <BrandLogo frameClassName="border border-white/10 bg-white p-1.5 shadow-lg shadow-black/15" imageClassName="w-12" />
                   </SheetTitle>
                 </SheetHeader>
                 <nav className="flex flex-col p-8 gap-6">

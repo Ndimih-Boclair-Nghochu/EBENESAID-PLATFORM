@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils';
 
 type BrandLogoProps = {
   className?: string;
+  frameClassName?: string;
   imageClassName?: string;
   priority?: boolean;
   showWordmark?: boolean;
@@ -11,6 +12,7 @@ type BrandLogoProps = {
 
 export function BrandLogo({
   className,
+  frameClassName,
   imageClassName,
   priority = false,
   showWordmark = false,
@@ -18,14 +20,16 @@ export function BrandLogo({
 }: BrandLogoProps) {
   return (
     <div className={cn('flex items-center gap-3', className)}>
-      <Image
-        src="/brand/ebenesaid-logo.jpeg"
-        alt="EBENESAID logo"
-        width={256}
-        height={256}
-        priority={priority}
-        className={cn('h-auto w-14 object-contain', imageClassName)}
-      />
+      <div className={cn('overflow-hidden rounded-full bg-white shadow-md', frameClassName)}>
+        <Image
+          src="/brand/ebenesaid-logo.jpeg"
+          alt="EBENESAID logo"
+          width={256}
+          height={256}
+          priority={priority}
+          className={cn('h-auto w-14 rounded-full object-cover', imageClassName)}
+        />
+      </div>
       {showWordmark ? (
         <span className={cn('text-lg font-black uppercase italic tracking-tighter', wordmarkClassName)}>
           EBENESAID

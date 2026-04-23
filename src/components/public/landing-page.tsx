@@ -163,7 +163,11 @@ export default function LandingPage() {
       <header className={`fixed top-0 z-50 w-full border-b border-white/10 bg-green-900/95 backdrop-blur-xl transition-transform duration-300 ${headerVisible ? 'translate-y-0' : '-translate-y-full'}`}>
         <div className="container mx-auto flex h-16 max-w-7xl items-center justify-between px-5 sm:px-6 md:h-[72px]">
           <Link href="/" className="group flex shrink-0 items-center gap-2.5">
-            <BrandLogo imageClassName="w-24 transition-transform group-hover:scale-105" priority />
+            <BrandLogo
+              frameClassName="border border-white/20 bg-white/95 p-1.5 shadow-lg shadow-black/15 transition-transform group-hover:scale-105"
+              imageClassName="w-12"
+              priority
+            />
           </Link>
           <nav className="hidden items-center gap-1 lg:flex">
             {[
@@ -194,7 +198,7 @@ export default function LandingPage() {
               <SheetContent side="right" className="w-72 border-none bg-green-900 p-0 text-white sm:w-80">
                 <SheetHeader className="border-b border-white/10 p-6 text-left">
                   <SheetTitle className="text-white">
-                    <BrandLogo imageClassName="w-24" />
+                    <BrandLogo frameClassName="border border-white/10 bg-white p-1.5 shadow-lg shadow-black/15" imageClassName="w-12" />
                   </SheetTitle>
                 </SheetHeader>
                 <nav className="flex flex-col gap-1 p-6">

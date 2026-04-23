@@ -39,7 +39,7 @@ export function SidebarShell({ children }: { children: React.ReactNode }) {
       {/* Mobile Header - Compact Brand Alignment */}
       <header className="fixed top-0 left-0 right-0 z-50 flex h-14 items-center justify-between border-b border-slate-200 bg-white/80 px-4 lg:hidden shadow-sm backdrop-blur-xl">
         <div className="flex items-center gap-2">
-          <BrandLogo imageClassName="w-14" />
+          <BrandLogo frameClassName="border border-slate-200 bg-white p-1 shadow-sm" imageClassName="w-10" />
         </div>
         
         {mounted && (
@@ -52,7 +52,7 @@ export function SidebarShell({ children }: { children: React.ReactNode }) {
             <SheetContent side="left" className="p-0 w-64 border-none bg-green-900">
               <SheetHeader className="p-6 border-b border-white/10 text-left shrink-0">
                 <SheetTitle className="text-white">
-                  <BrandLogo imageClassName="w-20" />
+                  <BrandLogo frameClassName="border border-white/10 bg-white p-1.5 shadow-lg shadow-black/15" imageClassName="w-12" />
                 </SheetTitle>
               </SheetHeader>
               <div className="flex h-[calc(100%-80px)] flex-col">
