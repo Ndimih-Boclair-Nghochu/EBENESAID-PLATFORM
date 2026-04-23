@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, type ReactNode } from "react";
-import { Activity, DollarSign, Receipt } from "lucide-react";
+import { Activity, Banknote, DollarSign, Receipt } from "lucide-react";
 
 import { SidebarShell } from "@/components/layout/sidebar-shell";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 type SummaryResponse = {
   overview: {
@@ -25,8 +26,45 @@ type PricingSettings = {
   partnerDeductionPercent: number;
 };
 
+type FinanceLedger = {
+  studentPayments: {
+    id: number;
+    studentName: string;
+    studentEmail: string;
+    provider: string;
+    amountEur: number;
+    status: string;
+    reference: string;
+    createdAt: string;
+  }[];
+  partnerTransactions: {
+    id: number;
+    partnerName: string;
+    partnerEmail: string;
+    partnerType: string;
+    businessName: string;
+    provider: string;
+    grossAmountEur: number;
+    deductionPercent: number;
+    deductionAmountEur: number;
+    netAmountEur: number;
+    status: string;
+    reference: string;
+    createdAt: string;
+  }[];
+  totals: {
+    studentRevenueEur: number;
+    partnerGrossEur: number;
+    partnerDeductionsEur: number;
+    partnerNetEur: number;
+    studentPaymentCount: number;
+    partnerTransactionCount: number;
+  };
+};
+
 export default function FinancialAnalysisPage() {
   const [data, setData] = useState<SummaryResponse | null>(null);
+  const [ledger, setLedger] = useState<FinanceLedger | null>(null);
   const [pricing, setPricing] = useState<PricingSettings>({ studentFeeEur: 5, partnerDeductionPercent: 10 });
   const [status, setStatus] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -40,13 +78,14 @@ export default function FinancialAnalysisPage() {
       })
       .catch((error) => setStatus(error instanceof Error ? error.message : "Failed to load finance data."));
 
-    fetch("/api/admin/pricing", { credentials: "include" })
+    fetch("/api/admin/finance", { credentials: "include" })
       .then(async (res) => {
         const body = await res.json();
-        if (!res.ok) throw new Error(body.error || "Failed to load pricing settings.");
+        if (!res.ok) throw new Error(body.error || "Failed to load finance ledger.");
+        setLedger(body.ledger);
         setPricing(body.pricing);
       })
-      .catch((error) => setStatus(error instanceof Error ? error.message : "Failed to load pricing settings."));
+      .catch((error) => setStatus(error instanceof Error ? error.message : "Failed to load finance ledger."));
   }, []);
 
   async function savePricing() {
@@ -87,9 +126,9 @@ export default function FinancialAnalysisPage() {
         {status && <p className="text-sm font-medium text-slate-600">{status}</p>}
 
         <div className="grid gap-4 md:grid-cols-3">
-          <MetricCard icon={<DollarSign className="h-5 w-5" />} label="Platform Revenue" value={`EUR ${data?.finance.platformRevenue ?? 0}`} />
-          <MetricCard icon={<Receipt className="h-5 w-5" />} label="Completed Payments" value={String(data?.finance.totalPayments ?? 0)} />
-          <MetricCard icon={<Activity className="h-5 w-5" />} label="Revenue Status" value={(data?.finance.totalPayments ?? 0) > 0 ? "Live" : "No payments yet"} />
+          <MetricCard icon={<DollarSign className="h-5 w-5" />} label="Student Fee Revenue" value={formatCurrency(ledger?.totals.studentRevenueEur ?? data?.finance.platformRevenue ?? 0)} />
+          <MetricCard icon={<Receipt className="h-5 w-5" />} label="Student Payments" value={String(ledger?.totals.studentPaymentCount ?? data?.finance.totalPayments ?? 0)} />
+          <MetricCard icon={<Banknote className="h-5 w-5" />} label="Partner Deductions" value={formatCurrency(ledger?.totals.partnerDeductionsEur ?? 0)} />
         </div>
 
         <Card className="rounded-[2rem] border-slate-100 bg-white shadow-sm">
@@ -124,17 +163,122 @@ export default function FinancialAnalysisPage() {
           </CardContent>
         </Card>
 
+        <div className="grid gap-4 md:grid-cols-3">
+          <MetricCard icon={<Activity className="h-5 w-5" />} label="Partner Gross Volume" value={formatCurrency(ledger?.totals.partnerGrossEur ?? 0)} />
+          <MetricCard icon={<DollarSign className="h-5 w-5" />} label="Partner Net Earnings" value={formatCurrency(ledger?.totals.partnerNetEur ?? 0)} />
+          <MetricCard icon={<Receipt className="h-5 w-5" />} label="Partner Transactions" value={String(ledger?.totals.partnerTransactionCount ?? 0)} />
+        </div>
+
         <Card className="rounded-[2rem] border-slate-100 bg-white shadow-sm">
           <CardHeader>
             <CardTitle className="text-base font-black">Ledger Summary</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3 text-sm text-slate-600">
-            <p>Total revenue is calculated from recorded entries in student platform payments.</p>
-            <p>If this page shows zero, it means no real payment record has been saved yet in the backend.</p>
+          <CardContent className="space-y-6">
+            <LedgerTable
+              title="Recent Student Payments"
+              empty="No student fee payments have been recorded yet."
+              headers={["Student", "Provider", "Amount", "Status", "Reference", "Date"]}
+              rows={(ledger?.studentPayments ?? []).map(payment => [
+                <NameCell key="student" name={payment.studentName} detail={payment.studentEmail} />,
+                providerLabel(payment.provider),
+                formatCurrency(payment.amountEur),
+                <StatusBadge key="status" status={payment.status} />,
+                payment.reference,
+                formatDate(payment.createdAt),
+              ])}
+            />
+
+            <LedgerTable
+              title="Recent Partner Transactions"
+              empty="No partner transaction records have been generated yet."
+              headers={["Partner", "Type", "Gross", "Deduction", "Net", "Status"]}
+              rows={(ledger?.partnerTransactions ?? []).map(transaction => [
+                <NameCell key="partner" name={transaction.businessName || transaction.partnerName} detail={transaction.partnerEmail} />,
+                roleLabel(transaction.partnerType),
+                formatCurrency(transaction.grossAmountEur),
+                `${formatCurrency(transaction.deductionAmountEur)} (${transaction.deductionPercent}%)`,
+                formatCurrency(transaction.netAmountEur),
+                <StatusBadge key="status" status={transaction.status} />,
+              ])}
+            />
           </CardContent>
         </Card>
       </div>
     </SidebarShell>
+  );
+}
+
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat("en-GB", { style: "currency", currency: "EUR" }).format(value);
+}
+
+function formatDate(value: string) {
+  if (!value) return "Not recorded";
+  return new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
+}
+
+function providerLabel(value: string) {
+  return value === "flutterwave" ? "Flutterwave" : value === "stripe" ? "Stripe" : value;
+}
+
+function roleLabel(value: string) {
+  const labels: Record<string, string> = {
+    university: "School",
+    agent: "Housing",
+    job_partner: "Jobs",
+    supplier: "Food",
+    transport: "Transport",
+  };
+  return labels[value] ?? value;
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const completed = status.toLowerCase() === "completed";
+  return (
+    <Badge variant="outline" className={completed ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-amber-200 bg-amber-50 text-amber-700"}>
+      {status}
+    </Badge>
+  );
+}
+
+function NameCell({ name, detail }: { name: string; detail: string }) {
+  return (
+    <div>
+      <p className="font-bold text-slate-800">{name || "Unnamed account"}</p>
+      <p className="text-[11px] text-slate-400">{detail}</p>
+    </div>
+  );
+}
+
+function LedgerTable({ title, empty, headers, rows }: { title: string; empty: string; headers: string[]; rows: ReactNode[][] }) {
+  return (
+    <div className="space-y-3">
+      <h2 className="text-sm font-black text-slate-900">{title}</h2>
+      <div className="overflow-hidden rounded-2xl border border-slate-100">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-slate-50">
+              {headers.map(header => (
+                <TableHead key={header} className="text-[10px] font-black uppercase tracking-wider text-slate-400">{header}</TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {rows.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={headers.length} className="py-8 text-center text-sm text-slate-500">{empty}</TableCell>
+              </TableRow>
+            ) : rows.map((row, rowIndex) => (
+              <TableRow key={rowIndex}>
+                {row.map((cell, cellIndex) => (
+                  <TableCell key={cellIndex} className="text-xs font-medium text-slate-600">{cell}</TableCell>
+                ))}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
   );
 }
 

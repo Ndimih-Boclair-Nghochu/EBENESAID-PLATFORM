@@ -1,15 +1,7 @@
-/**
- * SQLite Database Layer for EBENESAID Platform
- * Uses Node.js 22 built-in node:sqlite module
- */
-
-
-import { Pool } from 'pg';
 import crypto from 'crypto';
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
+import { dbPool as pool } from '@/lib/postgres';
+import { defaultLocale, normalizeLocale, type SupportedLocale } from '@/lib/i18n';
+import { getDefaultHomePageContent, normalizeHomePageContent, type HomePageContent } from '@/lib/public-site-content';
 
 // ─── Password Hashing ──────────────────────────────────────────────────────────
 
@@ -73,7 +65,71 @@ export interface SafeUser {
 
 export interface AdminDirectoryUser extends SafeUser {
   updatedAt: string;
+  partnerProfile?: {
+    partnerType: string;
+    businessName: string;
+    contactPerson: string;
+    commissionPercent: number | null;
+    metadata: Record<string, unknown>;
+  } | null;
 }
+
+export type PartnerProfileRecord = {
+  partnerType: string;
+  businessName: string;
+  contactPerson: string;
+  commissionPercent: number | null;
+  metadata: Record<string, unknown>;
+};
+
+export type PartnerFinanceSummary = {
+  transactionCount: number;
+  grossAmountEur: number;
+  deductionAmountEur: number;
+  netAmountEur: number;
+  pendingCount: number;
+};
+
+export type AdminStudentPaymentRecord = {
+  id: number;
+  studentName: string;
+  studentEmail: string;
+  provider: string;
+  amountEur: number;
+  status: string;
+  reference: string;
+  createdAt: string;
+  completedAt: string | null;
+};
+
+export type AdminPartnerTransactionRecord = {
+  id: number;
+  partnerName: string;
+  partnerEmail: string;
+  partnerType: string;
+  businessName: string;
+  provider: string;
+  grossAmountEur: number;
+  deductionPercent: number;
+  deductionAmountEur: number;
+  netAmountEur: number;
+  status: string;
+  reference: string;
+  createdAt: string;
+};
+
+export type AdminFinanceLedger = {
+  studentPayments: AdminStudentPaymentRecord[];
+  partnerTransactions: AdminPartnerTransactionRecord[];
+  totals: {
+    studentRevenueEur: number;
+    partnerGrossEur: number;
+    partnerDeductionsEur: number;
+    partnerNetEur: number;
+    studentPaymentCount: number;
+    partnerTransactionCount: number;
+  };
+};
 
 export interface StudentDashboardTask {
   id: number;
@@ -131,6 +187,18 @@ export const PLATFORM_ROLE_OPTIONS = [
 
 export type PlatformUserType = typeof PLATFORM_ROLE_OPTIONS[number]['value'];
 
+type PartnerProfileInput = {
+  partnerType: string;
+  businessName: string;
+  contactPerson: string;
+  commissionPercent?: number | null;
+  metadata?: Record<string, unknown>;
+};
+
+function isPartnerRole(userType: string): boolean {
+  return userType === 'university' || userType === 'agent' || userType === 'job_partner' || userType === 'supplier' || userType === 'transport';
+}
+
 export function toSafeUser(dbUser: DbUser): SafeUser {
   return {
     id: dbUser.id,
@@ -178,6 +246,17 @@ export type PlatformPricingSettings = {
   partnerDeductionPercent: number;
 };
 
+export type PlatformIntelligenceSnapshot = {
+  students: number;
+  users: number;
+  verifiedListings: number;
+  openJobs: number;
+  communityCircles: number;
+  foodItems: number;
+};
+
+export type PublicPageKey = 'home';
+
 export async function ensureCoreTables(): Promise<void> {
   if (!coreSchemaReady) {
     coreSchemaReady = (async () => {
@@ -222,6 +301,16 @@ export async function ensureCoreTables(): Promise<void> {
           key TEXT PRIMARY KEY,
           value TEXT NOT NULL,
           updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+      `);
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS public_site_content (
+          page_key TEXT NOT NULL,
+          locale TEXT NOT NULL,
+          content JSONB NOT NULL DEFAULT '{}'::jsonb,
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          PRIMARY KEY (page_key, locale)
         )
       `);
 
@@ -783,6 +872,8 @@ export async function createUser(data: {
   university?: string;
   countryOfOrigin?: string;
   userType?: string;
+  isActive?: boolean;
+  partnerProfile?: PartnerProfileInput;
 }): Promise<SafeUser> {
   await ensureCoreTables();
 
@@ -790,6 +881,7 @@ export async function createUser(data: {
   const now = new Date();
   const trialEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days
   const userType = normalizeUserType(data.userType);
+  const isActive = data.isActive ?? true;
 
   const result = await pool.query(
     `INSERT INTO users (email, password_hash, password_salt, first_name, last_name, phone, university, country_of_origin, user_type, is_active, trial_start_date, trial_end_date, has_paid, created_at, updated_at)
@@ -809,7 +901,50 @@ export async function createUser(data: {
       trialEnd.toISOString(),
     ]
   );
-  return toSafeUser(result.rows[0]);
+  const user = result.rows[0] as DbUser;
+
+  if (user.is_active !== isActive) {
+    await pool.query(
+      `UPDATE users
+       SET is_active = $2,
+           updated_at = NOW()
+       WHERE id = $1`,
+      [user.id, isActive]
+    );
+    user.is_active = isActive;
+  }
+
+  if (isPartnerRole(userType)) {
+    const businessName = data.partnerProfile?.businessName?.trim() || data.university?.trim() || `${data.firstName.trim()} ${data.lastName.trim()}`.trim();
+    const contactPerson = data.partnerProfile?.contactPerson?.trim() || `${data.firstName.trim()} ${data.lastName.trim()}`.trim();
+    const commissionPercent =
+      typeof data.partnerProfile?.commissionPercent === 'number' && Number.isFinite(data.partnerProfile.commissionPercent)
+        ? Math.max(0, Math.min(data.partnerProfile.commissionPercent, 100))
+        : null;
+
+    await pool.query(
+      `INSERT INTO partner_profiles (user_id, partner_type, business_name, contact_person, commission_percent, metadata, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6::jsonb, NOW(), NOW())
+       ON CONFLICT (user_id)
+       DO UPDATE SET
+         partner_type = EXCLUDED.partner_type,
+         business_name = EXCLUDED.business_name,
+         contact_person = EXCLUDED.contact_person,
+         commission_percent = EXCLUDED.commission_percent,
+         metadata = EXCLUDED.metadata,
+         updated_at = NOW()`,
+      [
+        user.id,
+        data.partnerProfile?.partnerType?.trim() || userType,
+        businessName,
+        contactPerson,
+        commissionPercent,
+        JSON.stringify(data.partnerProfile?.metadata ?? {}),
+      ]
+    );
+  }
+
+  return toSafeUser(user);
 }
 
 export async function getUserByEmail(email: string): Promise<DbUser | undefined> {
@@ -856,15 +991,26 @@ export async function getSessionByToken(token: string): Promise<{ user_id: numbe
 export async function listUsersForAdmin(): Promise<AdminDirectoryUser[]> {
   await ensureCoreTables();
   const result = await pool.query(
-    `SELECT id, email, first_name, last_name, phone, university, country_of_origin, user_type, is_active,
-            trial_start_date, trial_end_date, has_paid, created_at, updated_at, last_login_at
-     FROM users
-     ORDER BY created_at DESC, id DESC`
+    `SELECT u.id, u.email, u.first_name, u.last_name, u.phone, u.university, u.country_of_origin, u.user_type, u.is_active,
+            u.trial_start_date, u.trial_end_date, u.has_paid, u.created_at, u.updated_at, u.last_login_at,
+            pp.partner_type, pp.business_name, pp.contact_person, pp.commission_percent, pp.metadata
+     FROM users u
+     LEFT JOIN partner_profiles pp ON pp.user_id = u.id
+     ORDER BY u.created_at DESC, u.id DESC`
   );
 
   return result.rows.map((row) => ({
     ...toSafeUser(row),
     updatedAt: row.updated_at,
+    partnerProfile: row.partner_type
+      ? {
+          partnerType: row.partner_type,
+          businessName: row.business_name,
+          contactPerson: row.contact_person,
+          commissionPercent: row.commission_percent === null ? null : Number(row.commission_percent),
+          metadata: row.metadata ?? {},
+        }
+      : null,
   }));
 }
 
@@ -881,6 +1027,95 @@ export async function setUserActiveState(userId: number, isActive: boolean): Pro
 
   const row = result.rows[0];
   return row ? toSafeUser(row) : undefined;
+}
+
+export async function getPartnerProfile(userId: number): Promise<PartnerProfileRecord | null> {
+  await ensureCoreTables();
+  const result = await pool.query(
+    `SELECT partner_type, business_name, contact_person, commission_percent, metadata
+     FROM partner_profiles
+     WHERE user_id = $1`,
+    [userId]
+  );
+
+  const row = result.rows[0];
+  if (!row) {
+    return null;
+  }
+
+  return {
+    partnerType: row.partner_type,
+    businessName: row.business_name,
+    contactPerson: row.contact_person,
+    commissionPercent: row.commission_percent === null ? null : Number(row.commission_percent),
+    metadata: row.metadata ?? {},
+  };
+}
+
+export async function getPartnerFinanceSummary(userId: number): Promise<PartnerFinanceSummary> {
+  await ensureCoreTables();
+  const result = await pool.query(
+    `SELECT
+       COUNT(*) AS transaction_count,
+       COALESCE(SUM(gross_amount_eur), 0) AS gross_amount_eur,
+       COALESCE(SUM(deduction_amount_eur), 0) AS deduction_amount_eur,
+       COALESCE(SUM(net_amount_eur), 0) AS net_amount_eur,
+       COUNT(*) FILTER (WHERE status <> 'completed') AS pending_count
+     FROM partner_transactions
+     WHERE partner_user_id = $1`,
+    [userId]
+  );
+
+  const row = result.rows[0];
+  return {
+    transactionCount: Number(row?.transaction_count ?? 0),
+    grossAmountEur: Number(row?.gross_amount_eur ?? 0),
+    deductionAmountEur: Number(row?.deduction_amount_eur ?? 0),
+    netAmountEur: Number(row?.net_amount_eur ?? 0),
+    pendingCount: Number(row?.pending_count ?? 0),
+  };
+}
+
+export async function recordPartnerTransaction(data: {
+  partnerUserId: number;
+  grossAmountEur: number;
+  provider: string;
+  reference: string;
+  status?: string;
+}): Promise<void> {
+  await ensureCoreTables();
+
+  const grossAmount = Number.isFinite(data.grossAmountEur) && data.grossAmountEur > 0 ? data.grossAmountEur : 0;
+  if (grossAmount <= 0) {
+    return;
+  }
+
+  const [pricing, profile] = await Promise.all([
+    getPlatformPricingSettings(),
+    getPartnerProfile(data.partnerUserId),
+  ]);
+  const deductionPercent = profile?.commissionPercent ?? pricing.partnerDeductionPercent;
+  const deductionAmount = Number(((grossAmount * deductionPercent) / 100).toFixed(2));
+  const netAmount = Number((grossAmount - deductionAmount).toFixed(2));
+
+  await pool.query(
+    `INSERT INTO partner_transactions (
+       partner_user_id, provider, gross_amount_eur, deduction_percent, deduction_amount_eur,
+       net_amount_eur, status, reference, created_at
+     )
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+     ON CONFLICT (reference) DO NOTHING`,
+    [
+      data.partnerUserId,
+      data.provider,
+      grossAmount,
+      deductionPercent,
+      deductionAmount,
+      netAmount,
+      data.status ?? 'completed',
+      data.reference,
+    ]
+  );
 }
 
 export async function updateUserPassword(userId: number, password: string): Promise<void> {
@@ -941,5 +1176,166 @@ export async function updatePlatformPricingSettings(data: PlatformPricingSetting
   return {
     studentFeeEur: studentFee,
     partnerDeductionPercent: partnerDeduction,
+  };
+}
+
+export async function getAdminFinanceLedger(limit = 25): Promise<AdminFinanceLedger> {
+  await ensurePlatformTables();
+
+  const normalizedLimit = Number.isInteger(limit) && limit > 0 ? Math.min(limit, 100) : 25;
+
+  const [studentPaymentsResult, partnerTransactionsResult, totalsResult] = await Promise.all([
+    pool.query(
+      `SELECT p.id,
+              CONCAT(u.first_name, ' ', u.last_name) AS student_name,
+              u.email AS student_email,
+              p.provider,
+              p.amount_eur,
+              p.status,
+              p.reference,
+              p.created_at,
+              p.completed_at
+       FROM student_platform_payments p
+       JOIN users u ON u.id = p.user_id
+       ORDER BY p.created_at DESC
+       LIMIT $1`,
+      [normalizedLimit]
+    ),
+    pool.query(
+      `SELECT t.id,
+              CONCAT(u.first_name, ' ', u.last_name) AS partner_name,
+              u.email AS partner_email,
+              COALESCE(pp.partner_type, u.user_type) AS partner_type,
+              COALESCE(NULLIF(pp.business_name, ''), u.university, 'Partner account') AS business_name,
+              t.provider,
+              t.gross_amount_eur,
+              t.deduction_percent,
+              t.deduction_amount_eur,
+              t.net_amount_eur,
+              t.status,
+              t.reference,
+              t.created_at
+       FROM partner_transactions t
+       JOIN users u ON u.id = t.partner_user_id
+       LEFT JOIN partner_profiles pp ON pp.user_id = u.id
+       ORDER BY t.created_at DESC
+       LIMIT $1`,
+      [normalizedLimit]
+    ),
+    pool.query(
+      `SELECT
+          COALESCE((SELECT SUM(amount_eur) FROM student_platform_payments WHERE status = 'completed'), 0) AS student_revenue_eur,
+          COALESCE((SELECT COUNT(*) FROM student_platform_payments), 0) AS student_payment_count,
+          COALESCE((SELECT SUM(gross_amount_eur) FROM partner_transactions), 0) AS partner_gross_eur,
+          COALESCE((SELECT SUM(deduction_amount_eur) FROM partner_transactions), 0) AS partner_deductions_eur,
+          COALESCE((SELECT SUM(net_amount_eur) FROM partner_transactions), 0) AS partner_net_eur,
+          COALESCE((SELECT COUNT(*) FROM partner_transactions), 0) AS partner_transaction_count`
+    ),
+  ]);
+
+  const totals = totalsResult.rows[0] ?? {};
+
+  return {
+    studentPayments: studentPaymentsResult.rows.map(row => ({
+      id: Number(row.id),
+      studentName: row.student_name,
+      studentEmail: row.student_email,
+      provider: row.provider,
+      amountEur: Number(row.amount_eur),
+      status: row.status,
+      reference: row.reference,
+      createdAt: row.created_at,
+      completedAt: row.completed_at,
+    })),
+    partnerTransactions: partnerTransactionsResult.rows.map(row => ({
+      id: Number(row.id),
+      partnerName: row.partner_name,
+      partnerEmail: row.partner_email,
+      partnerType: row.partner_type,
+      businessName: row.business_name,
+      provider: row.provider,
+      grossAmountEur: Number(row.gross_amount_eur),
+      deductionPercent: Number(row.deduction_percent),
+      deductionAmountEur: Number(row.deduction_amount_eur),
+      netAmountEur: Number(row.net_amount_eur),
+      status: row.status,
+      reference: row.reference,
+      createdAt: row.created_at,
+    })),
+    totals: {
+      studentRevenueEur: Number(totals.student_revenue_eur ?? 0),
+      partnerGrossEur: Number(totals.partner_gross_eur ?? 0),
+      partnerDeductionsEur: Number(totals.partner_deductions_eur ?? 0),
+      partnerNetEur: Number(totals.partner_net_eur ?? 0),
+      studentPaymentCount: Number(totals.student_payment_count ?? 0),
+      partnerTransactionCount: Number(totals.partner_transaction_count ?? 0),
+    },
+  };
+}
+
+export async function getPublicHomePageContent(locale: SupportedLocale = defaultLocale): Promise<HomePageContent> {
+  await ensureCoreTables();
+
+  const normalizedLocale = normalizeLocale(locale);
+  const result = await pool.query(
+    `SELECT content
+     FROM public_site_content
+     WHERE page_key = 'home' AND locale = $1`,
+    [normalizedLocale]
+  );
+
+  const row = result.rows[0];
+  if (!row) {
+    return getDefaultHomePageContent(normalizedLocale);
+  }
+
+  return normalizeHomePageContent(row.content, normalizedLocale);
+}
+
+export async function updatePublicHomePageContent(content: HomePageContent, locale: SupportedLocale = defaultLocale): Promise<HomePageContent> {
+  await ensureCoreTables();
+
+  const normalizedLocale = normalizeLocale(locale);
+  const normalizedContent = normalizeHomePageContent(content, normalizedLocale);
+
+  await pool.query(
+    `INSERT INTO public_site_content (page_key, locale, content, updated_at)
+     VALUES ('home', $1, $2::jsonb, NOW())
+     ON CONFLICT (page_key, locale)
+     DO UPDATE SET content = EXCLUDED.content, updated_at = NOW()`,
+    [normalizedLocale, JSON.stringify(normalizedContent)]
+  );
+
+  return normalizedContent;
+}
+
+export async function getPlatformIntelligenceSnapshot(): Promise<PlatformIntelligenceSnapshot> {
+  await ensureCoreTables();
+
+  async function safeCount(query: string) {
+    try {
+      const result = await pool.query(query);
+      return Number(result.rows[0]?.count ?? 0);
+    } catch {
+      return 0;
+    }
+  }
+
+  const [students, users, verifiedListings, openJobs, communityCircles, foodItems] = await Promise.all([
+    safeCount(`SELECT COUNT(*) FROM users WHERE user_type = 'student'`),
+    safeCount(`SELECT COUNT(*) FROM users`),
+    safeCount(`SELECT COUNT(*) FROM property_listings WHERE status = 'Verified'`),
+    safeCount(`SELECT COUNT(*) FROM job_listings`),
+    safeCount(`SELECT COUNT(*) FROM community_circles WHERE status = 'approved'`),
+    safeCount(`SELECT COUNT(*) FROM food_menu_items`),
+  ]);
+
+  return {
+    students,
+    users,
+    verifiedListings,
+    openJobs,
+    communityCircles,
+    foodItems,
   };
 }

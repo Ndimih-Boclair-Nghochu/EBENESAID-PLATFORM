@@ -1,20 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Pool } from 'pg';
-
 import { getAuthenticatedUserFromRequest } from '@/lib/auth';
 import { sendAdminSupportReply } from '@/lib/student-account';
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
-
-function requireUniversity(userType?: string) {
-  return userType === 'university' || userType === 'admin' || userType === 'staff';
-}
+import { dbPool as pool } from '@/lib/postgres';
+import { hasAnyRole } from '@/lib/rbac';
 
 export async function GET(request: NextRequest) {
   const user = await getAuthenticatedUserFromRequest(request);
-  if (!user || !requireUniversity(user.userType)) {
+  if (!user || !hasAnyRole(user.userType, ['university', 'admin', 'staff'])) {
     return NextResponse.json({ error: 'University access required.' }, { status: 403 });
   }
 
@@ -84,7 +76,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const user = await getAuthenticatedUserFromRequest(request);
-  if (!user || !requireUniversity(user.userType)) {
+  if (!user || !hasAnyRole(user.userType, ['university', 'admin', 'staff'])) {
     return NextResponse.json({ error: 'University access required.' }, { status: 403 });
   }
 

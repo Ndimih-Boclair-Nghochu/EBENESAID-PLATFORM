@@ -28,6 +28,13 @@ type DirectoryUser = {
   createdAt: string;
   updatedAt: string;
   lastLoginAt: string | null;
+  partnerProfile?: {
+    partnerType: string;
+    businessName: string;
+    contactPerson: string;
+    commissionPercent: number | null;
+    metadata: Record<string, unknown>;
+  } | null;
 };
 
 type RoleOption = {
@@ -44,7 +51,16 @@ const emptyCreateForm = {
   university: "",
   countryOfOrigin: "",
   userType: "student",
+  businessName: "",
+  contactPerson: "",
+  commissionPercent: "",
+  partnerNotes: "",
+  isActive: true,
 };
+
+function isPartnerRole(role: string) {
+  return role === "university" || role === "agent" || role === "job_partner" || role === "supplier" || role === "transport";
+}
 
 export default function UserDirectoryPage() {
   const [users, setUsers] = useState<DirectoryUser[]>([]);
@@ -138,7 +154,7 @@ export default function UserDirectoryPage() {
             </div>
             <h1 className="text-xl font-black text-slate-900">User Directory</h1>
             <p className="text-[10px] font-medium uppercase tracking-wider text-slate-400">
-              Create students, admins, staff, universities, house agents, suppliers, and transport partners from one control surface.
+              Create students, staff, investors, and partner accounts with the business details each role needs.
             </p>
           </div>
         </div>
@@ -190,11 +206,45 @@ export default function UserDirectoryPage() {
               <Field label="Country">
                 <Input value={createForm.countryOfOrigin} onChange={e => setCreateForm(current => ({ ...current, countryOfOrigin: e.target.value }))} />
               </Field>
+              {isPartnerRole(createForm.userType) && (
+                <>
+                  <Field label="Business / Institution Name">
+                    <Input value={createForm.businessName} onChange={e => setCreateForm(current => ({ ...current, businessName: e.target.value }))} />
+                  </Field>
+                  <Field label="Contact Person">
+                    <Input value={createForm.contactPerson} onChange={e => setCreateForm(current => ({ ...current, contactPerson: e.target.value }))} />
+                  </Field>
+                  <Field label="Commission Override (%)">
+                    <Input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      value={createForm.commissionPercent}
+                      onChange={e => setCreateForm(current => ({ ...current, commissionPercent: e.target.value }))}
+                    />
+                  </Field>
+                  <Field label="Partner Notes">
+                    <Input value={createForm.partnerNotes} onChange={e => setCreateForm(current => ({ ...current, partnerNotes: e.target.value }))} />
+                  </Field>
+                </>
+              )}
+              <Field label="Account Status">
+                <Select value={createForm.isActive ? "active" : "inactive"} onValueChange={(value) => setCreateForm(current => ({ ...current, isActive: value === "active" }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select account status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
               <Button className="w-full rounded-xl bg-green-700 hover:bg-green-800" onClick={createPlatformUser} disabled={creating}>
                 <UserPlus className="mr-2 h-4 w-4" /> {creating ? "Creating..." : "Create User"}
               </Button>
               <p className="text-xs text-slate-500">
-                Created accounts log in with the email and password you set here, then they can change their password in settings after signing in.
+                Created accounts log in with the email and password you set here. Partner roles also store their business profile so the right dashboard modules can be activated later.
               </p>
             </CardContent>
           </Card>
@@ -243,6 +293,16 @@ export default function UserDirectoryPage() {
                             {user.university && <span>{user.university}</span>}
                             <span>Joined {new Date(user.createdAt).toLocaleDateString("en-GB")}</span>
                           </div>
+                          {user.partnerProfile && (
+                            <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+                              <Badge variant="outline" className="border-green-100 bg-green-50 text-[9px] uppercase tracking-wider text-green-700">
+                                {formatPartnerType(user.partnerProfile.partnerType)}
+                              </Badge>
+                              <span>{user.partnerProfile.businessName}</span>
+                              <span>Contact: {user.partnerProfile.contactPerson}</span>
+                              {user.partnerProfile.commissionPercent !== null && <span>Commission {user.partnerProfile.commissionPercent}%</span>}
+                            </div>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -282,6 +342,8 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 function formatRole(role: string) {
   switch (role) {
+    case "job_partner":
+      return "Job Supplier";
     case "agent":
       return "House Agent";
     case "supplier":
@@ -289,12 +351,31 @@ function formatRole(role: string) {
     case "transport":
       return "Transport Partner";
     case "university":
-      return "University";
+      return "School Partner";
+    case "investor":
+      return "Investor";
     case "staff":
       return "Staff";
     case "admin":
       return "Admin";
     default:
       return "Student";
+  }
+}
+
+function formatPartnerType(role: string) {
+  switch (role) {
+    case "university":
+      return "Educational Institution";
+    case "agent":
+      return "Housing Provider";
+    case "job_partner":
+      return "Employer";
+    case "supplier":
+      return "Catering Provider";
+    case "transport":
+      return "Transport Provider";
+    default:
+      return role.replace(/_/g, " ");
   }
 }

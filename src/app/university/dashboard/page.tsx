@@ -33,6 +33,9 @@ type UniversitySummary = {
     activeStudents: number;
     onboardingCompleted: number;
   };
+  partnerProfile: { businessName: string; contactPerson: string; commissionPercent: number | null } | null;
+  finance: { grossAmountEur: number; deductionAmountEur: number; netAmountEur: number };
+  commissionPercent: number;
 };
 
 export default function UniversityDashboardPage() {
@@ -119,6 +122,32 @@ export default function UniversityDashboardPage() {
               flow={ebenesaidInfo}
               icon={<GraduationCap className="h-4 w-4" />}
             />
+            <Card className="rounded-[2rem] border-slate-100 bg-white shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-base font-black">Partner Profile</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm text-slate-600">
+                <p className="font-black text-slate-900">{data?.partnerProfile?.businessName || data?.universityName || 'University partner account'}</p>
+                <p>Contact: {data?.partnerProfile?.contactPerson || 'Not set yet'}</p>
+                <p>Commission deduction: {Number(data?.commissionPercent ?? 0).toFixed(2)}%</p>
+                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                  <div className="grid grid-cols-3 gap-3 text-center">
+                    <div>
+                      <p className="text-lg font-black text-slate-900">EUR {Number(data?.finance.grossAmountEur ?? 0).toFixed(0)}</p>
+                      <p className="text-[10px] uppercase tracking-widest text-slate-400">Gross</p>
+                    </div>
+                    <div>
+                      <p className="text-lg font-black text-slate-900">EUR {Number(data?.finance.deductionAmountEur ?? 0).toFixed(0)}</p>
+                      <p className="text-[10px] uppercase tracking-widest text-slate-400">Deduction</p>
+                    </div>
+                    <div>
+                      <p className="text-lg font-black text-green-700">EUR {Number(data?.finance.netAmountEur ?? 0).toFixed(0)}</p>
+                      <p className="text-[10px] uppercase tracking-widest text-slate-400">Net</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>

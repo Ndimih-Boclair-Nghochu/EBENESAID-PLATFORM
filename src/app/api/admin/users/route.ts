@@ -2,14 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { getAuthenticatedUserFromRequest } from '@/lib/auth';
 import { createUser, getUserByEmail, listUsersForAdmin, PLATFORM_ROLE_OPTIONS, setUserActiveState } from '@/lib/db';
+import { isAdminRole } from '@/lib/rbac';
 
-function requireAdmin(userType?: string) {
-  return userType === 'admin' || userType === 'staff';
+function isPartnerRole(userType: string) {
+  return userType === 'university' || userType === 'agent' || userType === 'job_partner' || userType === 'supplier' || userType === 'transport';
 }
 
 export async function GET(request: NextRequest) {
   const user = await getAuthenticatedUserFromRequest(request);
-  if (!user || !requireAdmin(user.userType)) {
+  if (!user || !isAdminRole(user.userType)) {
     return NextResponse.json({ error: 'Admin access required.' }, { status: 403 });
   }
 
@@ -24,7 +25,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const adminUser = await getAuthenticatedUserFromRequest(request);
-  if (!adminUser || !requireAdmin(adminUser.userType)) {
+  if (!adminUser || !isAdminRole(adminUser.userType)) {
     return NextResponse.json({ error: 'Admin access required.' }, { status: 403 });
   }
 
@@ -35,6 +36,7 @@ export async function POST(request: NextRequest) {
     const firstName = String(body.firstName ?? '').trim();
     const lastName = String(body.lastName ?? '').trim();
     const userType = String(body.userType ?? 'student');
+    const isActive = body.isActive !== false;
 
     if (!email || !password || !firstName || !lastName) {
       return NextResponse.json({ error: 'Email, password, first name, and last name are required.' }, { status: 400 });
@@ -49,6 +51,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'A user with this email already exists.' }, { status: 409 });
     }
 
+    const partnerProfile = isPartnerRole(userType)
+      ? {
+          partnerType: String(body.partnerType ?? userType).trim(),
+          businessName: String(body.businessName ?? body.university ?? '').trim(),
+          contactPerson: String(body.contactPerson ?? `${firstName} ${lastName}`).trim(),
+          commissionPercent:
+            body.commissionPercent === '' || body.commissionPercent === undefined || body.commissionPercent === null
+              ? null
+              : Number(body.commissionPercent),
+          metadata: {
+            notes: String(body.partnerNotes ?? '').trim(),
+          },
+        }
+      : undefined;
+
+    if (isPartnerRole(userType) && !partnerProfile?.businessName) {
+      return NextResponse.json({ error: 'Business or institution name is required for partner accounts.' }, { status: 400 });
+    }
+
     await createUser({
       email,
       password,
@@ -58,6 +79,8 @@ export async function POST(request: NextRequest) {
       university: String(body.university ?? ''),
       countryOfOrigin: String(body.countryOfOrigin ?? ''),
       userType,
+      isActive,
+      partnerProfile,
     });
 
     const users = await listUsersForAdmin();
@@ -73,7 +96,7 @@ export async function POST(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   const adminUser = await getAuthenticatedUserFromRequest(request);
-  if (!adminUser || !requireAdmin(adminUser.userType)) {
+  if (!adminUser || !isAdminRole(adminUser.userType)) {
     return NextResponse.json({ error: 'Admin access required.' }, { status: 403 });
   }
 

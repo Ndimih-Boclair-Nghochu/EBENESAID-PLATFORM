@@ -1,15 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Pool } from 'pg';
-
 import { getAuthenticatedUserFromRequest } from '@/lib/auth';
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
-
-function requireSupplier(userType?: string) {
-  return userType === 'supplier' || userType === 'admin' || userType === 'staff';
-}
+import { dbPool as pool } from '@/lib/postgres';
+import { hasAnyRole } from '@/lib/rbac';
 
 async function ensureSupplierTables() {
   await pool.query(`
@@ -25,20 +17,33 @@ async function ensureSupplierTables() {
       tags JSONB NOT NULL DEFAULT '[]'::jsonb
     )
   `);
+
+  await pool.query(`
+    ALTER TABLE food_menu_items
+    ADD COLUMN IF NOT EXISTS created_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL
+  `);
+
+  await pool.query(`
+    ALTER TABLE food_menu_items
+    ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE
+  `);
 }
 
 export async function GET(request: NextRequest) {
   const user = await getAuthenticatedUserFromRequest(request);
-  if (!user || !requireSupplier(user.userType)) {
+  if (!user || !hasAnyRole(user.userType, ['supplier', 'admin', 'staff'])) {
     return NextResponse.json({ error: 'Supplier access required.' }, { status: 403 });
   }
 
   try {
     await ensureSupplierTables();
+    const scopedToOwner = user.userType === 'supplier';
     const result = await pool.query(
-      `SELECT id, name, price, delivery_fee, kitchen, prep_time, rating, image_url, tags
+      `SELECT id, name, price, delivery_fee, kitchen, prep_time, rating, image_url, tags, is_active
        FROM food_menu_items
-       ORDER BY id DESC`
+       WHERE ($1::boolean = false OR created_by_user_id = $2)
+       ORDER BY id DESC`,
+      [scopedToOwner, user.id]
     );
 
     return NextResponse.json(
@@ -53,6 +58,7 @@ export async function GET(request: NextRequest) {
           rating: Number(row.rating),
           imageUrl: row.image_url,
           tags: Array.isArray(row.tags) ? row.tags : [],
+          isActive: row.is_active,
         })),
       },
       { status: 200 }
@@ -65,7 +71,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const user = await getAuthenticatedUserFromRequest(request);
-  if (!user || !requireSupplier(user.userType)) {
+  if (!user || !hasAnyRole(user.userType, ['supplier', 'admin', 'staff'])) {
     return NextResponse.json({ error: 'Supplier access required.' }, { status: 403 });
   }
 
@@ -92,8 +98,8 @@ export async function POST(request: NextRequest) {
     }
 
     await pool.query(
-      `INSERT INTO food_menu_items (name, price, delivery_fee, kitchen, prep_time, rating, image_url, tags)
-       VALUES ($1, $2, $3, $4, $5, 5.0, $6, $7::jsonb)`,
+      `INSERT INTO food_menu_items (name, price, delivery_fee, kitchen, prep_time, rating, image_url, tags, created_by_user_id, is_active)
+       VALUES ($1, $2, $3, $4, $5, 5.0, $6, $7::jsonb, $8, TRUE)`,
       [
         name,
         price,
@@ -102,6 +108,7 @@ export async function POST(request: NextRequest) {
         prepTime,
         imageUrl,
         JSON.stringify(tags),
+        user.id,
       ]
     );
 
@@ -109,5 +116,41 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Supplier menu create error:', error);
     return NextResponse.json({ error: 'Failed to create menu item.' }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  const user = await getAuthenticatedUserFromRequest(request);
+  if (!user || !hasAnyRole(user.userType, ['supplier', 'admin', 'staff'])) {
+    return NextResponse.json({ error: 'Supplier access required.' }, { status: 403 });
+  }
+
+  try {
+    await ensureSupplierTables();
+    const body = await request.json();
+    const itemId = Number(body.itemId);
+    const isActive = Boolean(body.isActive);
+
+    if (!Number.isInteger(itemId) || itemId <= 0) {
+      return NextResponse.json({ error: 'Valid item id is required.' }, { status: 400 });
+    }
+
+    const scopedToOwner = user.userType === 'supplier';
+    const result = await pool.query(
+      `UPDATE food_menu_items
+       SET is_active = $3
+       WHERE id = $1 AND ($4::boolean = false OR created_by_user_id = $2)
+       RETURNING id`,
+      [itemId, user.id, isActive, scopedToOwner]
+    );
+
+    if (!result.rows[0]) {
+      return NextResponse.json({ error: 'Menu item not found.' }, { status: 404 });
+    }
+
+    return GET(request);
+  } catch (error) {
+    console.error('Supplier menu update error:', error);
+    return NextResponse.json({ error: 'Failed to update menu item.' }, { status: 500 });
   }
 }

@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ChevronUp, ShieldCheck, User as UserIcon, CreditCard, LogOut, CheckCircle2 } from "lucide-react";
 import { useAuthContext } from "@/auth/provider";
+import { getDefaultDashboardHref } from "@/lib/rbac";
 import { useRouter } from "next/navigation";
 
 /**
@@ -43,7 +44,7 @@ export function UserNav() {
     router.push(href);
   };
 
-  const dashboardHref = user?.userType === 'admin' || user?.userType === 'staff' ? '/admin/dashboard' : '/dashboard';
+  const dashboardHref = getDefaultDashboardHref(user?.userType);
 
   if (!mounted) {
     return (

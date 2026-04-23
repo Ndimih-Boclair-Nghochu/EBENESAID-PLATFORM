@@ -38,6 +38,17 @@ import {
 import { Button } from "@/components/ui/button";
 import { useAuthContext } from "@/auth/provider";
 import { LanguageSwitcher } from "@/components/language-switcher";
+import {
+  getPortalLabels,
+  isAdminRole,
+  isAgentRole,
+  isInvestorRole,
+  isJobPartnerRole,
+  isStaffRole,
+  isSupplierRole,
+  isTransportRole,
+  isUniversityRole,
+} from "@/lib/rbac";
 
 const studentNavigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -55,6 +66,7 @@ const adminNavigation = [
   { name: "Ops Dashboard", href: "/admin/dashboard", icon: BarChart3 },
   { name: "Statistics", href: "/admin/statistics", icon: PieChart },
   { name: "Financial Analysis", href: "/admin/finance", icon: Landmark },
+  { name: "Public Content", href: "/admin/content", icon: FileText },
   { name: "Messages", href: "/messages", icon: MessagesSquare },
   { name: "Support Inbox", href: "/admin/support", icon: MessageSquare },
   { name: "Verification Queue", href: "/admin/verification", icon: ShieldAlert },
@@ -90,9 +102,33 @@ const agentNavigation = [
   { name: "Support", href: "/support", icon: LifeBuoy },
 ];
 
+const staffNavigation = [
+  { name: "Staff Dashboard", href: "/staff/dashboard", icon: LayoutDashboard },
+  { name: "Verification Queue", href: "/staff/verification", icon: ShieldAlert },
+  { name: "Support Desk", href: "/staff/support", icon: MessageSquare },
+  { name: "Messages", href: "/messages", icon: MessagesSquare },
+  { name: "System Support", href: "/support", icon: LifeBuoy },
+];
+
+const investorNavigation = [
+  { name: "Investor Dashboard", href: "/investor/dashboard", icon: PieChart },
+  { name: "Platform Metrics", href: "/investor/dashboard#metrics", icon: BarChart3 },
+  { name: "Updates", href: "/investor/dashboard#updates", icon: FileText },
+  { name: "Messages", href: "/messages", icon: MessagesSquare },
+  { name: "Support", href: "/support", icon: LifeBuoy },
+];
+
+const jobPartnerNavigation = [
+  { name: "Employer Dashboard", href: "/job-partner/dashboard", icon: BarChart3 },
+  { name: "Job Listings", href: "/job-partner/jobs", icon: Briefcase },
+  { name: "Messages", href: "/messages", icon: MessagesSquare },
+  { name: "Support", href: "/support", icon: LifeBuoy },
+];
+
 const transportNavigation = [
   { name: "Logistics Console", href: "/transport/dashboard", icon: Navigation },
   { name: "Pickup Registry", href: "/transport/pickups", icon: Clock },
+  { name: "Fleet Manager", href: "/transport/fleet", icon: Car },
   { name: "Messages", href: "/messages", icon: MessagesSquare },
   { name: "System Support", href: "/support", icon: LifeBuoy },
 ];
@@ -106,11 +142,14 @@ export function MainNav() {
 
 
   // Role detection based on userType from backend
-  const isAdmin = user?.userType === 'admin' || user?.userType === 'staff' || pathname.startsWith('/admin');
-  const isUniversity = user?.userType === 'university' || pathname.startsWith('/university');
-  const isSupplier = user?.userType === 'supplier' || pathname.startsWith('/supplier');
-  const isAgent = user?.userType === 'agent' || pathname.startsWith('/agent');
-  const isTransport = user?.userType === 'transport' || pathname.startsWith('/transport');
+  const isAdmin = isAdminRole(user?.userType) || pathname.startsWith('/admin');
+  const isStaff = isStaffRole(user?.userType) || pathname.startsWith('/staff');
+  const isInvestor = isInvestorRole(user?.userType) || pathname.startsWith('/investor');
+  const isUniversity = isUniversityRole(user?.userType) || pathname.startsWith('/university');
+  const isSupplier = isSupplierRole(user?.userType) || pathname.startsWith('/supplier');
+  const isAgent = isAgentRole(user?.userType) || pathname.startsWith('/agent');
+  const isJobPartner = isJobPartnerRole(user?.userType) || pathname.startsWith('/job-partner');
+  const isTransport = isTransportRole(user?.userType) || pathname.startsWith('/transport');
 
 
   const handleLogout = async () => {
@@ -123,29 +162,24 @@ export function MainNav() {
   };
 
   let navItems = studentNavigation;
-  let roleLabel = 'Student Portal';
-  let sectionLabel = 'Main Menu';
+  const { roleLabel, sectionLabel } = getPortalLabels(user?.userType, pathname);
 
   if (isAdmin) {
     navItems = adminNavigation;
-    roleLabel = 'Administrator';
-    sectionLabel = 'Admin Controls';
+  } else if (isStaff) {
+    navItems = staffNavigation;
+  } else if (isInvestor) {
+    navItems = investorNavigation;
   } else if (isUniversity) {
     navItems = universityNavigation;
-    roleLabel = 'University Partner';
-    sectionLabel = 'Partner Menu';
   } else if (isSupplier) {
     navItems = supplierNavigation;
-    roleLabel = 'Food Supplier';
-    sectionLabel = 'Kitchen Menu';
   } else if (isAgent) {
     navItems = agentNavigation;
-    roleLabel = 'Housing Agent';
-    sectionLabel = 'Agent Menu';
+  } else if (isJobPartner) {
+    navItems = jobPartnerNavigation;
   } else if (isTransport) {
     navItems = transportNavigation;
-    roleLabel = 'Transport Partner';
-    sectionLabel = 'Logistics Menu';
   }
 
   return (

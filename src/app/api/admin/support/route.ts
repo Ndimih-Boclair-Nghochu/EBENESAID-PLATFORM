@@ -2,15 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { getAuthenticatedUserFromRequest } from '@/lib/auth';
 import { getAdminSupportInbox, getAdminSupportMessages, sendAdminSupportReply } from '@/lib/student-account';
-
-function requireAdmin(userType?: string) {
-  return userType === 'admin' || userType === 'staff';
-}
+import { isOperationsRole } from '@/lib/rbac';
 
 export async function GET(request: NextRequest) {
   const user = await getAuthenticatedUserFromRequest(request);
-  if (!user || !requireAdmin(user.userType)) {
-    return NextResponse.json({ error: 'Admin access required.' }, { status: 403 });
+  if (!user || !isOperationsRole(user.userType)) {
+    return NextResponse.json({ error: 'Operations access required.' }, { status: 403 });
   }
 
   try {
@@ -28,8 +25,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const user = await getAuthenticatedUserFromRequest(request);
-  if (!user || !requireAdmin(user.userType)) {
-    return NextResponse.json({ error: 'Admin access required.' }, { status: 403 });
+  if (!user || !isOperationsRole(user.userType)) {
+    return NextResponse.json({ error: 'Operations access required.' }, { status: 403 });
   }
 
   try {

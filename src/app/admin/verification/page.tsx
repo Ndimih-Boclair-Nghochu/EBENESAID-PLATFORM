@@ -10,6 +10,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 type VerificationData = {
   housing: Array<{ id: number; title: string; location: string; status: string; createdAt: string }>;
+  partnerDocuments: Array<{
+    id: number;
+    name: string;
+    type: string;
+    fileUrl: string;
+    status: string;
+    notes: string;
+    partnerName: string;
+    partnerEmail: string;
+    businessName: string;
+    partnerType: string;
+    createdAt: string;
+  }>;
   jobs: Array<{ id: number }>;
   identities: Array<{ id: number }>;
   institutions: Array<{ id: number }>;
@@ -56,6 +69,29 @@ export default function VerificationQueuePage() {
     }
   }
 
+  async function reviewPartnerDocument(documentId: number, decision: 'approved' | 'rejected') {
+    try {
+      const res = await fetch('/api/admin/verification', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          documentId,
+          decision,
+          notes: decision === 'approved' ? 'Credential approved for partner operations.' : 'Please upload a clearer or corrected credential.',
+        }),
+      });
+      const payload = await res.json();
+      if (!res.ok) {
+        throw new Error(payload.error || 'Failed to review partner credential.');
+      }
+      setData(payload);
+      setStatus(`Partner credential ${decision}.`);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : 'Failed to review partner credential.');
+    }
+  }
+
   return (
     <SidebarShell>
       <div className="mx-auto flex max-w-7xl flex-col gap-6 pb-10">
@@ -74,6 +110,7 @@ export default function VerificationQueuePage() {
         <Tabs defaultValue="housing">
           <TabsList className="h-auto rounded-2xl border border-slate-100 bg-white p-1 shadow-sm">
             <TabsTrigger value="housing" className="rounded-xl">Housing</TabsTrigger>
+            <TabsTrigger value="partner-documents" className="rounded-xl">Partner Docs</TabsTrigger>
             <TabsTrigger value="jobs" className="rounded-xl">Jobs</TabsTrigger>
             <TabsTrigger value="identities" className="rounded-xl">Identities</TabsTrigger>
             <TabsTrigger value="institutions" className="rounded-xl">Institutions</TabsTrigger>
@@ -98,6 +135,50 @@ export default function VerificationQueuePage() {
                 )) ?? []
               }
             />
+          </TabsContent>
+
+          <TabsContent value="partner-documents" className="mt-6">
+            <Card className="rounded-[2rem] border-slate-100 bg-white shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-base font-black">Partner Credential Reviews</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {data?.partnerDocuments?.length ? (
+                  data.partnerDocuments.map(item => (
+                    <div key={item.id} className="rounded-2xl border border-slate-100 p-4">
+                      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                        <div>
+                          <p className="font-black text-slate-900">{item.name}</p>
+                          <p className="mt-1 text-xs uppercase tracking-wider text-slate-400">
+                            {item.businessName} | {item.partnerType} | {item.type}
+                          </p>
+                          <p className="mt-2 text-sm text-slate-600">{item.partnerName} - {item.partnerEmail}</p>
+                          {item.notes ? <p className="mt-2 text-sm text-slate-500">{item.notes}</p> : null}
+                        </div>
+                        <Badge variant="outline" className={item.status === 'Approved' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : item.status === 'Rejected' ? 'border-red-200 bg-red-50 text-red-700' : 'border-amber-200 bg-amber-50 text-amber-700'}>
+                          {item.status}
+                        </Badge>
+                      </div>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <Button asChild variant="outline" className="rounded-xl">
+                          <a href={item.fileUrl} target="_blank" rel="noreferrer">Open document</a>
+                        </Button>
+                        <Button variant="outline" className="rounded-xl" onClick={() => reviewPartnerDocument(item.id, 'rejected')}>
+                          Reject
+                        </Button>
+                        <Button className="rounded-xl bg-green-700 hover:bg-green-800" onClick={() => reviewPartnerDocument(item.id, 'approved')}>
+                          Approve
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-slate-200 p-8 text-center text-sm text-slate-500">
+                    No partner credentials are waiting for review right now.
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="jobs" className="mt-6">

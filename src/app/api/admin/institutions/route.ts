@@ -1,19 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Pool } from 'pg';
-
 import { getAuthenticatedUserFromRequest } from '@/lib/auth';
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
-
-function requireAdmin(userType?: string) {
-  return userType === 'admin' || userType === 'staff';
-}
+import { dbPool as pool } from '@/lib/postgres';
+import { isAdminRole } from '@/lib/rbac';
 
 export async function GET(request: NextRequest) {
   const user = await getAuthenticatedUserFromRequest(request);
-  if (!user || !requireAdmin(user.userType)) {
+  if (!user || !isAdminRole(user.userType)) {
     return NextResponse.json({ error: 'Admin access required.' }, { status: 403 });
   }
 

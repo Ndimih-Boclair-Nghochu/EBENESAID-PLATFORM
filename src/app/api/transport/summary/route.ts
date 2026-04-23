@@ -1,24 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { getAuthenticatedUserFromRequest } from '@/lib/auth';
+import { getPartnerFinanceSummary, getPartnerProfile, getPlatformPricingSettings } from '@/lib/db';
+import { hasAnyRole } from '@/lib/rbac';
 
 async function loadPickups(request: NextRequest) {
   const { GET } = await import('@/app/api/transport/pickups/route');
   return GET(request);
 }
 
-function requireTransport(userType?: string) {
-  return userType === 'transport' || userType === 'admin' || userType === 'staff';
-}
-
 export async function GET(request: NextRequest) {
   const user = await getAuthenticatedUserFromRequest(request);
-  if (!user || !requireTransport(user.userType)) {
+  if (!user || !hasAnyRole(user.userType, ['transport', 'admin', 'staff'])) {
     return NextResponse.json({ error: 'Transport access required.' }, { status: 403 });
   }
 
   try {
-    const pickupsRes = await loadPickups(request);
+    const [pickupsRes, partnerProfile, finance, pricing] = await Promise.all([
+      loadPickups(request),
+      getPartnerProfile(user.id),
+      getPartnerFinanceSummary(user.id),
+      getPlatformPricingSettings(),
+    ]);
     const data = await pickupsRes.json();
     if (!pickupsRes.ok) {
       return NextResponse.json({ error: data.error || 'Failed to load transport dashboard.' }, { status: pickupsRes.status });
@@ -37,6 +40,9 @@ export async function GET(request: NextRequest) {
           completed,
           pending: pickups.length - completed,
         },
+        partnerProfile,
+        finance,
+        commissionPercent: partnerProfile?.commissionPercent ?? pricing.partnerDeductionPercent,
       },
       { status: 200 }
     );

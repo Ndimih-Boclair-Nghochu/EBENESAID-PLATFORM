@@ -29,6 +29,22 @@ type ListingSummary = {
   matchScore: number;
 };
 
+function getRecommendationReason(listing: Listing, summary: ListingSummary, userName?: string, university?: string) {
+  if (summary.matchScore < 8) {
+    return null;
+  }
+
+  const commuteReason = university
+    ? `it supports a cleaner commute rhythm for ${university}`
+    : "it balances location and reliability well";
+
+  const trustReason = listing.status === "Verified"
+    ? "it is already inside the verified EBENESAID housing workflow"
+    : "it is close to matching the verified workflow";
+
+  return `EBENESAID AI recommends this${userName ? ` for ${userName}` : ""} because ${trustReason} and ${commuteReason}.`;
+}
+
 export function AccommodationListings() {
   const { user } = useAuthContext();
   const [listings, setListings] = useState<Listing[]>([]);
@@ -135,6 +151,12 @@ export function AccommodationListings() {
           pros: [],
           matchScore: 0,
         };
+        const recommendationReason = getRecommendationReason(
+          listing,
+          aiSummary,
+          user?.firstName,
+          user?.university
+        );
 
         return (
           <Card
@@ -183,6 +205,16 @@ export function AccommodationListings() {
                     <Sparkles className="h-2.5 w-2.5 fill-primary/20" />
                     AI Insights - {Math.round(aiSummary.matchScore * 10)}% Match
                   </p>
+                  {recommendationReason && (
+                    <div className="mb-2 rounded-lg border border-emerald-100 bg-emerald-50 px-2 py-1.5">
+                      <p className="text-[8px] font-black uppercase tracking-[0.2em] text-emerald-700">
+                        EBENESAID AI Recommends This
+                      </p>
+                      <p className="mt-1 text-[10px] font-medium leading-relaxed text-emerald-800">
+                        {recommendationReason}
+                      </p>
+                    </div>
+                  )}
                   <p className="mb-2 line-clamp-2 text-[10px] font-medium italic leading-relaxed text-slate-600">
                     "{aiSummary.summary}"
                   </p>

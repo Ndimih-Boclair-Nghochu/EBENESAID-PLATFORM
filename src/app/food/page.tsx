@@ -54,14 +54,12 @@ export default function FoodMarketplacePage() {
   }, []);
 
   async function createOrder(item: FoodItem, fulfillment: "Delivery" | "Pickup") {
-    const total = item.price + (fulfillment === "Delivery" ? item.deliveryFee : 0);
     const res = await fetch("/api/food", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
       body: JSON.stringify({
-        itemName: item.name,
-        total,
+        itemId: item.id,
         fulfillment,
       }),
     });

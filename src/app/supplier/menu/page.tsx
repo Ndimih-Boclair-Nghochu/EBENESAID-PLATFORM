@@ -18,6 +18,7 @@ type MenuItem = {
   prepTime: string;
   imageUrl: string;
   tags: string[];
+  isActive: boolean;
 };
 
 const initialForm = {
@@ -76,6 +77,24 @@ export default function MenuManagerPage() {
     }
   }
 
+  async function toggleItem(item: MenuItem) {
+    setStatus(null);
+    const res = await fetch('/api/supplier/menu', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ itemId: item.id, isActive: !item.isActive }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      setStatus(data.error || 'Failed to update menu item.');
+      return;
+    }
+
+    setItems(data.items ?? []);
+    setStatus(`${item.name} is now ${item.isActive ? 'paused' : 'available'}.`);
+  }
+
   return (
     <SidebarShell>
       <div className="mx-auto flex max-w-7xl flex-col gap-6 pb-10">
@@ -130,7 +149,13 @@ export default function MenuManagerPage() {
                     </div>
                     <div className="flex items-center gap-3">
                       <Badge variant="outline">{item.tags.join(', ') || 'No tags'}</Badge>
+                      <Badge className={item.isActive ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'}>
+                        {item.isActive ? 'Available' : 'Paused'}
+                      </Badge>
                       <span className="font-black text-primary">EUR {item.price.toFixed(2)}</span>
+                      <Button variant="outline" className="rounded-xl" onClick={() => toggleItem(item)}>
+                        {item.isActive ? 'Pause' : 'Resume'}
+                      </Button>
                     </div>
                   </div>
                 ))

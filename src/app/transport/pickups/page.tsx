@@ -7,6 +7,7 @@ import { SidebarShell } from '@/components/layout/sidebar-shell';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 type Pickup = {
   id: number;
@@ -18,10 +19,21 @@ type Pickup = {
   phone: string;
   email: string;
   country: string;
+  assignedVehicleId: number | null;
+  vehicleLabel: string;
+};
+
+type FleetVehicle = {
+  id: number;
+  model: string;
+  plate: string;
+  status: string;
 };
 
 export default function PickupRegistryPage() {
   const [pickups, setPickups] = useState<Pickup[]>([]);
+  const [vehicles, setVehicles] = useState<FleetVehicle[]>([]);
+  const [selectedVehicles, setSelectedVehicles] = useState<Record<number, string>>({});
   const [status, setStatus] = useState<string | null>(null);
   const [savingId, setSavingId] = useState<number | null>(null);
 
@@ -32,10 +44,24 @@ export default function PickupRegistryPage() {
       throw new Error(data.error || 'Failed to load pickup jobs.');
     }
     setPickups(data.pickups ?? []);
+    setSelectedVehicles((data.pickups ?? []).reduce((acc: Record<number, string>, pickup: Pickup) => {
+      acc[pickup.id] = pickup.assignedVehicleId ? String(pickup.assignedVehicleId) : '';
+      return acc;
+    }, {}));
+  }
+
+  async function loadVehicles() {
+    const res = await fetch('/api/transport/fleet', { credentials: 'include' });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Failed to load fleet vehicles.');
+    }
+    setVehicles(data.vehicles ?? []);
   }
 
   useEffect(() => {
-    loadPickups().catch(error => setStatus(error instanceof Error ? error.message : 'Failed to load pickup jobs.'));
+    Promise.all([loadPickups(), loadVehicles()])
+      .catch(error => setStatus(error instanceof Error ? error.message : 'Failed to load pickup jobs.'));
   }, []);
 
   async function updateStatus(bookingId: number, pickupStatus: string) {
@@ -44,9 +70,13 @@ export default function PickupRegistryPage() {
     try {
       const res = await fetch('/api/transport/pickups', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ bookingId, pickupStatus }),
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        bookingId,
+        pickupStatus,
+        vehicleId: selectedVehicles[bookingId] || null,
+      }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -94,11 +124,27 @@ export default function PickupRegistryPage() {
                         {pickup.country || 'No country'} | {pickup.airportCode} | {pickup.destination}
                       </p>
                       <p className="mt-1 text-xs text-slate-500">{pickup.email} {pickup.phone ? `| ${pickup.phone}` : ''}</p>
+                      {pickup.vehicleLabel && <p className="mt-1 text-xs font-bold text-blue-600">Vehicle: {pickup.vehicleLabel}</p>}
                     </div>
                     <div className="flex items-center gap-3">
                       <Badge variant="outline">{pickup.pickupStatus}</Badge>
                       <Badge>{pickup.pickupBooked ? 'Booked' : 'Not booked'}</Badge>
                     </div>
+                  </div>
+                  <div className="mt-4 max-w-sm">
+                    <Select value={selectedVehicles[pickup.id] || 'none'} onValueChange={(value) => setSelectedVehicles(current => ({ ...current, [pickup.id]: value === 'none' ? '' : value }))}>
+                      <SelectTrigger className="rounded-xl">
+                        <SelectValue placeholder="Assign vehicle" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No vehicle selected</SelectItem>
+                        {vehicles.filter(vehicle => vehicle.status === 'Active').map(vehicle => (
+                          <SelectItem key={vehicle.id} value={String(vehicle.id)}>
+                            {vehicle.model} - {vehicle.plate}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="mt-4 flex flex-wrap gap-2">
                     <Button variant="outline" className="rounded-xl" disabled={savingId === pickup.id} onClick={() => updateStatus(pickup.id, 'Assigned')}>

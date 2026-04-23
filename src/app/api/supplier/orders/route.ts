@@ -1,15 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Pool } from 'pg';
-
 import { getAuthenticatedUserFromRequest } from '@/lib/auth';
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
-
-function requireSupplier(userType?: string) {
-  return userType === 'supplier' || userType === 'admin' || userType === 'staff';
-}
+import { recordPartnerTransaction } from '@/lib/db';
+import { dbPool as pool } from '@/lib/postgres';
+import { hasAnyRole } from '@/lib/rbac';
 
 async function ensureSupplierTables() {
   await pool.query(`
@@ -23,22 +16,36 @@ async function ensureSupplierTables() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
+
+  await pool.query(`
+    ALTER TABLE student_food_orders
+    ADD COLUMN IF NOT EXISTS item_id INTEGER REFERENCES food_menu_items(id) ON DELETE SET NULL
+  `);
+
+  await pool.query(`
+    ALTER TABLE student_food_orders
+    ADD COLUMN IF NOT EXISTS supplier_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL
+  `);
 }
 
 export async function GET(request: NextRequest) {
   const user = await getAuthenticatedUserFromRequest(request);
-  if (!user || !requireSupplier(user.userType)) {
+  if (!user || !hasAnyRole(user.userType, ['supplier', 'admin', 'staff'])) {
     return NextResponse.json({ error: 'Supplier access required.' }, { status: 403 });
   }
 
   try {
     await ensureSupplierTables();
+    const scopedToOwner = user.userType === 'supplier';
     const result = await pool.query(
       `SELECT o.id, o.item_name, o.total, o.fulfillment, o.status, o.created_at,
               u.first_name, u.last_name, u.phone, u.email
        FROM student_food_orders o
        JOIN users u ON u.id = o.user_id
+       WHERE ($1::boolean = false OR o.supplier_user_id = $2)
        ORDER BY o.created_at DESC, o.id DESC`
+      ,
+      [scopedToOwner, user.id]
     );
 
     return NextResponse.json(
@@ -65,7 +72,7 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   const user = await getAuthenticatedUserFromRequest(request);
-  if (!user || !requireSupplier(user.userType)) {
+  if (!user || !hasAnyRole(user.userType, ['supplier', 'admin', 'staff'])) {
     return NextResponse.json({ error: 'Supplier access required.' }, { status: 403 });
   }
 
@@ -79,12 +86,28 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Valid orderId and status are required.' }, { status: 400 });
     }
 
-    await pool.query(
+    const scopedToOwner = user.userType === 'supplier';
+    const result = await pool.query(
       `UPDATE student_food_orders
-       SET status = $2
-       WHERE id = $1`,
-      [orderId, status]
+       SET status = $3
+       WHERE id = $1 AND ($4::boolean = false OR supplier_user_id = $2)
+       RETURNING id, supplier_user_id, total`,
+      [orderId, user.id, status, scopedToOwner]
     );
+
+    if (!result.rows[0]) {
+      return NextResponse.json({ error: 'Order not found.' }, { status: 404 });
+    }
+
+    const row = result.rows[0];
+    if (status === 'Delivered' && row.supplier_user_id) {
+      await recordPartnerTransaction({
+        partnerUserId: Number(row.supplier_user_id),
+        grossAmountEur: Number(row.total),
+        provider: 'food_order',
+        reference: `food-order-${row.id}`,
+      });
+    }
 
     return GET(request);
   } catch (error) {

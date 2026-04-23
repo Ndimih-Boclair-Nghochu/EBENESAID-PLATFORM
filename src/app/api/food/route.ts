@@ -18,8 +18,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     await createFoodOrder(user, {
-      itemName: String(body.itemName ?? ''),
-      total: Number(body.total),
+      itemId: Number(body.itemId),
       fulfillment: String(body.fulfillment ?? ''),
     });
     const data = await getFoodData(user);

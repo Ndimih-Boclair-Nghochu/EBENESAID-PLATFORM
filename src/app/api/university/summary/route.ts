@@ -1,15 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Pool } from 'pg';
-
 import { getAuthenticatedUserFromRequest } from '@/lib/auth';
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
-
-function requireUniversity(userType?: string) {
-  return userType === 'university' || userType === 'admin' || userType === 'staff';
-}
+import { getPartnerFinanceSummary, getPartnerProfile, getPlatformPricingSettings } from '@/lib/db';
+import { dbPool as pool } from '@/lib/postgres';
+import { hasAnyRole } from '@/lib/rbac';
 
 function getUniversityFilter(user: { university?: string }) {
   return String(user.university ?? '').trim();
@@ -17,7 +10,7 @@ function getUniversityFilter(user: { university?: string }) {
 
 export async function GET(request: NextRequest) {
   const user = await getAuthenticatedUserFromRequest(request);
-  if (!user || !requireUniversity(user.userType)) {
+  if (!user || !hasAnyRole(user.userType, ['university', 'admin', 'staff'])) {
     return NextResponse.json({ error: 'University access required.' }, { status: 403 });
   }
 
@@ -39,7 +32,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const studentsResult = await pool.query(
+    const [studentsResult, partnerProfile, finance, pricing] = await Promise.all([
+      pool.query(
       `SELECT u.id, u.first_name, u.last_name, u.email, u.country_of_origin, u.created_at, u.is_active, u.has_paid,
               COALESCE(profile.onboarding_completed, false) AS onboarding_completed,
               COALESCE(task_counts.total_tasks, 0) AS total_tasks,
@@ -56,7 +50,11 @@ export async function GET(request: NextRequest) {
        WHERE u.user_type = 'student' AND u.university = $1
        ORDER BY u.created_at DESC, u.id DESC`,
       [university]
-    );
+      ),
+      getPartnerProfile(user.id),
+      getPartnerFinanceSummary(user.id),
+      getPlatformPricingSettings(),
+    ]);
 
     const students = studentsResult.rows.map(row => ({
       id: row.id,
@@ -81,6 +79,9 @@ export async function GET(request: NextRequest) {
           activeStudents: students.filter(student => student.isActive).length,
           onboardingCompleted: students.filter(student => student.onboardingCompleted).length,
         },
+        partnerProfile,
+        finance,
+        commissionPercent: partnerProfile?.commissionPercent ?? pricing.partnerDeductionPercent,
       },
       { status: 200 }
     );

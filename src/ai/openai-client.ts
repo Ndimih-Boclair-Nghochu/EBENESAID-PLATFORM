@@ -2,11 +2,15 @@ import OpenAI from 'openai';
 
 let openaiClient: OpenAI | null = null;
 
+function isLiveOpenAIEnabled() {
+  return process.env.EBENESAID_AI_MODE === 'live' && Boolean(process.env.OPENAI_API_KEY);
+}
+
 export function getOpenAIClient() {
   const apiKey = process.env.OPENAI_API_KEY;
 
-  if (!apiKey) {
-    throw new Error('Missing OPENAI_API_KEY environment variable.');
+  if (!isLiveOpenAIEnabled() || !apiKey) {
+    throw new Error('OpenAI is not enabled. Set EBENESAID_AI_MODE=live and OPENAI_API_KEY to use the real provider.');
   }
 
   if (!openaiClient) {
@@ -26,9 +30,7 @@ export async function getOpenAIJsonResponse(input: {
   temperature?: number;
   maxTokens?: number;
 }) {
-  const apiKey = process.env.OPENAI_API_KEY;
-
-  if (!apiKey) {
+  if (!isLiveOpenAIEnabled()) {
     return input.fallbackResponse;
   }
 

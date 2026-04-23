@@ -26,6 +26,7 @@ export function LanguageSwitcher({ compact = false }: { compact?: boolean }) {
     window.localStorage.setItem('eb_locale', nextLocale);
     document.cookie = `eb_locale=${nextLocale}; path=/; max-age=31536000; samesite=lax`;
     document.documentElement.lang = nextLocale;
+    window.dispatchEvent(new CustomEvent('eb-locale-change', { detail: { locale: nextLocale } }));
   }
 
   return (

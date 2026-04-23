@@ -9,6 +9,7 @@ import {
   toSafeUser,
   updatePropertyListing,
 } from '@/lib/db';
+import { canManageListings, shouldScopeListingsToOwner } from '@/lib/rbac';
 
 async function getAuthenticatedUser(request: NextRequest) {
   const sessionToken = request.cookies.get('eb_session')?.value;
@@ -21,10 +22,6 @@ async function getAuthenticatedUser(request: NextRequest) {
   if (!dbUser || !dbUser.is_active) return null;
 
   return toSafeUser(dbUser);
-}
-
-function canManageListings(userType: string) {
-  return ['agent', 'admin'].includes(userType);
 }
 
 function validateListingPayload(body: Record<string, unknown>) {
@@ -65,7 +62,7 @@ export async function GET(request: NextRequest) {
 
     const listings = await getPropertyListings({
       includePending,
-      createdByUserId: mine && user ? user.id : undefined,
+      createdByUserId: mine && user && shouldScopeListingsToOwner(user.userType) ? user.id : undefined,
     });
 
     return NextResponse.json({ listings }, { status: 200 });

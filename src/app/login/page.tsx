@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useAuthContext } from "@/auth/provider";
+import { getDefaultDashboardHref } from "@/lib/rbac";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -31,13 +32,8 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (user) {
-      // Route based on user type
-      if (user.userType === 'admin' || user.userType === 'staff') router.push('/admin/dashboard');
-      else if (user.userType === 'university') router.push('/university/dashboard');
-      else if (user.userType === 'supplier') router.push('/supplier/dashboard');
-      else if (user.userType === 'agent') router.push('/agent/dashboard');
-      else if (user.userType === 'transport') router.push('/transport/dashboard');
-      else router.push('/dashboard');
+      const requestedPath = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("next") : null;
+      router.push(requestedPath?.startsWith("/") ? requestedPath : getDefaultDashboardHref(user.userType));
     }
   }, [user, router]);
 
@@ -141,7 +137,7 @@ export default function LoginPage() {
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
+                    placeholder="Password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required

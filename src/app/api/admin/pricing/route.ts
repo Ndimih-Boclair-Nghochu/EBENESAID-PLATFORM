@@ -2,14 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { getAuthenticatedUserFromRequest } from '@/lib/auth';
 import { getPlatformPricingSettings, updatePlatformPricingSettings } from '@/lib/db';
-
-function requireAdmin(userType?: string) {
-  return userType === 'admin' || userType === 'staff';
-}
+import { isAdminRole } from '@/lib/rbac';
 
 export async function GET(request: NextRequest) {
   const user = await getAuthenticatedUserFromRequest(request);
-  if (!user || !requireAdmin(user.userType)) {
+  if (!user || !isAdminRole(user.userType)) {
     return NextResponse.json({ error: 'Admin access required.' }, { status: 403 });
   }
 
@@ -19,7 +16,7 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   const user = await getAuthenticatedUserFromRequest(request);
-  if (!user || !requireAdmin(user.userType)) {
+  if (!user || !isAdminRole(user.userType)) {
     return NextResponse.json({ error: 'Admin access required.' }, { status: 403 });
   }
 

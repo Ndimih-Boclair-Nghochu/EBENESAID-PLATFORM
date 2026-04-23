@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Bell, ChevronDown, LifeBuoy, LogOut, MessageSquare, Settings, User } from 'lucide-react';
 
 import { useAuthContext } from '@/auth/provider';
+import { getDefaultDashboardHref, getMessagesHref, getSupportHref } from '@/lib/rbac';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -17,26 +18,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-
-function getProfileHref(userType?: string) {
-  if (userType === 'admin' || userType === 'staff') return '/admin/dashboard';
-  if (userType === 'agent') return '/agent/dashboard';
-  if (userType === 'supplier') return '/supplier/dashboard';
-  if (userType === 'transport') return '/transport/dashboard';
-  if (userType === 'university') return '/university/dashboard';
-  return '/dashboard';
-}
-
-function getSupportHref(userType?: string) {
-  if (userType === 'admin' || userType === 'staff') return '/admin/support';
-  if (userType === 'university') return '/university/chat';
-  return '/support';
-}
-
-function getMessagesHref(userType?: string) {
-  if (userType === 'university') return '/university/chat';
-  return '/messages';
-}
 
 export function PageHeader({
   title,
@@ -155,7 +136,7 @@ export function PageHeader({
             </DropdownMenuLabel>
             <DropdownMenuSeparator className="mx-1 my-1 bg-slate-50" />
             <DropdownMenuItem asChild className="cursor-pointer gap-2 rounded-xl px-3 py-2.5 text-xs font-bold hover:bg-slate-50">
-              <Link href={getProfileHref(user.userType)}>
+              <Link href={getDefaultDashboardHref(user.userType)}>
                 <User className="h-4 w-4 text-slate-400" /> My Profile
               </Link>
             </DropdownMenuItem>

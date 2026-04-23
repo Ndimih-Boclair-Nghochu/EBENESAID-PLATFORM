@@ -1,11 +1,14 @@
+import { cookies } from 'next/headers';
 import { NextRequest } from 'next/server';
 
 import { getSessionByToken, getUserById, SafeUser, toSafeUser } from '@/lib/db';
 
-export async function getAuthenticatedUserFromRequest(
-  request: NextRequest
-): Promise<SafeUser | null> {
-  const sessionToken = request.cookies.get('eb_session')?.value;
+type CookieAccessor = {
+  get(name: string): { value: string } | undefined;
+};
+
+async function getAuthenticatedUserFromCookies(cookieStore: CookieAccessor): Promise<SafeUser | null> {
+  const sessionToken = cookieStore.get('eb_session')?.value;
   if (!sessionToken) {
     return null;
   }
@@ -21,4 +24,15 @@ export async function getAuthenticatedUserFromRequest(
   }
 
   return toSafeUser(dbUser);
+}
+
+export async function getAuthenticatedUserFromRequest(
+  request: NextRequest
+): Promise<SafeUser | null> {
+  return getAuthenticatedUserFromCookies(request.cookies);
+}
+
+export async function getAuthenticatedUser(): Promise<SafeUser | null> {
+  const cookieStore = await cookies();
+  return getAuthenticatedUserFromCookies(cookieStore);
 }

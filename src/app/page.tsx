@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import ManagedLandingPage from "@/components/public/landing-page";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import {
@@ -129,6 +130,8 @@ const platformFeatures = [
 ];
 
 export default function LandingPage() {
+  return <ManagedLandingPage />;
+
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [selectedService, setSelectedService] = useState("");

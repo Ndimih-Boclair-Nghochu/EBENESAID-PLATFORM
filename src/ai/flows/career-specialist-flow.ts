@@ -1,14 +1,10 @@
 'use server';
-/**
- * @fileOverview The Career Specialist AI.
- * Specializes in part-time jobs, internships, and work regulations for students in Latvia.
- */
-
-import { getOpenAIJsonResponse } from '../openai-client';
+import { runLocalSpecialist, type AiUserContext } from '../local-brain';
 
 
 type CareerSpecialistInput = {
   message: string;
+  user?: AiUserContext;
 };
 
 type CareerSpecialistOutput = {
@@ -17,16 +13,10 @@ type CareerSpecialistOutput = {
 
 
 export async function discussCareers(input: CareerSpecialistInput): Promise<CareerSpecialistOutput> {
-  const systemPrompt = `You are EBENESAID AI, the Career Specialist.\n\nYou specialize ONLY in student employment, part-time opportunities, and work-permit regulations for international students in Latvia.\n\nEXPERT DOMAINS:\n1. Student Work Permits: Explaining the 20-hour work limit for students.\n2. CV/Resume Standards: Adapting international CVs for the Baltic market.\n3. Vetted Partners: Highlighting types of employers that regularly hire international talent when real verified opportunities exist in the platform.\n\nREFERRAL PROTOCOL:\n- For housing issues, refer to the 'Housing Specialist' in the Housing tab.\n- For residence permit/OCMA procedures not related to work, refer to the 'Compliance Specialist' in the Wallet.\n\nTone: Motivating, professional, and strategic. Keep responses under 3 sentences.`;
-  const response = await getOpenAIJsonResponse({
-    systemPrompt,
-    userMessage: input.message,
-    fallbackResponse:
-      'I can still help with the basics here. Focus on part-time roles, keep your CV concise, and check that your student profile and contact details are updated before applying.',
+  const result = await runLocalSpecialist({
+    specialist: 'career',
+    message: input.message,
+    user: input.user,
   });
-
-  return { response };
+  return { response: result.response };
 }
-
-// Genkit/Google Gemini logic removed. Now powered by OpenAI.
-

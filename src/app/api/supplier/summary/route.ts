@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { getAuthenticatedUserFromRequest } from '@/lib/auth';
+import { getPartnerFinanceSummary, getPartnerProfile, getPlatformPricingSettings } from '@/lib/db';
+import { hasAnyRole } from '@/lib/rbac';
 
 async function loadMenu(request: NextRequest) {
   const { GET } = await import('@/app/api/supplier/menu/route');
@@ -12,18 +14,20 @@ async function loadOrders(request: NextRequest) {
   return GET(request);
 }
 
-function requireSupplier(userType?: string) {
-  return userType === 'supplier' || userType === 'admin' || userType === 'staff';
-}
-
 export async function GET(request: NextRequest) {
   const user = await getAuthenticatedUserFromRequest(request);
-  if (!user || !requireSupplier(user.userType)) {
+  if (!user || !hasAnyRole(user.userType, ['supplier', 'admin', 'staff'])) {
     return NextResponse.json({ error: 'Supplier access required.' }, { status: 403 });
   }
 
   try {
-    const [menuRes, ordersRes] = await Promise.all([loadMenu(request), loadOrders(request)]);
+    const [menuRes, ordersRes, partnerProfile, finance, pricing] = await Promise.all([
+      loadMenu(request),
+      loadOrders(request),
+      getPartnerProfile(user.id),
+      getPartnerFinanceSummary(user.id),
+      getPlatformPricingSettings(),
+    ]);
     const menuData = await menuRes.json();
     const ordersData = await ordersRes.json();
 
@@ -50,6 +54,9 @@ export async function GET(request: NextRequest) {
           completedOrders,
           totalRevenue,
         },
+        partnerProfile,
+        finance,
+        commissionPercent: partnerProfile?.commissionPercent ?? pricing.partnerDeductionPercent,
       },
       { status: 200 }
     );

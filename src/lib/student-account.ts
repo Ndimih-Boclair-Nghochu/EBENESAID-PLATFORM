@@ -1,10 +1,5 @@
-import { Pool } from 'pg';
-
 import { ensureCoreTables, type SafeUser } from '@/lib/db';
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
+import { dbPool as pool } from '@/lib/postgres';
 
 export type StudentDocument = {
   id: number;
@@ -25,6 +20,34 @@ export type StudentJob = {
   logo: string;
   description: string;
   applied: boolean;
+};
+
+export type JobPartnerListing = {
+  id: number;
+  title: string;
+  company: string;
+  location: string;
+  salary: string;
+  type: string;
+  logo: string;
+  description: string;
+  category: string;
+  requirements: string;
+  status: string;
+  applications: number;
+  createdAt: string;
+};
+
+export type JobPartnerApplicant = {
+  applicationId: number;
+  jobId: number;
+  jobTitle: string;
+  studentId: number;
+  studentName: string;
+  email: string;
+  country: string;
+  status: string;
+  appliedAt: string;
 };
 
 export type CommunityCircle = {
@@ -71,6 +94,7 @@ export type FoodItem = {
   price: number;
   deliveryFee: number;
   kitchen: string;
+  supplierUserId: number | null;
   time: string;
   rating: number;
   img: string;
@@ -93,6 +117,20 @@ export type ArrivalBooking = {
   pickupStatus: string;
   pickupBooked: boolean;
   notes: string;
+  assignedTransportUserId: number | null;
+  assignedVehicleId: number | null;
+};
+
+export type TransportFleetVehicle = {
+  id: number;
+  model: string;
+  plate: string;
+  capacity: string;
+  status: string;
+  serviceStatus: string;
+  imageUrl: string;
+  lastServiceDate: string;
+  insuranceStatus: string;
 };
 
 export type SupportMessage = {
@@ -175,6 +213,26 @@ async function ensureStudentTables() {
           description TEXT NOT NULL,
           created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         );
+      `);
+
+      await pool.query(`
+        ALTER TABLE job_listings
+        ADD COLUMN IF NOT EXISTS created_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL;
+      `);
+
+      await pool.query(`
+        ALTER TABLE job_listings
+        ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'Open';
+      `);
+
+      await pool.query(`
+        ALTER TABLE job_listings
+        ADD COLUMN IF NOT EXISTS category TEXT NOT NULL DEFAULT '';
+      `);
+
+      await pool.query(`
+        ALTER TABLE job_listings
+        ADD COLUMN IF NOT EXISTS requirements TEXT NOT NULL DEFAULT '';
       `);
 
       await pool.query(`
@@ -286,6 +344,16 @@ async function ensureStudentTables() {
       `);
 
       await pool.query(`
+        ALTER TABLE food_menu_items
+        ADD COLUMN IF NOT EXISTS created_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL;
+      `);
+
+      await pool.query(`
+        ALTER TABLE food_menu_items
+        ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;
+      `);
+
+      await pool.query(`
         CREATE TABLE IF NOT EXISTS student_food_orders (
           id SERIAL PRIMARY KEY,
           user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -298,6 +366,16 @@ async function ensureStudentTables() {
       `);
 
       await pool.query(`
+        ALTER TABLE student_food_orders
+        ADD COLUMN IF NOT EXISTS item_id INTEGER REFERENCES food_menu_items(id) ON DELETE SET NULL;
+      `);
+
+      await pool.query(`
+        ALTER TABLE student_food_orders
+        ADD COLUMN IF NOT EXISTS supplier_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL;
+      `);
+
+      await pool.query(`
         CREATE TABLE IF NOT EXISTS student_arrival_bookings (
           id SERIAL PRIMARY KEY,
           user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
@@ -307,6 +385,34 @@ async function ensureStudentTables() {
           pickup_booked BOOLEAN NOT NULL DEFAULT FALSE,
           notes TEXT NOT NULL DEFAULT '',
           updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+      `);
+
+      await pool.query(`
+        ALTER TABLE student_arrival_bookings
+        ADD COLUMN IF NOT EXISTS assigned_transport_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL;
+      `);
+
+      await pool.query(`
+        ALTER TABLE student_arrival_bookings
+        ADD COLUMN IF NOT EXISTS assigned_vehicle_id INTEGER;
+      `);
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS transport_fleet_vehicles (
+          id SERIAL PRIMARY KEY,
+          created_by_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          model TEXT NOT NULL,
+          plate TEXT NOT NULL,
+          capacity TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'Active',
+          service_status TEXT NOT NULL DEFAULT 'Passed',
+          image_url TEXT NOT NULL DEFAULT '',
+          last_service_date TEXT NOT NULL DEFAULT '',
+          insurance_status TEXT NOT NULL DEFAULT 'Verified',
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          UNIQUE (created_by_user_id, plate)
         );
       `);
 
@@ -404,6 +510,7 @@ export async function getStudentJobs(user: SafeUser): Promise<StudentJob[]> {
             CASE WHEN a.id IS NULL THEN false ELSE true END AS applied
      FROM job_listings j
      LEFT JOIN student_job_applications a ON a.job_id = j.id AND a.user_id = $1
+     WHERE j.status = 'Open'
      ORDER BY j.id ASC`,
     [user.id]
   );
@@ -428,6 +535,170 @@ export async function applyToJob(user: SafeUser, jobId: number) {
      ON CONFLICT (user_id, job_id) DO NOTHING`,
     [user.id, jobId]
   );
+}
+
+export async function getJobPartnerListings(user: SafeUser): Promise<JobPartnerListing[]> {
+  await ensureStudentDataTables();
+  const result = await pool.query(
+    `SELECT j.id, j.title, j.company, j.location, j.salary, j.job_type, j.logo, j.description, j.category, j.requirements, j.status, j.created_at,
+            COUNT(a.id) AS applications
+     FROM job_listings j
+     LEFT JOIN student_job_applications a ON a.job_id = j.id
+     WHERE j.created_by_user_id = $1
+     GROUP BY j.id
+     ORDER BY j.created_at DESC, j.id DESC`,
+    [user.id]
+  );
+
+  return result.rows.map((row) => ({
+    id: row.id,
+    title: row.title,
+    company: row.company,
+    location: row.location,
+    salary: row.salary,
+    type: row.job_type,
+    logo: row.logo,
+    description: row.description,
+    category: row.category ?? '',
+    requirements: row.requirements ?? '',
+    status: row.status,
+    applications: Number(row.applications ?? 0),
+    createdAt: row.created_at,
+  }));
+}
+
+export async function createJobPartnerListing(
+  user: SafeUser,
+  data: {
+    title: string;
+    company: string;
+    location: string;
+    salary: string;
+    type: string;
+    logo?: string;
+    description: string;
+    category?: string;
+    requirements?: string;
+    status?: string;
+  }
+) {
+  await ensureStudentDataTables();
+  await pool.query(
+    `INSERT INTO job_listings (
+       title, company, location, salary, job_type, logo, description, created_by_user_id, status, category, requirements, created_at
+     )
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())`,
+    [
+      data.title.trim(),
+      data.company.trim(),
+      data.location.trim(),
+      data.salary.trim(),
+      data.type.trim(),
+      data.logo?.trim() || 'https://picsum.photos/seed/ebenesaid-job/120/120',
+      data.description.trim(),
+      user.id,
+      data.status?.trim() || 'Open',
+      data.category?.trim() || '',
+      data.requirements?.trim() || '',
+    ]
+  );
+}
+
+export async function updateJobPartnerListing(
+  user: SafeUser,
+  listingId: number,
+  data: {
+    title: string;
+    company: string;
+    location: string;
+    salary: string;
+    type: string;
+    logo?: string;
+    description: string;
+    category?: string;
+    requirements?: string;
+    status?: string;
+  }
+) {
+  await ensureStudentDataTables();
+  const result = await pool.query(
+    `UPDATE job_listings
+     SET title = $3,
+         company = $4,
+         location = $5,
+         salary = $6,
+         job_type = $7,
+         logo = $8,
+         description = $9,
+         category = $10,
+         requirements = $11,
+         status = $12
+     WHERE id = $1 AND created_by_user_id = $2
+     RETURNING id`,
+    [
+      listingId,
+      user.id,
+      data.title.trim(),
+      data.company.trim(),
+      data.location.trim(),
+      data.salary.trim(),
+      data.type.trim(),
+      data.logo?.trim() || 'https://picsum.photos/seed/ebenesaid-job/120/120',
+      data.description.trim(),
+      data.category?.trim() || '',
+      data.requirements?.trim() || '',
+      data.status?.trim() || 'Open',
+    ]
+  );
+
+  return Boolean(result.rows[0]);
+}
+
+export async function getJobPartnerApplicants(user: SafeUser): Promise<JobPartnerApplicant[]> {
+  await ensureStudentDataTables();
+  const result = await pool.query(
+    `SELECT a.id AS application_id, a.job_id, a.status, a.applied_at,
+            j.title AS job_title,
+            u.id AS student_id, u.first_name, u.last_name, u.email, u.country_of_origin
+     FROM student_job_applications a
+     INNER JOIN job_listings j ON j.id = a.job_id
+     INNER JOIN users u ON u.id = a.user_id
+     WHERE j.created_by_user_id = $1
+     ORDER BY a.applied_at DESC, a.id DESC`,
+    [user.id]
+  );
+
+  return result.rows.map((row) => ({
+    applicationId: row.application_id,
+    jobId: row.job_id,
+    jobTitle: row.job_title,
+    studentId: row.student_id,
+    studentName: `${row.first_name} ${row.last_name}`.trim(),
+    email: row.email,
+    country: row.country_of_origin ?? '',
+    status: row.status,
+    appliedAt: formatTimeLabel(row.applied_at),
+  }));
+}
+
+export async function updateJobApplicationStatus(
+  user: SafeUser,
+  applicationId: number,
+  status: string
+) {
+  await ensureStudentDataTables();
+  const result = await pool.query(
+    `UPDATE student_job_applications a
+     SET status = $3
+     FROM job_listings j
+     WHERE a.id = $1
+       AND j.id = a.job_id
+       AND j.created_by_user_id = $2
+     RETURNING a.id`,
+    [applicationId, user.id, status.trim()]
+  );
+
+  return Boolean(result.rows[0]);
 }
 
 export async function getCommunityData(user: SafeUser) {
@@ -654,8 +925,10 @@ export async function sendConversationMessage(user: SafeUser, conversationId: nu
 export async function getFoodData(user: SafeUser) {
   await ensureStudentDataTables();
   const items = await pool.query(
-    `SELECT id, name, price, delivery_fee, kitchen, prep_time, rating, image_url, tags
-     FROM food_menu_items ORDER BY id ASC`
+    `SELECT id, name, price, delivery_fee, kitchen, prep_time, rating, image_url, tags, created_by_user_id
+     FROM food_menu_items
+     WHERE is_active = TRUE
+     ORDER BY id ASC`
   );
   const orders = await pool.query(
     `SELECT id, item_name, total, fulfillment, status, created_at
@@ -672,6 +945,7 @@ export async function getFoodData(user: SafeUser) {
       price: Number(row.price),
       deliveryFee: Number(row.delivery_fee),
       kitchen: row.kitchen,
+      supplierUserId: row.created_by_user_id ?? null,
       time: row.prep_time,
       rating: Number(row.rating),
       img: row.image_url,
@@ -690,20 +964,34 @@ export async function getFoodData(user: SafeUser) {
 
 export async function createFoodOrder(
   user: SafeUser,
-  data: { itemName: string; total: number; fulfillment: string }
+  data: { itemId: number; fulfillment: string }
 ) {
   await ensureStudentDataTables();
+  const itemResult = await pool.query(
+    `SELECT id, name, price, delivery_fee, created_by_user_id
+     FROM food_menu_items
+     WHERE id = $1 AND is_active = TRUE`,
+    [data.itemId]
+  );
+
+  const item = itemResult.rows[0];
+  if (!item) {
+    throw new Error('Menu item not found.');
+  }
+
+  const total = Number(item.price) + (data.fulfillment.trim() === 'Delivery' ? Number(item.delivery_fee ?? 0) : 0);
+
   await pool.query(
-    `INSERT INTO student_food_orders (user_id, item_name, total, fulfillment, status)
-     VALUES ($1, $2, $3, $4, 'Initialized')`,
-    [user.id, data.itemName.trim(), data.total, data.fulfillment.trim()]
+    `INSERT INTO student_food_orders (user_id, item_id, supplier_user_id, item_name, total, fulfillment, status)
+     VALUES ($1, $2, $3, $4, $5, $6, 'Initialized')`,
+    [user.id, item.id, item.created_by_user_id ?? null, item.name, total, data.fulfillment.trim()]
   );
 }
 
 export async function getArrivalBooking(user: SafeUser): Promise<ArrivalBooking> {
   await ensureStudentDataTables();
   const result = await pool.query(
-    `SELECT id, airport_code, destination, pickup_status, pickup_booked, notes
+    `SELECT id, airport_code, destination, pickup_status, pickup_booked, notes, assigned_transport_user_id, assigned_vehicle_id
      FROM student_arrival_bookings WHERE user_id = $1`,
     [user.id]
   );
@@ -715,6 +1003,8 @@ export async function getArrivalBooking(user: SafeUser): Promise<ArrivalBooking>
     pickupStatus: row?.pickup_status ?? 'Not booked',
     pickupBooked: row?.pickup_booked ?? false,
     notes: row?.notes ?? '',
+    assignedTransportUserId: row?.assigned_transport_user_id ?? null,
+    assignedVehicleId: row?.assigned_vehicle_id ?? null,
   };
 }
 
@@ -731,9 +1021,85 @@ export async function saveArrivalBooking(
                    pickup_status = EXCLUDED.pickup_status,
                    pickup_booked = EXCLUDED.pickup_booked,
                    notes = EXCLUDED.notes,
+                   assigned_transport_user_id = NULL,
+                   assigned_vehicle_id = NULL,
                    updated_at = NOW()`,
     [user.id, data.destination.trim(), data.pickupBooked ? 'Booked' : 'Not booked', data.pickupBooked, data.notes.trim()]
   );
+}
+
+export async function getTransportFleetVehicles(user: SafeUser): Promise<TransportFleetVehicle[]> {
+  await ensureStudentDataTables();
+  const result = await pool.query(
+    `SELECT id, model, plate, capacity, status, service_status, image_url, last_service_date, insurance_status
+     FROM transport_fleet_vehicles
+     WHERE created_by_user_id = $1
+     ORDER BY created_at DESC, id DESC`,
+    [user.id]
+  );
+
+  return result.rows.map((row) => ({
+    id: row.id,
+    model: row.model,
+    plate: row.plate,
+    capacity: row.capacity,
+    status: row.status,
+    serviceStatus: row.service_status,
+    imageUrl: row.image_url,
+    lastServiceDate: row.last_service_date,
+    insuranceStatus: row.insurance_status,
+  }));
+}
+
+export async function createTransportFleetVehicle(
+  user: SafeUser,
+  data: {
+    model: string;
+    plate: string;
+    capacity: string;
+    status?: string;
+    serviceStatus?: string;
+    imageUrl?: string;
+    lastServiceDate?: string;
+    insuranceStatus?: string;
+  }
+) {
+  await ensureStudentDataTables();
+  await pool.query(
+    `INSERT INTO transport_fleet_vehicles (
+       created_by_user_id, model, plate, capacity, status, service_status, image_url, last_service_date, insurance_status, created_at, updated_at
+     )
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())`,
+    [
+      user.id,
+      data.model.trim(),
+      data.plate.trim().toUpperCase(),
+      data.capacity.trim(),
+      data.status?.trim() || 'Active',
+      data.serviceStatus?.trim() || 'Passed',
+      data.imageUrl?.trim() || 'https://picsum.photos/seed/ebenesaid-fleet/600/400',
+      data.lastServiceDate?.trim() || '',
+      data.insuranceStatus?.trim() || 'Verified',
+    ]
+  );
+}
+
+export async function updateTransportFleetVehicleStatus(
+  user: SafeUser,
+  vehicleId: number,
+  status: string
+) {
+  await ensureStudentDataTables();
+  const result = await pool.query(
+    `UPDATE transport_fleet_vehicles
+     SET status = $3,
+         updated_at = NOW()
+     WHERE id = $1 AND created_by_user_id = $2
+     RETURNING id`,
+    [vehicleId, user.id, status.trim()]
+  );
+
+  return Boolean(result.rows[0]);
 }
 
 export async function getSupportMessages(user: SafeUser): Promise<SupportMessage[]> {

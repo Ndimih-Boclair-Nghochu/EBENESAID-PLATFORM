@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Briefcase, Building2, MapPin, MessagesSquare, Search, ShieldCheck } from "lucide-react";
+import { Briefcase, Building2, MapPin, MessagesSquare, Search, ShieldCheck, Sparkles } from "lucide-react";
 
 import { discussCareers } from "@/ai/flows/career-specialist-flow";
+import { useAuthContext } from "@/auth/provider";
 import { SpecialistChat } from "@/components/SpecialistChat";
 import { SidebarShell } from "@/components/layout/sidebar-shell";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +26,7 @@ type StudentJob = {
 };
 
 export default function JobsPage() {
+  const { user } = useAuthContext();
   const [jobs, setJobs] = useState<StudentJob[]>([]);
   const [query, setQuery] = useState("");
 
@@ -52,6 +54,15 @@ export default function JobsPage() {
   const visibleJobs = jobs.filter(job =>
     `${job.title} ${job.company} ${job.location}`.toLowerCase().includes(query.toLowerCase())
   );
+  const recommendedJob = useMemo(() => {
+    return visibleJobs.find(job => !job.applied && /part|flex|student/i.test(`${job.type} ${job.title}`))
+      ?? visibleJobs.find(job => !job.applied && /riga|remote/i.test(job.location))
+      ?? visibleJobs.find(job => !job.applied)
+      ?? null;
+  }, [visibleJobs]);
+  const recommendedReason = recommendedJob
+    ? `EBENESAID AI recommends ${recommendedJob.title} at ${recommendedJob.company}${user?.firstName ? ` for ${user.firstName}` : ""} because it fits a student-friendly work pattern and keeps you close to the live opportunities already listed in the platform.`
+    : null;
 
   return (
     <SidebarShell>
@@ -90,6 +101,28 @@ export default function JobsPage() {
           <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
           <Input value={query} onChange={e => setQuery(e.target.value)} placeholder="Roles, companies or industries..." className="h-10 rounded-lg bg-slate-50 pl-9" />
         </div>
+
+        {recommendedJob && recommendedReason && (
+          <Card className="rounded-[1.5rem] border border-emerald-100 bg-emerald-50/80 shadow-sm">
+            <CardContent className="flex flex-col gap-3 p-5 md:flex-row md:items-center md:justify-between">
+              <div className="min-w-0">
+                <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.25em] text-emerald-700">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  EBENESAID AI Recommends This
+                </p>
+                <p className="mt-2 text-base font-black text-slate-900">
+                  {recommendedJob.title} - {recommendedJob.company}
+                </p>
+                <p className="mt-2 text-sm leading-relaxed text-slate-700">
+                  {recommendedReason}
+                </p>
+              </div>
+              <Button className="rounded-xl bg-green-700 hover:bg-green-800" onClick={() => apply(recommendedJob.id)} disabled={recommendedJob.applied}>
+                {recommendedJob.applied ? "Applied" : "Apply To Recommended Role"}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="grid gap-4 md:grid-cols-2">
           {visibleJobs.map(job => (

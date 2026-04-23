@@ -1,23 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { getAuthenticatedUserFromRequest } from '@/lib/auth';
-import { getPropertyListings } from '@/lib/db';
-
-function requireAgent(userType?: string) {
-  return userType === 'agent' || userType === 'admin' || userType === 'staff';
-}
+import { getPartnerFinanceSummary, getPartnerProfile, getPlatformPricingSettings, getPropertyListings } from '@/lib/db';
+import { hasAnyRole, shouldScopeListingsToOwner } from '@/lib/rbac';
 
 export async function GET(request: NextRequest) {
   const user = await getAuthenticatedUserFromRequest(request);
-  if (!user || !requireAgent(user.userType)) {
+  if (!user || !hasAnyRole(user.userType, ['agent', 'admin', 'staff'])) {
     return NextResponse.json({ error: 'Agent access required.' }, { status: 403 });
   }
 
   try {
-    const listings = await getPropertyListings({
-      createdByUserId: user.userType === 'agent' ? user.id : undefined,
-      includePending: true,
-    });
+    const [listings, partnerProfile, finance, pricing] = await Promise.all([
+      getPropertyListings({
+        createdByUserId: shouldScopeListingsToOwner(user.userType) ? user.id : undefined,
+        includePending: true,
+      }),
+      getPartnerProfile(user.id),
+      getPartnerFinanceSummary(user.id),
+      getPlatformPricingSettings(),
+    ]);
 
     const totalLeads = listings.reduce((sum, listing) => sum + Number(listing.leads ?? 0), 0);
     const verifiedCount = listings.filter(listing => listing.status === 'Verified').length;
@@ -36,6 +38,9 @@ export async function GET(request: NextRequest) {
           pendingCount,
           revenueEstimate,
         },
+        partnerProfile,
+        finance,
+        commissionPercent: partnerProfile?.commissionPercent ?? pricing.partnerDeductionPercent,
       },
       { status: 200 }
     );

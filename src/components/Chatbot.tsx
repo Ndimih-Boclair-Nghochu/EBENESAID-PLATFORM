@@ -6,6 +6,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Input } from "@/components/ui/input";
 import { X, Send, Compass, Loader2, ExternalLink } from "lucide-react";
 import { ebenesaidInfo } from "@/ai/flows/ebenesaid-info-flow";
+import { useAuthContext } from "@/auth/provider";
 import Link from "next/link";
 
 type Message = {
@@ -19,16 +20,30 @@ type Message = {
  * @description The "Platform Navigator" AI. Global floating chat for navigation help.
  */
 export function Chatbot() {
+  const { user } = useAuthContext();
+  const initialMessage = user?.firstName
+    ? `Hello ${user.firstName}, I am EBENESAID AI. I can guide you around the platform, point you to the right specialist, and surface the fastest route to the module you need.`
+    : "Hello, I am EBENESAID AI. I can guide you around the platform, point you to the right specialist, and surface the fastest route to the module you need.";
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: "Hello! I am the Platform Navigator. I can help you find your way around EBENESAID and provide direct links to our core modules. What are you looking for?"
+      content: initialMessage
     }
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (
+      messages.length === 1 &&
+      messages[0]?.role === "assistant" &&
+      messages[0].content !== initialMessage
+    ) {
+      setMessages([{ role: "assistant", content: initialMessage }]);
+    }
+  }, [initialMessage, messages]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -45,14 +60,26 @@ export function Chatbot() {
     setIsLoading(true);
 
     try {
-      const result = await ebenesaidInfo({ message: userMessage });
+      const result = await ebenesaidInfo({
+        message: userMessage,
+        user: user
+          ? {
+              firstName: user.firstName,
+              lastName: user.lastName,
+              email: user.email,
+              university: user.university,
+              countryOfOrigin: user.countryOfOrigin,
+              userType: user.userType,
+            }
+          : undefined,
+      });
       setMessages(prev => [...prev, { 
         role: 'assistant', 
         content: result.response,
         links: result.links
       }]);
-    } catch (error) {
-      setMessages(prev => [...prev, { role: 'assistant', content: "I'm having a connection hiccup. Please try again or head to our help center." }]);
+    } catch {
+      setMessages(prev => [...prev, { role: 'assistant', content: "EBENESAID AI is reconnecting. Please try again, or continue in the module you were already using." }]);
     } finally {
       setIsLoading(false);
     }
@@ -69,10 +96,10 @@ export function Chatbot() {
                 <Compass className="h-6 w-6 text-white" />
               </div>
               <div>
-                <CardTitle className="text-lg sm:text-xl font-black italic tracking-tight uppercase leading-none">Navigator</CardTitle>
+                <CardTitle className="text-lg sm:text-xl font-black italic tracking-tight uppercase leading-none">EBENESAID AI</CardTitle>
                 <div className="flex items-center gap-2 mt-1">
                   <span className="h-2 w-2 bg-green-500 rounded-full animate-pulse" />
-                  <span className="text-[9px] font-black text-white/50 uppercase tracking-[0.2em]">Platform AI Live</span>
+                  <span className="text-[9px] font-black text-white/50 uppercase tracking-[0.2em]">Platform Navigator</span>
                 </div>
               </div>
             </div>
@@ -88,7 +115,7 @@ export function Chatbot() {
             {messages.map((msg, i) => (
               <div key={i} className={`flex gap-3 sm:gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
                 <div className={`h-8 w-8 rounded-xl flex items-center justify-center text-[10px] font-black text-white shrink-0 shadow-lg ${msg.role === 'assistant' ? 'bg-primary' : 'bg-slate-800'}`}>
-                  {msg.role === 'assistant' ? 'NAV' : 'ME'}
+                  {msg.role === 'assistant' ? 'EB' : 'ME'}
                 </div>
                 <div className={`max-w-[85%] space-y-4`}>
                   <div className={`p-4 rounded-[1.5rem] sm:rounded-[2rem] shadow-sm text-sm sm:text-base font-medium leading-relaxed border ${
@@ -118,7 +145,7 @@ export function Chatbot() {
             {isLoading && (
               <div className="flex gap-4">
                 <div className="h-8 w-8 rounded-xl bg-primary flex items-center justify-center text-[10px] font-black text-white shrink-0 shadow-lg">
-                  NAV
+                  EB
                 </div>
                 <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-2">
                   <Loader2 className="h-4 w-4 text-primary animate-spin" />

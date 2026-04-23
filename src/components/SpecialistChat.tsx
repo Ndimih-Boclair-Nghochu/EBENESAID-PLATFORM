@@ -1,21 +1,31 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useAuthContext } from "@/auth/provider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Send, Loader2, Bot, ShieldAlert, Sparkles } from "lucide-react";
+import { Send, Loader2, Bot } from "lucide-react";
 
 type Message = {
   role: 'user' | 'assistant';
   content: string;
 };
 
+type ChatUserContext = {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  university?: string;
+  countryOfOrigin?: string;
+  userType?: string;
+};
+
 interface SpecialistChatProps {
   title: string;
   specialty: string;
   initialMessage: string;
-  flow: (input: { message: string }) => Promise<{ response: string }>;
+  flow: (input: { message: string; user?: ChatUserContext }) => Promise<{ response: string }>;
   icon?: React.ReactNode;
 }
 
@@ -24,12 +34,26 @@ interface SpecialistChatProps {
  * @description Repositioned for top-level guidance. Compact, context-aware, and responsive.
  */
 export function SpecialistChat({ title, specialty, initialMessage, flow, icon }: SpecialistChatProps) {
+  const { user } = useAuthContext();
+  const personalizedInitialMessage = user?.firstName
+    ? `Hello ${user.firstName}, I am EBENESAID AI. ${initialMessage}`
+    : `Hello, I am EBENESAID AI. ${initialMessage}`;
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: initialMessage }
+    { role: 'assistant', content: personalizedInitialMessage }
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (
+      messages.length === 1 &&
+      messages[0]?.role === "assistant" &&
+      messages[0].content !== personalizedInitialMessage
+    ) {
+      setMessages([{ role: "assistant", content: personalizedInitialMessage }]);
+    }
+  }, [messages, personalizedInitialMessage]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -46,10 +70,22 @@ export function SpecialistChat({ title, specialty, initialMessage, flow, icon }:
     setIsLoading(true);
 
     try {
-      const result = await flow({ message: userMessage });
+      const result = await flow({
+        message: userMessage,
+        user: user
+          ? {
+              firstName: user.firstName,
+              lastName: user.lastName,
+              email: user.email,
+              university: user.university,
+              countryOfOrigin: user.countryOfOrigin,
+              userType: user.userType,
+            }
+          : undefined,
+      });
       setMessages(prev => [...prev, { role: 'assistant', content: result.response }]);
-    } catch (error) {
-      setMessages(prev => [...prev, { role: 'assistant', content: "Expert line busy. Please re-send your inquiry." }]);
+    } catch {
+      setMessages(prev => [...prev, { role: 'assistant', content: "EBENESAID AI is reconnecting. Please send your question again in a moment." }]);
     } finally {
       setIsLoading(false);
     }
@@ -78,7 +114,7 @@ export function SpecialistChat({ title, specialty, initialMessage, flow, icon }:
         {messages.map((msg, i) => (
           <div key={i} className={`flex gap-2 sm:gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
             <div className={`h-6 w-6 sm:h-7 sm:w-7 rounded-lg flex items-center justify-center text-[7px] sm:text-[8px] font-black text-white shrink-0 shadow-sm ${msg.role === 'assistant' ? 'bg-primary' : 'bg-slate-700'}`}>
-              {msg.role === 'assistant' ? 'AI' : 'ME'}
+              {msg.role === 'assistant' ? 'EB' : 'ME'}
             </div>
             <div className={`max-w-[85%] p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl text-[10px] sm:text-xs font-medium leading-relaxed shadow-sm border ${
               msg.role === 'assistant' 
@@ -92,7 +128,7 @@ export function SpecialistChat({ title, specialty, initialMessage, flow, icon }:
         {isLoading && (
           <div className="flex gap-2 sm:gap-3">
             <div className="h-6 w-6 sm:h-7 sm:w-7 rounded-lg bg-primary flex items-center justify-center text-[7px] sm:text-[8px] font-black text-white shrink-0">
-              AI
+              EB
             </div>
             <div className="bg-white p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl flex items-center gap-2 border border-slate-100 shadow-sm">
               <Loader2 className="h-3 w-3 text-primary animate-spin" />
