@@ -20,6 +20,7 @@ import { useAuthContext } from "@/auth/provider";
 import { getDefaultDashboardHref } from "@/lib/rbac";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { BrandLogo } from "@/components/brand-logo";
 
 export default function LoginPage() {
   const { user, login } = useAuthContext();
@@ -75,10 +76,7 @@ export default function LoginPage() {
         {/* Brand Header */}
         <div className="text-center space-y-3">
           <Link href="/" className="inline-flex items-center gap-2.5 group">
-            <div className="bg-green-700 p-2.5 rounded-xl shadow-lg shadow-green-700/20 group-hover:scale-105 transition-transform">
-              <ShieldCheck className="h-6 w-6 text-white" />
-            </div>
-            <span className="text-xl font-black tracking-tighter text-slate-900 uppercase italic">EBENESAID</span>
+            <BrandLogo imageClassName="w-28 transition-transform group-hover:scale-105" priority />
           </Link>
           <div>
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">

@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 
 import { useAuthContext } from '@/auth/provider';
+import { BrandLogo } from '@/components/brand-logo';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -162,10 +163,7 @@ export default function LandingPage() {
       <header className={`fixed top-0 z-50 w-full border-b border-white/10 bg-green-900/95 backdrop-blur-xl transition-transform duration-300 ${headerVisible ? 'translate-y-0' : '-translate-y-full'}`}>
         <div className="container mx-auto flex h-16 max-w-7xl items-center justify-between px-5 sm:px-6 md:h-[72px]">
           <Link href="/" className="group flex shrink-0 items-center gap-2.5">
-            <div className="rounded-lg bg-white p-1.5 shadow-md transition-transform group-hover:scale-105">
-              <ShieldCheck className="h-5 w-5 text-green-700" />
-            </div>
-            <span className="text-base font-black uppercase italic tracking-tighter text-white md:text-lg">EBENESAID</span>
+            <BrandLogo imageClassName="w-24 transition-transform group-hover:scale-105" priority />
           </Link>
           <nav className="hidden items-center gap-1 lg:flex">
             {[
@@ -195,9 +193,8 @@ export default function LandingPage() {
               </SheetTrigger>
               <SheetContent side="right" className="w-72 border-none bg-green-900 p-0 text-white sm:w-80">
                 <SheetHeader className="border-b border-white/10 p-6 text-left">
-                  <SheetTitle className="flex items-center gap-2.5 text-white">
-                    <ShieldCheck className="h-5 w-5" />
-                    <span className="font-black uppercase italic tracking-tighter">EBENESAID</span>
+                  <SheetTitle className="text-white">
+                    <BrandLogo imageClassName="w-24" />
                   </SheetTitle>
                 </SheetHeader>
                 <nav className="flex flex-col gap-1 p-6">
@@ -508,8 +505,7 @@ export default function LandingPage() {
           <div className="mb-12 grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4 md:gap-12">
             <div className="space-y-5 sm:col-span-2 lg:col-span-2">
               <Link href="/" className="group flex w-fit items-center gap-2.5">
-                <div className="rounded-xl bg-green-700 p-2 shadow-md shadow-green-700/20 transition-transform group-hover:scale-105"><ShieldCheck className="h-5 w-5 text-white" /></div>
-                <span className="text-xl font-black uppercase italic tracking-tighter text-slate-900">EBENESAID</span>
+                <BrandLogo imageClassName="w-28 transition-transform group-hover:scale-105" />
               </Link>
               <p className="max-w-sm text-sm font-medium leading-relaxed text-slate-500">{content.footer.description}</p>
               <div className="flex items-center gap-3">

@@ -4,8 +4,9 @@ import { MainNav } from "./main-nav";
 import { UserNav } from "./user-nav";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Menu, X, ShieldCheck } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { BrandLogo } from "@/components/brand-logo";
 
 /**
  * @component SidebarShell
@@ -38,10 +39,7 @@ export function SidebarShell({ children }: { children: React.ReactNode }) {
       {/* Mobile Header - Compact Brand Alignment */}
       <header className="fixed top-0 left-0 right-0 z-50 flex h-14 items-center justify-between border-b border-slate-200 bg-white/80 px-4 lg:hidden shadow-sm backdrop-blur-xl">
         <div className="flex items-center gap-2">
-          <div className="bg-green-900 p-1.5 rounded-lg shadow-lg shadow-green-700/20">
-            <ShieldCheck className="h-4 w-4 text-white" />
-          </div>
-          <span className="text-sm font-black tracking-tighter text-slate-900 font-headline italic uppercase leading-none">EBENESAID</span>
+          <BrandLogo imageClassName="w-14" />
         </div>
         
         {mounted && (
@@ -53,9 +51,8 @@ export function SidebarShell({ children }: { children: React.ReactNode }) {
             </SheetTrigger>
             <SheetContent side="left" className="p-0 w-64 border-none bg-green-900">
               <SheetHeader className="p-6 border-b border-white/10 text-left shrink-0">
-                <SheetTitle className="text-white flex items-center gap-2 font-black italic tracking-tighter uppercase">
-                  <ShieldCheck className="h-5 w-5 text-white" />
-                  EBENESAID
+                <SheetTitle className="text-white">
+                  <BrandLogo imageClassName="w-20" />
                 </SheetTitle>
               </SheetHeader>
               <div className="flex h-[calc(100%-80px)] flex-col">

@@ -38,6 +38,7 @@ import { useAuthContext } from "@/auth/provider";
 import { useRouter } from "next/navigation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { COUNTRIES, UNIVERSITIES } from "@/lib/constants";
+import { BrandLogo } from "@/components/brand-logo";
 
 const testimonials = [
   {
@@ -145,11 +146,8 @@ export default function RegisterPage() {
 
         <div className="relative z-10 space-y-10">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-3 group w-fit">
-            <div className="bg-green-700 p-2 rounded-xl shadow-lg shadow-green-700/20 group-hover:scale-105 transition-transform">
-              <ShieldCheck className="h-5 w-5 text-white" />
-            </div>
-            <span className="text-lg font-black tracking-tighter text-white uppercase italic">EBENESAID</span>
+          <Link href="/" className="flex items-center group w-fit">
+            <BrandLogo imageClassName="w-24 transition-transform group-hover:scale-105" priority />
           </Link>
 
           {/* Headline */}

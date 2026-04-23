@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { BrandLogo } from "@/components/brand-logo";
 import { 
   Sheet, 
   SheetContent, 
@@ -83,10 +84,7 @@ export default function HowItWorksPage() {
       <header className={`fixed top-0 z-50 w-full border-b border-green-400/30 bg-green-900 backdrop-blur-xl transition-transform duration-300 ${headerVisible ? 'translate-y-0' : '-translate-y-full'}`}>
         <div className="container mx-auto flex h-16 md:h-20 items-center justify-between px-4 sm:px-6 max-w-7xl">
           <Link href="/" className="flex items-center gap-2 group">
-            <div className="bg-white p-1.5 md:p-2 rounded-lg md:rounded-xl shadow-lg group-hover:scale-110 transition-transform">
-              <ShieldCheck className="h-5 w-5 md:h-6 md:w-6 text-green-800" />
-            </div>
-            <span className="text-lg md:text-xl font-black tracking-tighter text-white font-headline uppercase italic">EBENESAID</span>
+            <BrandLogo imageClassName="w-24 md:w-28 group-hover:scale-105 transition-transform" priority />
           </Link>
 
           <nav className="hidden lg:flex gap-8 xl:gap-10">
@@ -110,9 +108,8 @@ export default function HowItWorksPage() {
               </SheetTrigger>
               <SheetContent side="right" className="bg-green-900 border-none text-white p-0 w-72">
                 <SheetHeader className="p-8 border-b border-white/10 text-left">
-                  <SheetTitle className="text-white flex items-center gap-2 font-black italic tracking-tighter uppercase">
-                    <ShieldCheck className="h-6 w-6" />
-                    EBENESAID
+                  <SheetTitle className="text-white">
+                    <BrandLogo imageClassName="w-24" />
                   </SheetTitle>
                 </SheetHeader>
                 <nav className="flex flex-col p-8 gap-6">
@@ -217,10 +214,7 @@ export default function HowItWorksPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 md:gap-24 mb-20">
             <div className="lg:col-span-2 space-y-10">
               <div className="flex items-center gap-3">
-                <div className="bg-primary p-2.5 rounded-2xl shadow-xl shadow-primary/20">
-                  <ShieldCheck className="h-8 w-8 text-white" />
-                </div>
-                <span className="text-3xl font-black text-slate-900 uppercase italic text-primary">EBENESAID</span>
+                <BrandLogo imageClassName="w-32" />
               </div>
               <p className="text-slate-500 text-lg max-w-md font-medium leading-relaxed">
                 The global operating system for international student mobility. Founded in Riga, serving the world's most ambitious students.
