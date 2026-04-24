@@ -5,6 +5,7 @@ import {
   createStudentTaskTemplate,
   deleteStudentTaskTemplate,
   listStudentTaskTemplates,
+  syncStudentDashboardTasksForBand,
   type StudentTaskDurationBand,
   updateStudentTaskTemplate,
 } from '@/lib/db';
@@ -67,7 +68,9 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    await createStudentTaskTemplate(normalizePayload(body));
+    const payload = normalizePayload(body);
+    await createStudentTaskTemplate(payload);
+    await syncStudentDashboardTasksForBand(payload.durationBand);
     const templates = await listStudentTaskTemplates();
     return NextResponse.json({ templates }, { status: 201 });
   } catch (error) {
@@ -92,10 +95,18 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Valid template id is required.' }, { status: 400 });
     }
 
-    const updated = await updateStudentTaskTemplate(templateId, normalizePayload(body));
+    const previousTemplates = await listStudentTaskTemplates();
+    const existing = [...previousTemplates.under_3_months, ...previousTemplates.over_3_months].find(template => template.id === templateId);
+    const payload = normalizePayload(body);
+    const updated = await updateStudentTaskTemplate(templateId, payload);
     if (!updated) {
       return NextResponse.json({ error: 'Template not found.' }, { status: 404 });
     }
+
+    if (existing && existing.durationBand !== payload.durationBand) {
+      await syncStudentDashboardTasksForBand(existing.durationBand);
+    }
+    await syncStudentDashboardTasksForBand(payload.durationBand);
 
     const templates = await listStudentTaskTemplates();
     return NextResponse.json({ templates }, { status: 200 });
@@ -121,9 +132,15 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Valid template id is required.' }, { status: 400 });
     }
 
+    const previousTemplates = await listStudentTaskTemplates();
+    const existing = [...previousTemplates.under_3_months, ...previousTemplates.over_3_months].find(template => template.id === templateId);
     const deleted = await deleteStudentTaskTemplate(templateId);
     if (!deleted) {
       return NextResponse.json({ error: 'Template not found.' }, { status: 404 });
+    }
+
+    if (existing) {
+      await syncStudentDashboardTasksForBand(existing.durationBand);
     }
 
     const templates = await listStudentTaskTemplates();

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { toast } from '@/hooks/use-toast';
 
 // Must match SafeUser from db.ts
 export interface AuthUser {
@@ -106,15 +107,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!data.user.lastLoginAt) {
           setIsFirstLogin(true);
         }
+        toast({
+          title: 'Login successful',
+          description: `Welcome back, ${data.user.firstName}.`,
+        });
         return { success: true };
       } else {
         const error = data?.error || 'Login failed. Please try again.';
         setError(error);
+        toast({
+          variant: 'destructive',
+          title: 'Login failed',
+          description: error,
+        });
         return { success: false, error };
       }
     } catch {
       const msg = 'Network error. Please check your connection.';
       setError(msg);
+      toast({
+        variant: 'destructive',
+        title: 'Login failed',
+        description: msg,
+      });
       return { success: false, error: msg };
     }
   }, []);
@@ -134,15 +149,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (res.ok && responseData?.user) {
         setUser(responseData.user);
         setIsFirstLogin(true); // New registration is always first login
+        toast({
+          title: 'Account created',
+          description: `Welcome to EBENESAID, ${responseData.user.firstName}.`,
+        });
         return { success: true };
       } else {
         const error = responseData?.error || 'Registration failed. Please try again.';
         setError(error);
+        toast({
+          variant: 'destructive',
+          title: 'Registration failed',
+          description: error,
+        });
         return { success: false, error };
       }
     } catch {
       const msg = 'Network error. Please check your connection.';
       setError(msg);
+      toast({
+        variant: 'destructive',
+        title: 'Registration failed',
+        description: msg,
+      });
       return { success: false, error: msg };
     }
   }, []);
@@ -159,6 +188,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setIsFirstLogin(false);
     setError(null);
+    toast({
+      title: 'Signed out',
+      description: 'Your session has ended successfully.',
+    });
   }, []);
 
   const clearFirstLogin = useCallback(() => {

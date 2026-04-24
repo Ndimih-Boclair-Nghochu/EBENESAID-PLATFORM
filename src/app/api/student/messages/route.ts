@@ -17,7 +17,12 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    await sendConversationMessage(user, Number(body.conversationId), String(body.content ?? ''));
+    await sendConversationMessage(
+      user,
+      Number(body.conversationId ?? 0),
+      String(body.content ?? ''),
+      body.recipientUserId === undefined ? undefined : Number(body.recipientUserId)
+    );
     const data = await getConversations(user);
     return NextResponse.json(data, { status: 200 });
   } catch (error) {

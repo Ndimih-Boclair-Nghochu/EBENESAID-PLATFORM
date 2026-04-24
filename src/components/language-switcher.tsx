@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { defaultLocale, localeLabels, normalizeLocale, supportedLocales, type SupportedLocale } from '@/lib/i18n';
 
-export function LanguageSwitcher({ compact = false }: { compact?: boolean }) {
+export function LanguageSwitcher({ compact = false, tone = 'dark' }: { compact?: boolean; tone?: 'dark' | 'light' }) {
   const [locale, setLocale] = useState<SupportedLocale>(defaultLocale);
 
   useEffect(() => {
@@ -36,7 +36,11 @@ export function LanguageSwitcher({ compact = false }: { compact?: boolean }) {
           type="button"
           variant="ghost"
           size={compact ? 'sm' : 'default'}
-          className="gap-2 rounded-xl font-bold text-white/80 hover:bg-white/10 hover:text-white"
+          className={
+            tone === 'light'
+              ? "gap-2 rounded-xl font-bold text-white/80 hover:bg-white/10 hover:text-white"
+              : "gap-2 rounded-xl border border-slate-200 bg-white font-bold text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-900"
+          }
           aria-label="Change language"
         >
           <Globe className="h-4 w-4" />

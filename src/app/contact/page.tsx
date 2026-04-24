@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useAuthContext } from "@/auth/provider";
+import { LanguageSwitcher } from "@/components/language-switcher";
 
 export default function ContactPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -101,6 +102,7 @@ export default function ContactPage() {
           </nav>
 
           <div className="flex items-center gap-3 md:gap-6">
+            <LanguageSwitcher compact />
             <Link href="/login" className="text-sm font-bold text-white hidden sm:block hover:text-white/80">Log In</Link>
             <Button asChild className="rounded-full px-6 md:px-8 h-10 md:h-12 font-black shadow-xl bg-white text-green-800 hover:bg-green-50 border-none text-xs md:text-sm">
               <Link href="/register">Get Started</Link>

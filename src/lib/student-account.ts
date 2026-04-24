@@ -74,9 +74,18 @@ export type Conversation = {
   id: number;
   name: string;
   type: string;
+  contactType: string;
   lastMsg: string;
   time: string;
   unread: number;
+  icon: string;
+};
+
+export type MessageContact = {
+  userId: number;
+  name: string;
+  email: string;
+  userType: string;
   icon: string;
 };
 
@@ -353,11 +362,17 @@ async function ensureStudentTables() {
           user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
           name TEXT NOT NULL,
           contact_type TEXT NOT NULL,
+          counterpart_user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
           icon TEXT NOT NULL,
           unread INTEGER NOT NULL DEFAULT 0,
           created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
           UNIQUE (user_id, name, contact_type)
         );
+      `);
+
+      await pool.query(`
+        ALTER TABLE student_conversations
+        ADD COLUMN IF NOT EXISTS counterpart_user_id INTEGER REFERENCES users(id) ON DELETE CASCADE;
       `);
 
       await pool.query(`
@@ -560,6 +575,19 @@ function getAiSpecialistForConversation(contactType: string): SpecialistKey | nu
     default:
       return null;
   }
+}
+
+function getDirectConversationType(counterpartUserId: number) {
+  return `direct:${counterpartUserId}`;
+}
+
+function getMessageContactIcon(userType: string) {
+  if (userType === 'admin' || userType === 'staff') return 'building';
+  if (userType === 'agent') return 'hotel';
+  if (userType === 'supplier') return 'soup';
+  if (userType === 'job_partner') return 'briefcase';
+  if (userType === 'student') return 'user';
+  return 'building';
 }
 
 export async function getStudentDocuments(user: SafeUser): Promise<StudentDocument[]> {
@@ -955,8 +983,9 @@ export async function getConversations(user: SafeUser) {
   await ensureStudentDataTables();
   await ensureDefaultAiConversations(user);
 
-  const conversations = await pool.query(
-    `SELECT c.id, c.name, c.contact_type, c.icon, c.unread,
+  const [conversations, messages, contacts] = await Promise.all([
+    pool.query(
+      `SELECT c.id, c.name, c.contact_type, c.icon, c.unread, c.counterpart_user_id,
             COALESCE(m.content, '') AS last_msg,
             COALESCE(m.created_at, c.created_at) AS last_time
      FROM student_conversations c
@@ -969,23 +998,31 @@ export async function getConversations(user: SafeUser) {
      ) m ON TRUE
      WHERE c.user_id = $1
      ORDER BY last_time DESC`,
-    [user.id]
-  );
-
-  const messages = await pool.query(
-    `SELECT m.id, m.conversation_id, m.role, m.sender_name, m.content, m.created_at
+      [user.id]
+    ),
+    pool.query(
+      `SELECT m.id, m.conversation_id, m.role, m.sender_name, m.content, m.created_at
      FROM student_conversation_messages m
      JOIN student_conversations c ON c.id = m.conversation_id
      WHERE c.user_id = $1
      ORDER BY m.created_at ASC`,
-    [user.id]
-  );
+      [user.id]
+    ),
+    pool.query(
+      `SELECT id, first_name, last_name, email, user_type
+       FROM users
+       WHERE id <> $1 AND is_active = TRUE
+       ORDER BY CASE WHEN user_type = 'admin' THEN 0 WHEN user_type = 'staff' THEN 1 ELSE 2 END, first_name ASC, last_name ASC`,
+      [user.id]
+    ),
+  ]);
 
   return {
     conversations: conversations.rows.map(row => ({
       id: row.id,
       name: row.name,
       type: row.contact_type,
+      contactType: row.contact_type,
       lastMsg: row.last_msg,
       time: formatTimeLabel(row.last_time),
       unread: row.unread,
@@ -999,23 +1036,90 @@ export async function getConversations(user: SafeUser) {
       content: row.content,
       time: formatTimeLabel(row.created_at),
     })) as ConversationMessage[],
+    contacts: contacts.rows.map(row => ({
+      userId: row.id,
+      name: `${row.first_name ?? ''} ${row.last_name ?? ''}`.trim() || row.email,
+      email: row.email,
+      userType: row.user_type,
+      icon: getMessageContactIcon(row.user_type),
+    })) as MessageContact[],
   };
 }
 
-export async function sendConversationMessage(user: SafeUser, conversationId: number, content: string) {
+async function ensureDirectConversation(userId: number, counterpartId: number) {
+  const [userRowResult, counterpartRowResult] = await Promise.all([
+    pool.query(`SELECT id, first_name, last_name, email, user_type FROM users WHERE id = $1`, [userId]),
+    pool.query(`SELECT id, first_name, last_name, email, user_type FROM users WHERE id = $1`, [counterpartId]),
+  ]);
+
+  const userRow = userRowResult.rows[0];
+  const counterpartRow = counterpartRowResult.rows[0];
+  if (!userRow || !counterpartRow) {
+    throw new Error('Conversation participant not found.');
+  }
+
+  const userConversationType = getDirectConversationType(counterpartId);
+  const counterpartConversationType = getDirectConversationType(userId);
+  const userConversationName = `${counterpartRow.first_name ?? ''} ${counterpartRow.last_name ?? ''}`.trim() || counterpartRow.email;
+  const counterpartConversationName = `${userRow.first_name ?? ''} ${userRow.last_name ?? ''}`.trim() || userRow.email;
+
+  const [senderConversation, recipientConversation] = await Promise.all([
+    pool.query(
+      `INSERT INTO student_conversations (user_id, name, contact_type, counterpart_user_id, icon, unread, created_at)
+       VALUES ($1, $2, $3, $4, $5, 0, NOW())
+       ON CONFLICT (user_id, name, contact_type)
+       DO UPDATE SET counterpart_user_id = EXCLUDED.counterpart_user_id, icon = EXCLUDED.icon
+       RETURNING id`,
+      [userId, userConversationName, userConversationType, counterpartId, getMessageContactIcon(counterpartRow.user_type)]
+    ),
+    pool.query(
+      `INSERT INTO student_conversations (user_id, name, contact_type, counterpart_user_id, icon, unread, created_at)
+       VALUES ($1, $2, $3, $4, $5, 0, NOW())
+       ON CONFLICT (user_id, name, contact_type)
+       DO UPDATE SET counterpart_user_id = EXCLUDED.counterpart_user_id, icon = EXCLUDED.icon
+       RETURNING id`,
+      [counterpartId, counterpartConversationName, counterpartConversationType, userId, getMessageContactIcon(userRow.user_type)]
+    ),
+  ]);
+
+  return {
+    senderConversationId: Number(senderConversation.rows[0]?.id),
+    recipientConversationId: Number(recipientConversation.rows[0]?.id),
+  };
+}
+
+export async function sendConversationMessage(
+  user: SafeUser,
+  conversationId: number,
+  content: string,
+  recipientUserId?: number
+) {
   await ensureStudentDataTables();
   await ensureDefaultAiConversations(user);
 
   const trimmedContent = content.trim();
-  if (!trimmedContent) {
+  if (!trimmedContent && !recipientUserId) {
     throw new Error('Message content is required.');
   }
 
+  if (recipientUserId && (!Number.isInteger(recipientUserId) || recipientUserId <= 0)) {
+    throw new Error('Valid recipient is required.');
+  }
+
+  let resolvedConversationId = conversationId;
+  if (!resolvedConversationId && recipientUserId) {
+    const directConversation = await ensureDirectConversation(user.id, recipientUserId);
+    resolvedConversationId = directConversation.senderConversationId;
+    if (!trimmedContent) {
+      return;
+    }
+  }
+
   const conversationResult = await pool.query(
-    `SELECT id, name, contact_type
+    `SELECT id, name, contact_type, counterpart_user_id
      FROM student_conversations
      WHERE id = $1 AND user_id = $2`,
-    [conversationId, user.id]
+    [resolvedConversationId, user.id]
   );
 
   const conversation = conversationResult.rows[0];
@@ -1026,8 +1130,24 @@ export async function sendConversationMessage(user: SafeUser, conversationId: nu
   await pool.query(
     `INSERT INTO student_conversation_messages (conversation_id, role, sender_name, content)
      VALUES ($1, 'me', $2, $3)`,
-    [conversationId, `${user.firstName} ${user.lastName}`.trim(), trimmedContent]
+    [resolvedConversationId, `${user.firstName} ${user.lastName}`.trim(), trimmedContent]
   );
+
+  if (conversation.contact_type.startsWith('direct:') && conversation.counterpart_user_id) {
+    const mirrored = await ensureDirectConversation(user.id, Number(conversation.counterpart_user_id));
+    await pool.query(
+      `INSERT INTO student_conversation_messages (conversation_id, role, sender_name, content)
+       VALUES ($1, 'other', $2, $3)`,
+      [mirrored.recipientConversationId, `${user.firstName} ${user.lastName}`.trim(), trimmedContent]
+    );
+    await pool.query(
+      `UPDATE student_conversations
+       SET unread = unread + 1
+       WHERE id = $1`,
+      [mirrored.recipientConversationId]
+    );
+    return;
+  }
 
   const specialist = getAiSpecialistForConversation(conversation.contact_type);
   if (!specialist) {

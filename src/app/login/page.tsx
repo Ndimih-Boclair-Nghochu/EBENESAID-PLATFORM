@@ -21,6 +21,7 @@ import { getDefaultDashboardHref } from "@/lib/rbac";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { BrandLogo } from "@/components/brand-logo";
+import { LanguageSwitcher } from "@/components/language-switcher";
 
 export default function LoginPage() {
   const { user, login } = useAuthContext();
@@ -63,12 +64,15 @@ export default function LoginPage() {
 
       {/* Back Button */}
       <div className="fixed top-4 left-4 sm:top-6 sm:left-6 z-50">
-        <Button variant="ghost" asChild size="sm" className="gap-2 font-bold text-slate-500 hover:text-slate-900 hover:bg-white rounded-xl transition-all group px-3 h-9 shadow-sm bg-white/80 backdrop-blur-sm border border-slate-100">
-          <Link href="/">
-            <ArrowLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
-            <span className="hidden sm:inline text-xs">Back to Home</span>
-          </Link>
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" asChild size="sm" className="gap-2 font-bold text-slate-500 hover:text-slate-900 hover:bg-white rounded-xl transition-all group px-3 h-9 shadow-sm bg-white/80 backdrop-blur-sm border border-slate-100">
+            <Link href="/">
+              <ArrowLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
+              <span className="hidden sm:inline text-xs">Back to Home</span>
+            </Link>
+          </Button>
+          <LanguageSwitcher tone="light" compact />
+        </div>
       </div>
 
       <div className="w-full max-w-[420px] space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">

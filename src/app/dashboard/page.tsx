@@ -35,6 +35,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
+import { toast } from "@/hooks/use-toast";
 
 type DashboardTask = {
   id: number;
@@ -183,8 +184,10 @@ export default function DashboardPage() {
       setTasks(data?.tasks ?? []);
       setGuidance(data?.guidance ?? "");
       setShowProgramSetup(false);
+      toast({ title: "Checklist applied", description: "Your stay period was saved and your default checklist was updated." });
     } catch (error) {
       setDashboardError(error instanceof Error ? error.message : "Failed to save your program setup.");
+      toast({ variant: "destructive", title: "Setup not saved", description: error instanceof Error ? error.message : "Failed to save your program setup." });
     } finally {
       setIsSavingProgram(false);
     }
@@ -228,9 +231,11 @@ export default function DashboardPage() {
 
       setTasks(data?.tasks ?? []);
       setGuidance(data?.guidance ?? "");
+      toast({ title: nextDone ? "Task completed" : "Task reopened", description: currentTask.title });
     } catch (error) {
       setTasks(prev => prev.map(task => task.id === id ? { ...task, done: !nextDone } : task));
       setDashboardError(error instanceof Error ? error.message : "Failed to update task.");
+      toast({ variant: "destructive", title: "Task update failed", description: error instanceof Error ? error.message : "Failed to update task." });
     }
   };
 

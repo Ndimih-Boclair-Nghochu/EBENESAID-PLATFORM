@@ -139,6 +139,19 @@ function getSignalSummary(snapshot: PlatformIntelligenceSnapshot) {
   return `${snapshot.students} students, ${snapshot.verifiedListings} verified houses, ${snapshot.openJobs} active jobs, and ${snapshot.communityCircles} community circles`;
 }
 
+function buildPlatformPurposeAnswer(snapshot: PlatformIntelligenceSnapshot) {
+  return {
+    response: `EBENESAID is a relocation and operations platform for international students, partners, staff, investors, and administrators. Its main advantage is that it connects housing, documents, jobs, arrival support, food services, messaging, payments, and operations into one coordinated system instead of leaving users to manage disconnected tools. The platform currently tracks ${snapshot.students} students, ${snapshot.verifiedListings} verified housing records, ${snapshot.openJobs} job records, and ${snapshot.communityCircles} active community circles.`,
+    links: [
+      { title: 'Verified Housing', path: '/accommodation' },
+      { title: 'Secure Wallet', path: '/docs' },
+      { title: 'Job Board', path: '/jobs' },
+      { title: 'Arrival & Transit', path: '/arrival' },
+      { title: 'Student Community', path: '/community' },
+    ],
+  };
+}
+
 function buildSpecialistAnswer(
   specialist: SpecialistKey,
   message: string,
@@ -149,6 +162,10 @@ function buildSpecialistAnswer(
   const descriptor = getUserDescriptor(user);
   const lower = message.toLowerCase();
   const referral = specialist === 'navigator' ? null : detectReferral(specialist, message);
+
+  if (specialist === 'navigator' && /(purpose|what is ebenesaid|what does ebenesaid do|advantage|benefit|why use)/.test(lower)) {
+    return buildPlatformPurposeAnswer(snapshot);
+  }
 
   if (referral) {
     return {
@@ -167,11 +184,11 @@ function buildSpecialistAnswer(
       };
     case 'housing':
       return {
-        response: `${firstName}, I’ll keep the housing guidance aligned with ${descriptor}. We currently have ${snapshot.verifiedListings} verified housing records, so focus first on budget fit, commute to ${user?.university || 'your institution'}, and verified status before you contact a housing partner.`,
+        response: `${firstName}, I’ll keep the housing guidance aligned with ${descriptor}. We currently have ${snapshot.verifiedListings} verified housing records, so focus first on budget fit, commute to ${user?.university || 'your institution'}, and verified status before you contact a housing partner.${snapshot.todayListings > 0 ? ` ${snapshot.todayListings} new housing listing${snapshot.todayListings === 1 ? ' was' : 's were'} added today.` : ''}`,
       };
     case 'career':
       return {
-        response: `${firstName}, I’ll keep the job guidance tied to your current profile and student context in Latvia. The platform currently has ${snapshot.openJobs} active job records, so the strongest next move is to target roles that match your availability, update your profile details, and apply only where the job type and location fit your study routine.`,
+        response: `${firstName}, I’ll keep the job guidance tied to your current profile and student context in Latvia. The platform currently has ${snapshot.openJobs} active job records, so the strongest next move is to target roles that match your availability, update your profile details, and apply only where the job type and location fit your study routine.${snapshot.todayJobs > 0 ? ` ${snapshot.todayJobs} new job listing${snapshot.todayJobs === 1 ? ' was' : 's were'} added today.` : ''}`,
       };
     case 'documents':
       return {
@@ -187,7 +204,7 @@ function buildSpecialistAnswer(
       };
     case 'kitchen':
       return {
-        response: `${firstName}, I’ll use your current platform profile to keep food and delivery guidance practical. The platform currently has ${snapshot.foodItems} food records available, so the smartest choice is to compare delivery against pickup, keep your saved address current, and choose meal options that match both your schedule and your weekly budget.`,
+        response: `${firstName}, I’ll use your current platform profile to keep food and delivery guidance practical. The platform currently has ${snapshot.foodItems} food records available, so the smartest choice is to compare delivery against pickup, keep your saved address current, and choose meal options that match both your schedule and your weekly budget.${snapshot.todayFoodItems > 0 ? ` ${snapshot.todayFoodItems} new food listing${snapshot.todayFoodItems === 1 ? ' was' : 's were'} added today.` : ''}`,
       };
     case 'settings':
       return {

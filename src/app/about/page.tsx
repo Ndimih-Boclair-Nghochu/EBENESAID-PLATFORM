@@ -24,9 +24,10 @@ import {
   SheetHeader,
   SheetTitle
 } from "@/components/ui/sheet";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useAuthContext } from "@/auth/provider";
+import { LanguageSwitcher } from "@/components/language-switcher";
+import { useMarketingPageContent } from '@/hooks/use-marketing-page-content';
 
 export default function AboutPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -47,6 +48,7 @@ export default function AboutPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
   const { user } = useAuthContext();
+  const { content } = useMarketingPageContent('about');
 
   const handleProtectedLink = (e: React.MouseEvent, title: string, href: string) => {
     if (!user) {
@@ -100,6 +102,7 @@ export default function AboutPage() {
           </nav>
 
           <div className="flex items-center gap-3 md:gap-6">
+            <LanguageSwitcher compact />
             <Link href="/login" className="text-sm font-bold text-white hidden sm:block hover:text-white/80">Log In</Link>
             <Button asChild className="rounded-full px-6 md:px-8 h-10 md:h-12 font-black shadow-xl bg-white text-green-800 hover:bg-green-50 border-none text-xs md:text-sm">
               <Link href="/register">Get Started</Link>
@@ -138,13 +141,13 @@ export default function AboutPage() {
             {/* Hero Section - Compacted */}
             <div className="text-center space-y-6 max-w-3xl mx-auto">
               <Badge className="bg-primary/10 text-primary font-black px-6 py-2 rounded-full border-none uppercase tracking-[0.3em] text-[10px]">
-                The EBENESAID Story
+                {content.hero.badge}
               </Badge>
               <h1 className="text-3xl sm:text-4xl md:text-6xl font-black text-slate-900 leading-[1.1] tracking-tight">
-                Building the <br /><span className="text-primary italic">Global OS</span> for Students.
+                {content.hero.title} <br /><span className="text-primary italic">{content.hero.highlight}</span>
               </h1>
               <p className="text-base md:text-lg text-slate-500 font-medium leading-relaxed">
-                EBENESAID was founded in Riga, Latvia, by international students who experienced the chaos of relocation. We've built the infrastructure we wish we had.
+                {content.hero.description}
               </p>
             </div>
 
@@ -154,9 +157,9 @@ export default function AboutPage() {
                 <div className="h-14 w-14 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mb-6 group-hover:bg-primary group-hover:text-white transition-all">
                   <Target className="h-7 w-7" />
                 </div>
-                <h3 className="text-2xl font-black mb-4">Our Mission</h3>
+                <h3 className="text-2xl font-black mb-4">{content.mission.title}</h3>
                 <p className="text-slate-500 text-sm md:text-base leading-relaxed font-medium">
-                  To orchestrate the international student journey through technology, providing a secure, centralized operating system that replaces uncertainty with structure and trust.
+                  {content.mission.description}
                 </p>
               </div>
               <div className="p-8 md:p-12 bg-slate-900 text-white rounded-[2.5rem] shadow-2xl relative overflow-hidden group">
@@ -164,9 +167,9 @@ export default function AboutPage() {
                 <div className="h-14 w-14 bg-primary/20 text-primary rounded-2xl flex items-center justify-center mb-6 relative z-10 group-hover:bg-primary group-hover:text-white transition-all">
                   <Rocket className="h-7 w-7" />
                 </div>
-                <h3 className="text-2xl font-black mb-4 relative z-10">Our Vision</h3>
+                <h3 className="text-2xl font-black mb-4 relative z-10">{content.vision.title}</h3>
                 <p className="text-slate-300 text-sm md:text-base leading-relaxed font-medium relative z-10">
-                  A world where borders are not barriers to potential. We envision a seamless global education landscape where every student can thrive regardless of their origin.
+                  {content.vision.description}
                 </p>
               </div>
             </div>
@@ -174,44 +177,31 @@ export default function AboutPage() {
             {/* Founders Section */}
             <div className="space-y-12">
               <div className="text-center space-y-3">
-                <Badge className="bg-primary/5 text-primary border-none font-black px-4 py-1 text-[9px] uppercase tracking-widest">Operating Model</Badge>
-                <h2 className="text-3xl md:text-4xl font-black text-slate-900">How the Platform Operates</h2>
+                <Badge className="bg-primary/5 text-primary border-none font-black px-4 py-1 text-[9px] uppercase tracking-widest">{content.pillars.badge}</Badge>
+                <h2 className="text-3xl md:text-4xl font-black text-slate-900">{content.pillars.title}</h2>
               </div>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                <FounderCard 
-                  name="Platform Strategy" role="Leadership Pillar" img="https://picsum.photos/seed/platform-strategy/400/400" bio="Defines the operating model for student onboarding, relocation guidance, and long-term platform direction."
-                />
-                <FounderCard 
-                  name="Technology & Security" role="Leadership Pillar" img="https://picsum.photos/seed/platform-technology/400/400" bio="Owns secure account infrastructure, data protection, and the backend systems that connect platform modules."
-                />
-                <FounderCard 
-                  name="Operations & Partnerships" role="Leadership Pillar" img="https://picsum.photos/seed/platform-operations/400/400" bio="Coordinates housing workflows, student support operations, and institutional collaboration across the platform."
-                />
+                {content.pillars.items.map((item) => (
+                  <FounderCard key={item.title} name={item.title} role={item.role} img={item.image} bio={item.description} />
+                ))}
               </div>
             </div>
 
             {/* Values Section */}
             <div className="space-y-12">
               <div className="text-center space-y-3">
-                <Badge className="bg-primary/5 text-primary border-none font-black px-4 py-1 text-[9px] uppercase tracking-widest">Guiding Principles</Badge>
-                <h2 className="text-3xl md:text-4xl font-black text-slate-900">Our Core Values</h2>
+                <Badge className="bg-primary/5 text-primary border-none font-black px-4 py-1 text-[9px] uppercase tracking-widest">{content.values.badge}</Badge>
+                <h2 className="text-3xl md:text-4xl font-black text-slate-900">{content.values.title}</h2>
               </div>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                 <ValueItem 
-                   icon={<ShieldCheck />} 
-                   title="Trust First" 
-                   desc="We physically verify every housing unit to ensure student safety is never compromised." 
-                 />
-                 <ValueItem 
-                   icon={<Heart />} 
-                   title="Empathy Driven" 
-                   desc="Built by students, for students. Every feature is born from shared lived experiences." 
-                 />
-                 <ValueItem 
-                   icon={<Globe />} 
-                   title="Radical Inclusivity" 
-                   desc="Our platform adapts to your culture, making the world feel like home." 
-                 />
+                 {content.values.items.map((item, index) => (
+                   <ValueItem
+                     key={item.title}
+                     icon={index === 0 ? <ShieldCheck /> : index === 1 ? <Heart /> : <Globe />}
+                     title={item.title}
+                     desc={item.description}
+                   />
+                 ))}
               </div>
             </div>
 
@@ -220,14 +210,14 @@ export default function AboutPage() {
               <div className="absolute -top-20 -left-20 w-48 h-48 bg-primary/10 rounded-full blur-3xl" />
               <div className="absolute -bottom-20 -right-20 w-48 h-48 bg-primary/10 rounded-full blur-3xl" />
               
-              <h2 className="text-2xl md:text-5xl font-black text-slate-900 tracking-tight">Ready to join the <span className="text-primary italic">ecosystem?</span></h2>
+              <h2 className="text-2xl md:text-5xl font-black text-slate-900 tracking-tight">{content.cta.title} <span className="text-primary italic">{content.cta.highlight}</span></h2>
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center items-center relative z-10">
                 <Button size="lg" className="h-14 px-10 rounded-full font-black text-lg shadow-xl shadow-primary/30" asChild>
-                  <Link href="/register">Get Started Now <ArrowRight className="ml-2 h-5 w-5" /></Link>
+                  <Link href="/register">{content.cta.primaryCta} <ArrowRight className="ml-2 h-5 w-5" /></Link>
                 </Button>
                 <Button variant="outline" size="lg" className="h-14 px-10 rounded-full font-black text-lg border-2" asChild>
-                  <Link href="/contact">Contact Sales</Link>
+                  <Link href="/contact">{content.cta.secondaryCta}</Link>
                 </Button>
               </div>
             </div>
@@ -243,12 +233,10 @@ export default function AboutPage() {
               <div className="flex items-center gap-3">
                 <BrandLogo imageClassName="w-28" />
               </div>
-              <p className="text-slate-500 text-base max-w-md font-medium leading-relaxed">
-                The global operating system for international student mobility. Founded in Riga, serving the world's most ambitious students.
-              </p>
+              <p className="text-slate-500 text-base max-w-md font-medium leading-relaxed">{content.footer.description}</p>
             </div>
             <div>
-              <h4 className="font-black text-slate-900 mb-6 uppercase tracking-widest text-[10px]">Platform</h4>
+              <h4 className="font-black text-slate-900 mb-6 uppercase tracking-widest text-[10px]">{content.footer.platformHeading}</h4>
               <ul className="space-y-4 text-sm text-slate-600 font-bold">
                 <li><Link href="/accommodation" onClick={(e) => handleProtectedLink(e, "Verified Housing", "/accommodation")} className="hover:text-primary transition-colors flex items-center gap-2">Verified Housing <ExternalLink className="h-3 w-3 opacity-20" /></Link></li>
                 <li><Link href="/jobs" onClick={(e) => handleProtectedLink(e, "Job Board", "/jobs")} className="hover:text-primary transition-colors flex items-center gap-2">Job Board <ExternalLink className="h-3 w-3 opacity-20" /></Link></li>
@@ -256,7 +244,7 @@ export default function AboutPage() {
               </ul>
             </div>
             <div>
-              <h4 className="font-black text-slate-900 mb-6 uppercase tracking-widest text-[10px]">Support</h4>
+              <h4 className="font-black text-slate-900 mb-6 uppercase tracking-widest text-[10px]">{content.footer.companyHeading}</h4>
               <ul className="space-y-4 text-sm text-slate-600 font-bold">
                 <li><Link href="/contact" className="hover:text-primary transition-colors">Contact Us</Link></li>
                 <li><Link href="/how-it-works" className="hover:text-primary transition-colors">Resources</Link></li>
@@ -265,7 +253,7 @@ export default function AboutPage() {
             </div>
           </div>
           <div className="pt-8 border-t border-slate-100 flex flex-col md:flex-row justify-between items-center gap-6 text-[9px] font-black uppercase tracking-[0.4em] text-slate-400 text-center md:text-left">
-            <p>© 2025 EBENESAID. ALL RIGHTS RESERVED. UNIVERSITY PARTNER TOOL.</p>
+            <p>{content.footer.copyright}</p>
           </div>
         </div>
       </footer>

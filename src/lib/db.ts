@@ -1,6 +1,12 @@
 import crypto from 'crypto';
 import { dbPool as pool } from '@/lib/postgres';
 import { defaultLocale, normalizeLocale, type SupportedLocale } from '@/lib/i18n';
+import {
+  getDefaultMarketingPageContent,
+  normalizeMarketingPageContent,
+  type MarketingPageContent,
+  type MarketingPageKey,
+} from '@/lib/marketing-site-content';
 import { getDefaultHomePageContent, normalizeHomePageContent, type HomePageContent } from '@/lib/public-site-content';
 
 // ─── Password Hashing ──────────────────────────────────────────────────────────
@@ -134,6 +140,7 @@ export type AdminFinanceLedger = {
 export interface StudentDashboardTask {
   id: number;
   userId: number;
+  templateId: number | null;
   title: string;
   desc: string;
   done: boolean;
@@ -268,6 +275,9 @@ export type PlatformIntelligenceSnapshot = {
   openJobs: number;
   communityCircles: number;
   foodItems: number;
+  todayListings: number;
+  todayJobs: number;
+  todayFoodItems: number;
 };
 
 export type PublicPageKey = 'home';
@@ -526,6 +536,7 @@ async function ensurePlatformTables(): Promise<void> {
         CREATE TABLE IF NOT EXISTS student_dashboard_tasks (
           id SERIAL PRIMARY KEY,
           user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          template_id INTEGER REFERENCES student_task_templates(id) ON DELETE SET NULL,
           title TEXT NOT NULL,
           description TEXT NOT NULL,
           done BOOLEAN NOT NULL DEFAULT FALSE,
@@ -540,6 +551,11 @@ async function ensurePlatformTables(): Promise<void> {
       await pool.query(`
         CREATE UNIQUE INDEX IF NOT EXISTS student_dashboard_tasks_user_title_idx
         ON student_dashboard_tasks (user_id, title)
+      `);
+
+      await pool.query(`
+        ALTER TABLE student_dashboard_tasks
+        ADD COLUMN IF NOT EXISTS template_id INTEGER REFERENCES student_task_templates(id) ON DELETE SET NULL
       `);
 
       await pool.query(`
@@ -785,6 +801,7 @@ export async function deletePropertyListing(listingId: number): Promise<boolean>
 function toStudentDashboardTask(row: {
   id: number;
   user_id: number;
+  template_id: number | null;
   title: string;
   description: string;
   done: boolean;
@@ -797,6 +814,7 @@ function toStudentDashboardTask(row: {
   return {
     id: row.id,
     userId: row.user_id,
+    templateId: row.template_id,
     title: row.title,
     desc: row.description,
     done: row.done,
@@ -855,10 +873,109 @@ async function assignStudentTaskTemplates(userId: number, programDurationBand: S
   const tasks = await getStudentTaskTemplatesByBand(programDurationBand);
   for (const [index, task] of tasks.entries()) {
     await pool.query(
-      `INSERT INTO student_dashboard_tasks (user_id, title, description, done, category, href, sort_order, created_at, updated_at)
-       VALUES ($1, $2, $3, FALSE, $4, $5, $6, NOW(), NOW())`,
-      [userId, task.title, task.description, task.category, task.href, task.sortOrder ?? index]
+      `INSERT INTO student_dashboard_tasks (user_id, template_id, title, description, done, category, href, sort_order, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, FALSE, $5, $6, $7, NOW(), NOW())`,
+      [userId, task.id, task.title, task.description, task.category, task.href, task.sortOrder ?? index]
     );
+  }
+}
+
+async function syncStudentDashboardTasksForUser(userId: number, programDurationBand: StudentTaskDurationBand) {
+  const [templateResult, currentTaskResult] = await Promise.all([
+    pool.query(
+      `SELECT id, duration_band, title, description, category, href, sort_order, is_active, created_at, updated_at
+       FROM student_task_templates
+       WHERE duration_band = $1 AND is_active = TRUE
+       ORDER BY sort_order ASC, id ASC`,
+      [programDurationBand]
+    ),
+    pool.query(
+      `SELECT id, user_id, template_id, title, description, done, category, href, sort_order, created_at, updated_at
+       FROM student_dashboard_tasks
+       WHERE user_id = $1
+       ORDER BY sort_order ASC, id ASC`,
+      [userId]
+    ),
+  ]);
+
+  const templates = templateResult.rows.map(toStudentTaskTemplate);
+  const currentTasks = currentTaskResult.rows.map(toStudentDashboardTask);
+  const currentByTemplateId = new Map<number, StudentDashboardTask>();
+  const currentByTitle = new Map<string, StudentDashboardTask>();
+
+  for (const task of currentTasks) {
+    if (task.templateId) {
+      currentByTemplateId.set(task.templateId, task);
+    }
+    currentByTitle.set(task.title.toLowerCase(), task);
+  }
+
+  const activeTemplateIds = new Set<number>();
+
+  for (const [index, template] of templates.entries()) {
+    activeTemplateIds.add(template.id);
+    const existingTask =
+      currentByTemplateId.get(template.id) ?? currentByTitle.get(template.title.toLowerCase());
+
+    if (existingTask) {
+      await pool.query(
+        `UPDATE student_dashboard_tasks
+         SET template_id = $2,
+             title = $3,
+             description = $4,
+             category = $5,
+             href = $6,
+             sort_order = $7,
+             updated_at = NOW()
+         WHERE id = $1`,
+        [
+          existingTask.id,
+          template.id,
+          template.title,
+          template.description,
+          template.category,
+          template.href,
+          template.sortOrder ?? index,
+        ]
+      );
+      continue;
+    }
+
+    await pool.query(
+      `INSERT INTO student_dashboard_tasks (user_id, template_id, title, description, done, category, href, sort_order, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, FALSE, $5, $6, $7, NOW(), NOW())`,
+      [userId, template.id, template.title, template.description, template.category, template.href, template.sortOrder ?? index]
+    );
+  }
+
+  for (const task of currentTasks) {
+    const taskTemplateId = task.templateId;
+    if (taskTemplateId && !activeTemplateIds.has(taskTemplateId)) {
+      await pool.query(`DELETE FROM student_dashboard_tasks WHERE id = $1`, [task.id]);
+      continue;
+    }
+
+    if (!taskTemplateId) {
+      const matchedTemplate = templates.find(template => template.title.toLowerCase() === task.title.toLowerCase());
+      if (!matchedTemplate) {
+        await pool.query(`DELETE FROM student_dashboard_tasks WHERE id = $1`, [task.id]);
+      }
+    }
+  }
+}
+
+export async function syncStudentDashboardTasksForBand(programDurationBand: StudentTaskDurationBand) {
+  await ensurePlatformTables();
+
+  const users = await pool.query(
+    `SELECT user_id
+     FROM student_onboarding_profiles
+     WHERE onboarding_completed = TRUE AND program_duration_band = $1`,
+    [programDurationBand]
+  );
+
+  for (const row of users.rows) {
+    await syncStudentDashboardTasksForUser(Number(row.user_id), programDurationBand);
   }
 }
 
@@ -866,7 +983,7 @@ export async function getStudentDashboardData(user: SafeUser): Promise<StudentDa
   await ensurePlatformTables();
 
   let result = await pool.query(
-    `SELECT id, user_id, title, description, done, category, href, sort_order, created_at, updated_at
+    `SELECT id, user_id, template_id, title, description, done, category, href, sort_order, created_at, updated_at
      FROM student_dashboard_tasks
      WHERE user_id = $1
      ORDER BY sort_order ASC, id ASC`,
@@ -878,9 +995,9 @@ export async function getStudentDashboardData(user: SafeUser): Promise<StudentDa
   if (!tasks.length) {
     const onboarding = await getStudentOnboardingProfile(user.id);
     if (onboarding.onboardingCompleted && onboarding.programDurationBand) {
-      await assignStudentTaskTemplates(user.id, onboarding.programDurationBand);
+      await syncStudentDashboardTasksForUser(user.id, onboarding.programDurationBand);
       result = await pool.query(
-        `SELECT id, user_id, title, description, done, category, href, sort_order, created_at, updated_at
+        `SELECT id, user_id, template_id, title, description, done, category, href, sort_order, created_at, updated_at
          FROM student_dashboard_tasks
          WHERE user_id = $1
          ORDER BY sort_order ASC, id ASC`,
@@ -1052,7 +1169,7 @@ export async function updateStudentDashboardTask(
     `UPDATE student_dashboard_tasks
      SET done = $3, updated_at = NOW()
      WHERE id = $1 AND user_id = $2
-     RETURNING id, user_id, title, description, done, category, href, sort_order, created_at, updated_at`,
+     RETURNING id, user_id, template_id, title, description, done, category, href, sort_order, created_at, updated_at`,
     [taskId, userId, done]
   );
 
@@ -1110,7 +1227,7 @@ export async function createUser(data: {
 
   const result = await pool.query(
     `INSERT INTO users (email, password_hash, password_salt, first_name, last_name, phone, university, country_of_origin, user_type, is_active, trial_start_date, trial_end_date, has_paid, created_at, updated_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true, $10, $11, false, NOW(), NOW())
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, false, NOW(), NOW())
      RETURNING *`,
     [
       data.email.toLowerCase().trim(),
@@ -1122,6 +1239,7 @@ export async function createUser(data: {
       data.university?.trim() || '',
       data.countryOfOrigin?.trim() || '',
       userType,
+      isActive,
       now.toISOString(),
       trialEnd.toISOString(),
     ]
@@ -1534,6 +1652,49 @@ export async function updatePublicHomePageContent(content: HomePageContent, loca
   return normalizedContent;
 }
 
+export async function getPublicMarketingPageContent<TPage extends MarketingPageKey>(
+  page: TPage,
+  locale: SupportedLocale = defaultLocale
+): Promise<MarketingPageContent> {
+  await ensureCoreTables();
+
+  const normalizedLocale = normalizeLocale(locale);
+  const result = await pool.query(
+    `SELECT content
+     FROM public_site_content
+     WHERE page_key = $1 AND locale = $2`,
+    [page, normalizedLocale]
+  );
+
+  const row = result.rows[0];
+  if (!row) {
+    return getDefaultMarketingPageContent(page, normalizedLocale);
+  }
+
+  return normalizeMarketingPageContent(page, row.content, normalizedLocale);
+}
+
+export async function updatePublicMarketingPageContent<TPage extends MarketingPageKey>(
+  page: TPage,
+  content: MarketingPageContent,
+  locale: SupportedLocale = defaultLocale
+): Promise<MarketingPageContent> {
+  await ensureCoreTables();
+
+  const normalizedLocale = normalizeLocale(locale);
+  const normalizedContent = normalizeMarketingPageContent(page, content, normalizedLocale);
+
+  await pool.query(
+    `INSERT INTO public_site_content (page_key, locale, content, updated_at)
+     VALUES ($1, $2, $3::jsonb, NOW())
+     ON CONFLICT (page_key, locale)
+     DO UPDATE SET content = EXCLUDED.content, updated_at = NOW()`,
+    [page, normalizedLocale, JSON.stringify(normalizedContent)]
+  );
+
+  return normalizedContent;
+}
+
 export async function getPlatformIntelligenceSnapshot(): Promise<PlatformIntelligenceSnapshot> {
   await ensureCoreTables();
 
@@ -1546,13 +1707,16 @@ export async function getPlatformIntelligenceSnapshot(): Promise<PlatformIntelli
     }
   }
 
-  const [students, users, verifiedListings, openJobs, communityCircles, foodItems] = await Promise.all([
+  const [students, users, verifiedListings, openJobs, communityCircles, foodItems, todayListings, todayJobs, todayFoodItems] = await Promise.all([
     safeCount(`SELECT COUNT(*) FROM users WHERE user_type = 'student'`),
     safeCount(`SELECT COUNT(*) FROM users`),
     safeCount(`SELECT COUNT(*) FROM property_listings WHERE status = 'Verified'`),
     safeCount(`SELECT COUNT(*) FROM job_listings`),
     safeCount(`SELECT COUNT(*) FROM community_circles WHERE status = 'approved'`),
     safeCount(`SELECT COUNT(*) FROM food_menu_items`),
+    safeCount(`SELECT COUNT(*) FROM property_listings WHERE DATE(created_at) = CURRENT_DATE`),
+    safeCount(`SELECT COUNT(*) FROM job_listings WHERE DATE(created_at) = CURRENT_DATE`),
+    safeCount(`SELECT COUNT(*) FROM food_menu_items WHERE DATE(created_at) = CURRENT_DATE`),
   ]);
 
   return {
@@ -1562,5 +1726,8 @@ export async function getPlatformIntelligenceSnapshot(): Promise<PlatformIntelli
     openJobs,
     communityCircles,
     foodItems,
+    todayListings,
+    todayJobs,
+    todayFoodItems,
   };
 }

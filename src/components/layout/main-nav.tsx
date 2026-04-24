@@ -1,6 +1,5 @@
 'use client';
 
-import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -38,7 +37,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuthContext } from "@/auth/provider";
-import { LanguageSwitcher } from "@/components/language-switcher";
 import {
   getPortalLabels,
   isAdminRole,
@@ -136,7 +134,6 @@ const transportNavigation = [
 ];
 
 export function MainNav() {
-
   const pathname = usePathname();
   const router = useRouter();
   // Use the real backend user from AuthProvider
@@ -186,10 +183,10 @@ export function MainNav() {
 
   return (
     <nav className="flex flex-col h-full gap-4 px-4 py-8">
-      <div className="flex items-center gap-3 pb-8 pt-2 px-2">
-        <div className="flex flex-col">
-          <BrandLogo frameClassName="border border-white/15 bg-white p-1.5 shadow-[0_12px_28px_rgba(0,0,0,0.22)] ring-4 ring-white/5" imageClassName="w-12" />
-          <span className="text-[8px] font-black text-green-200 uppercase tracking-[0.4em] mt-1">
+      <div className="flex items-center gap-3 px-2 pb-8 pt-2">
+        <div className="flex flex-col items-start">
+          <BrandLogo frameClassName="border border-white/15 bg-white/95 p-1.5 shadow-[0_12px_28px_rgba(0,0,0,0.22)] ring-4 ring-white/5" imageClassName="w-12" />
+          <span className="mt-1 text-[8px] font-black uppercase tracking-[0.4em] text-green-200">
             {roleLabel}
           </span>
         </div>
@@ -221,9 +218,6 @@ export function MainNav() {
 
       <div className="pt-6 space-y-1 border-t border-white/10">
         <p className="px-4 text-[9px] font-black text-green-200/50 uppercase tracking-[0.4em] mb-4 mt-2">Preferences</p>
-        <div className="px-1">
-          <LanguageSwitcher compact />
-        </div>
         <Link
           href="/settings"
           className={cn(

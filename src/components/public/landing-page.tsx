@@ -182,7 +182,7 @@ export default function LandingPage() {
             ))}
           </nav>
           <div className="flex shrink-0 items-center gap-2 md:gap-3">
-            <div className="hidden sm:block"><LanguageSwitcher compact /></div>
+            <LanguageSwitcher compact />
             <Link href="/login" className="hidden rounded-lg px-3 py-2 text-sm font-semibold text-white/80 transition-all hover:bg-white/10 hover:text-white sm:block">
               {content.navigation.signInLabel}
             </Link>

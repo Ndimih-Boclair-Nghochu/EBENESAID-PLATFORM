@@ -16,9 +16,9 @@ import {
   Globe,
   Home,
   Star,
-  CheckCircle2,
   Phone,
   Mail,
+  CheckCircle2,
   GraduationCap,
   MapPin,
   FileText,
@@ -36,9 +36,9 @@ import {
 import Autoplay from "embla-carousel-autoplay";
 import { useAuthContext } from "@/auth/provider";
 import { useRouter } from "next/navigation";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { COUNTRIES, UNIVERSITIES } from "@/lib/constants";
 import { BrandLogo } from "@/components/brand-logo";
+import { LanguageSwitcher } from "@/components/language-switcher";
 
 const testimonials = [
   {
@@ -230,12 +230,15 @@ export default function RegisterPage() {
       <div className="flex-1 flex flex-col bg-slate-50/40 min-h-screen">
         {/* Top bar */}
         <header className="p-5 flex items-center justify-between shrink-0">
-          <Button variant="ghost" asChild size="sm" className="gap-2 font-bold text-slate-500 hover:text-slate-900 hover:bg-white rounded-xl transition-all group px-3 h-9 bg-white shadow-sm border border-slate-100 text-xs">
-            <Link href="/">
-              <ArrowLeft className="h-3.5 w-3.5 group-hover:-translate-x-0.5 transition-transform" />
-              Back to Home
-            </Link>
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" asChild size="sm" className="gap-2 font-bold text-slate-500 hover:text-slate-900 hover:bg-white rounded-xl transition-all group px-3 h-9 bg-white shadow-sm border border-slate-100 text-xs">
+              <Link href="/">
+                <ArrowLeft className="h-3.5 w-3.5 group-hover:-translate-x-0.5 transition-transform" />
+                Back to Home
+              </Link>
+            </Button>
+            <LanguageSwitcher tone="light" compact />
+          </div>
           <p className="text-sm text-slate-400 font-medium hidden sm:block">
             Already registered?{' '}
             <Link href="/login" className="text-primary font-bold hover:underline">Sign in</Link>
@@ -280,21 +283,23 @@ export default function RegisterPage() {
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <FormSelect
+                    <FormDatalistInput
                       label="University"
-                      placeholder="Select your university"
+                      placeholder="Type your university"
                       icon={<GraduationCap className="h-3.5 w-3.5" />}
                       value={university}
                       onChange={setUniversity}
                       options={UNIVERSITIES.map((universityOption) => universityOption.name)}
+                      listId="register-universities"
                     />
-                    <FormSelect
+                    <FormDatalistInput
                       label="Country of Origin"
-                      placeholder="Select your country"
+                      placeholder="Type your country"
                       icon={<MapPin className="h-3.5 w-3.5" />}
                       value={countryOfOrigin}
                       onChange={setCountryOfOrigin}
                       options={COUNTRIES}
+                      listId="register-countries"
                     />
                   </div>
 
@@ -319,14 +324,6 @@ export default function RegisterPage() {
                       isVisible={showConfirmPassword}
                       onToggleVisibility={() => setShowConfirmPassword((current) => !current)}
                     />
-                  </div>
-
-                  {/* Trial info */}
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-green-50 border border-green-100">
-                    <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
-                    <p className="text-xs font-medium text-green-700">
-                      Your account includes a <span className="font-black">1-month free trial</span>. After that, the platform fee is <span className="font-black">€5</span>.
-                    </p>
                   </div>
 
                   <Button
@@ -410,13 +407,14 @@ function FormInput({
   );
 }
 
-function FormSelect({
+function FormDatalistInput({
   label,
   placeholder,
   icon,
   value,
   onChange,
   options,
+  listId,
 }: {
   label: string;
   placeholder: string;
@@ -424,6 +422,7 @@ function FormSelect({
   value: string;
   onChange: (value: string) => void;
   options: string[];
+  listId: string;
 }) {
   return (
     <div className="space-y-1.5">
@@ -431,18 +430,20 @@ function FormSelect({
         {icon && <span className="text-slate-300">{icon}</span>}
         <Label className="font-bold text-xs text-slate-600">{label}</Label>
       </div>
-      <Select value={value} onValueChange={onChange}>
-        <SelectTrigger className="h-11 rounded-xl bg-slate-50 border-slate-200 focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all font-medium px-4 text-sm">
-          <SelectValue placeholder={placeholder} />
-        </SelectTrigger>
-        <SelectContent className="max-h-80">
+      <div>
+        <Input
+          list={listId}
+          placeholder={placeholder}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="h-11 rounded-xl bg-slate-50 border-slate-200 focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all font-medium px-4 text-sm placeholder:text-slate-300"
+        />
+        <datalist id={listId}>
           {options.map((option) => (
-            <SelectItem key={option} value={option}>
-              {option}
-            </SelectItem>
+            <option key={option} value={option} />
           ))}
-        </SelectContent>
-      </Select>
+        </datalist>
+      </div>
     </div>
   );
 }

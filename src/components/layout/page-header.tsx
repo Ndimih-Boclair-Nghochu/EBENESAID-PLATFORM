@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Bell, ChevronDown, LifeBuoy, LogOut, MessageSquare, Settings, User } from 'lucide-react';
 
 import { useAuthContext } from '@/auth/provider';
+import { LanguageSwitcher } from '@/components/language-switcher';
 import { getDefaultDashboardHref, getMessagesHref, getSupportHref } from '@/lib/rbac';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -76,6 +77,9 @@ export function PageHeader({
       </div>
 
       <div className="flex w-full flex-wrap items-center justify-between gap-2 sm:w-auto sm:flex-nowrap sm:justify-end">
+        <div className="flex items-center gap-2">
+          <LanguageSwitcher tone="light" />
+        </div>
         {actions ? <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">{actions}</div> : null}
 
         <DropdownMenu>

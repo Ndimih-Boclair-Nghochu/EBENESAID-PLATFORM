@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Plus, Save, Trash2 } from 'lucide-react';
 
 import { SidebarShell } from '@/components/layout/sidebar-shell';
+import { ConfirmAction } from '@/components/confirm-action';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { toast } from '@/hooks/use-toast';
 
 type StudentTaskDurationBand = 'under_3_months' | 'over_3_months';
 
@@ -80,6 +82,7 @@ export default function AdminStudentTaskTemplatesPage() {
     const data: TemplatesResponse = await res.json();
     if (!res.ok) {
       setStatus(data.error || 'Failed to create template.');
+      toast({ variant: 'destructive', title: 'Template not created', description: data.error || 'Failed to create template.' });
       return;
     }
     setTemplates(data.templates ?? templates);
@@ -91,6 +94,7 @@ export default function AdminStudentTaskTemplatesPage() {
       sortOrder: createForm.sortOrder + 1,
     });
     setStatus('Student checklist template created.');
+    toast({ title: 'Template created', description: 'The default student checklist has been updated.' });
   }
 
   async function saveTemplate(template: StudentTaskTemplate) {
@@ -103,10 +107,12 @@ export default function AdminStudentTaskTemplatesPage() {
     const data: TemplatesResponse = await res.json();
     if (!res.ok) {
       setStatus(data.error || 'Failed to update template.');
+      toast({ variant: 'destructive', title: 'Template not updated', description: data.error || 'Failed to update template.' });
       return;
     }
     setTemplates(data.templates ?? templates);
     setStatus('Student checklist template updated.');
+    toast({ title: 'Template saved', description: 'Student accounts for this stay period have been resynchronized.' });
   }
 
   async function deleteTemplate(id: number) {
@@ -119,10 +125,12 @@ export default function AdminStudentTaskTemplatesPage() {
     const data: TemplatesResponse = await res.json();
     if (!res.ok) {
       setStatus(data.error || 'Failed to delete template.');
+      toast({ variant: 'destructive', title: 'Template not deleted', description: data.error || 'Failed to delete template.' });
       return;
     }
     setTemplates(data.templates ?? templates);
     setStatus('Student checklist template deleted.');
+    toast({ title: 'Template deleted', description: 'Affected student checklists were refreshed.' });
   }
 
   function updateTemplateInState(
@@ -204,9 +212,18 @@ export default function AdminStudentTaskTemplatesPage() {
                             <Button className="rounded-xl bg-green-700 hover:bg-green-800" onClick={() => saveTemplate(template)}>
                               <Save className="mr-2 h-4 w-4" /> Save
                             </Button>
-                            <Button variant="outline" className="rounded-xl text-red-600" onClick={() => deleteTemplate(template.id)}>
-                              <Trash2 className="mr-2 h-4 w-4" /> Delete
-                            </Button>
+                            <ConfirmAction
+                              title="Delete checklist template?"
+                              description="This will remove the default task and refresh student checklists for the affected stay period."
+                              confirmLabel="Delete template"
+                              confirmVariant="destructive"
+                              onConfirm={() => deleteTemplate(template.id)}
+                              trigger={
+                                <Button variant="outline" className="rounded-xl text-red-600">
+                                  <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                </Button>
+                              }
+                            />
                           </div>
                         </div>
                       ))

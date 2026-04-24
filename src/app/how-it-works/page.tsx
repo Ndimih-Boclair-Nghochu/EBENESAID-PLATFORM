@@ -26,6 +26,8 @@ import {
 } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useAuthContext } from "@/auth/provider";
+import { LanguageSwitcher } from "@/components/language-switcher";
+import { useMarketingPageContent } from '@/hooks/use-marketing-page-content';
 
 export default function HowItWorksPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -46,6 +48,7 @@ export default function HowItWorksPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
   const { user } = useAuthContext();
+  const { content } = useMarketingPageContent('how-it-works');
 
   const handleProtectedLink = (e: React.MouseEvent, title: string, href: string) => {
     if (!user) {
@@ -99,6 +102,7 @@ export default function HowItWorksPage() {
           </nav>
 
           <div className="flex items-center gap-3 md:gap-6">
+            <LanguageSwitcher compact />
             <Link href="/login" className="text-sm font-bold text-white hidden sm:block hover:text-white/80">Log In</Link>
             <Button asChild className="rounded-full px-6 md:px-8 h-10 md:h-12 font-black shadow-xl bg-white text-green-800 hover:bg-green-50 border-none text-xs md:text-sm">
               <Link href="/register">Get Started</Link>
@@ -138,13 +142,13 @@ export default function HowItWorksPage() {
             {/* Header Content */}
             <div className="text-center space-y-8 max-w-4xl mx-auto">
               <Badge className="bg-primary/10 text-primary font-black px-6 py-2 rounded-full border-none uppercase tracking-[0.4em] text-[10px] animate-in fade-in slide-in-from-bottom-2 duration-700">
-                The Architecture of Mobility
+                {content.hero.badge}
               </Badge>
               <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-black text-slate-900 leading-[1.1] tracking-tighter animate-in fade-in slide-in-from-bottom-4 duration-1000">
-                Your Journey, <br /><span className="text-primary italic">Systematized.</span>
+                {content.hero.title} <br /><span className="text-primary italic">{content.hero.highlight}</span>
               </h1>
               <p className="text-lg md:text-2xl text-slate-500 font-medium leading-relaxed max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-6 duration-1000">
-                We've broken down the complex international student relocation process into four clear, verified modules.
+                {content.hero.description}
               </p>
             </div>
 

@@ -162,7 +162,7 @@ export function Chatbot() {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                 placeholder="Where would you like to go?" 
-                className="h-10 sm:h-12 border-none bg-transparent shadow-none focus-visible:ring-0 font-bold px-4 sm:px-6 text-slate-700 text-sm flex-1" 
+                className="h-10 sm:h-12 border-none bg-transparent shadow-none focus-visible:ring-0 font-bold px-4 sm:px-6 text-slate-700 text-base sm:text-sm flex-1" 
               />
               <Button 
                 onClick={handleSend}

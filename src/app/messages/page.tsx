@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Bot, Briefcase, Building2, ChevronLeft, FileText, Hotel, MessageSquare, Send, Soup, User } from "lucide-react";
 
 import { SidebarShell } from "@/components/layout/sidebar-shell";
+import { toast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,9 +15,18 @@ type Conversation = {
   id: number;
   name: string;
   type: string;
+  contactType: string;
   lastMsg: string;
   time: string;
   unread: number;
+  icon: string;
+};
+
+type MessageContact = {
+  userId: number;
+  name: string;
+  email: string;
+  userType: string;
   icon: string;
 };
 
@@ -42,6 +52,7 @@ const iconMap = {
 export default function MessagesPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
+  const [contacts, setContacts] = useState<MessageContact[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<number | null>(null);
   const [chatInput, setChatInput] = useState("");
   const [status, setStatus] = useState<string | null>(null);
@@ -54,6 +65,7 @@ export default function MessagesPage() {
     }
     setConversations(data.conversations ?? []);
     setMessages(data.messages ?? []);
+    setContacts(data.contacts ?? []);
     setActiveConversationId((current: number | null) => current ?? data.conversations?.[0]?.id ?? null);
   }
 
@@ -74,12 +86,36 @@ export default function MessagesPage() {
     const data = await res.json();
     if (!res.ok) {
       setStatus(data.error || "Failed to send message.");
+      toast({ variant: "destructive", title: "Message not sent", description: data.error || "Failed to send message." });
       return;
     }
     setConversations(data.conversations ?? []);
     setMessages(data.messages ?? []);
     setChatInput("");
     setStatus("Message sent.");
+    toast({ title: "Message sent", description: activeConversation ? `Your message was sent to ${activeConversation.name}.` : "Your message was sent." });
+  }
+
+  async function startConversation(contact: MessageContact) {
+    const res = await fetch("/api/student/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ recipientUserId: contact.userId, content: "" }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      setStatus(data.error || "Failed to open conversation.");
+      toast({ variant: "destructive", title: "Conversation not opened", description: data.error || "Failed to open conversation." });
+      return;
+    }
+    setConversations(data.conversations ?? []);
+    setMessages(data.messages ?? []);
+    setContacts(data.contacts ?? []);
+    const openedConversation = (data.conversations ?? []).find((conversation: Conversation) => conversation.contactType === `direct:${contact.userId}`);
+    setActiveConversationId(openedConversation?.id ?? null);
+    setStatus(`Conversation with ${contact.name} opened.`);
+    toast({ title: "Conversation opened", description: `You can now message ${contact.name}.` });
   }
 
   const activeConversation = useMemo(
@@ -145,6 +181,32 @@ export default function MessagesPage() {
               {!conversations.length && (
                 <div className="rounded-2xl border border-dashed border-slate-200 p-8 text-center text-sm text-slate-500">
                   No real conversations yet.
+                </div>
+              )}
+              {contacts.length > 0 && (
+                <div className="space-y-3 border-t border-slate-100 pt-4">
+                  <p className="text-xs font-black uppercase tracking-wider text-slate-400">Start a new conversation</p>
+                  {contacts.map((contact) => {
+                    const Icon = iconMap[contact.icon as keyof typeof iconMap] ?? User;
+                    return (
+                      <button
+                        key={contact.userId}
+                        type="button"
+                        onClick={() => startConversation(contact)}
+                        className="w-full rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-left transition hover:border-primary hover:bg-primary/5"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="rounded-xl bg-white p-2 text-slate-500 shadow-sm">
+                            <Icon className="h-4 w-4" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="truncate font-black text-slate-900">{contact.name}</p>
+                            <p className="mt-1 truncate text-xs uppercase tracking-wider text-slate-400">{contact.userType}</p>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </CardContent>

@@ -19,8 +19,9 @@ export async function ebenesaidInfo(input: EbenesaidInfoInput): Promise<Ebenesai
     message: input.message,
     user: input.user,
   });
+
   return {
     response: result.response,
-    links: result.links,
+    links: 'links' in result ? result.links : undefined,
   };
 }

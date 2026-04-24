@@ -145,7 +145,7 @@ export function SpecialistChat({ title, specialty, initialMessage, flow, icon }:
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
             placeholder={`Ask the ${title}...`} 
-            className="h-8 sm:h-9 border-none bg-transparent shadow-none focus-visible:ring-0 font-bold px-3 sm:px-4 text-slate-700 text-xs flex-1" 
+            className="h-8 sm:h-9 border-none bg-transparent shadow-none focus-visible:ring-0 font-bold px-3 sm:px-4 text-slate-700 text-base sm:text-xs flex-1" 
           />
           <Button 
             onClick={handleSend}
