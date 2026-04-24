@@ -66,7 +66,7 @@ type DashboardResponse = {
   detail?: string;
   source?: string;
   onboarding?: {
-    programDurationBand: "under_3_months" | "over_3_months" | null;
+    programDurationBand: "under_3_months" | "over_3_months" | "already_in_latvia" | null;
     onboardingCompleted: boolean;
   };
 };
@@ -94,6 +94,7 @@ export default function DashboardPage() {
   const [showProgramSetup, setShowProgramSetup] = useState(false);
   const [isSavingProgram, setIsSavingProgram] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<string | null>(null);
+  const [onboarding, setOnboarding] = useState<DashboardResponse["onboarding"] | null>(null);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -138,6 +139,7 @@ export default function DashboardPage() {
         if (isMounted) {
           setTasks(data?.tasks ?? []);
           setGuidance(data?.guidance ?? "");
+          setOnboarding(data?.onboarding ?? null);
           setDashboardError(null);
           setShowProgramSetup(Boolean(user && !data?.onboarding?.onboardingCompleted));
         }
@@ -164,7 +166,7 @@ export default function DashboardPage() {
     clearFirstLogin();
   };
 
-  const handleProgramSelection = async (programDurationBand: "under_3_months" | "over_3_months") => {
+  const handleProgramSelection = async (programDurationBand: "under_3_months" | "over_3_months" | "already_in_latvia") => {
     setIsSavingProgram(true);
     setDashboardError(null);
 
@@ -183,8 +185,15 @@ export default function DashboardPage() {
 
       setTasks(data?.tasks ?? []);
       setGuidance(data?.guidance ?? "");
+      setOnboarding(data?.onboarding ?? null);
       setShowProgramSetup(false);
-      toast({ title: "Checklist applied", description: "Your stay period was saved and your default checklist was updated." });
+      toast({
+        title: "Stay period saved",
+        description:
+          programDurationBand === "already_in_latvia"
+            ? "Your account was marked as already in Latvia and checklist tasks were removed."
+            : "Your stay period was saved and your default checklist was updated.",
+      });
     } catch (error) {
       setDashboardError(error instanceof Error ? error.message : "Failed to save your program setup.");
       toast({ variant: "destructive", title: "Setup not saved", description: error instanceof Error ? error.message : "Failed to save your program setup." });
@@ -263,6 +272,7 @@ export default function DashboardPage() {
   const doneTasks = tasks.filter(task => task.done);
   const totalModules = new Set(tasks.map(task => task.category)).size;
   const activeModules = new Set(tasks.filter(task => task.done).map(task => task.category)).size;
+  const alreadyInLatvia = onboarding?.programDurationBand === "already_in_latvia";
 
   return (
     <SidebarShell>
@@ -341,7 +351,7 @@ export default function DashboardPage() {
               <p className="mt-2 text-sm text-slate-600">
                 Choose your program length so the admin-defined checklist for your stay period can be applied to your account automatically.
               </p>
-              <div className="mt-6 grid gap-4 md:grid-cols-2">
+              <div className="mt-6 grid gap-4 md:grid-cols-3">
                 <button
                   type="button"
                   className="rounded-2xl border border-slate-200 p-5 text-left transition hover:border-primary hover:bg-primary/5"
@@ -360,9 +370,18 @@ export default function DashboardPage() {
                   <p className="text-sm font-black text-slate-900">3 Months Or More</p>
                   <p className="mt-2 text-sm text-slate-600">Degree program, long exchange, or extended academic relocation.</p>
                 </button>
+                <button
+                  type="button"
+                  className="rounded-2xl border border-slate-200 p-5 text-left transition hover:border-primary hover:bg-primary/5"
+                  onClick={() => handleProgramSelection("already_in_latvia")}
+                  disabled={isSavingProgram}
+                >
+                  <p className="text-sm font-black text-slate-900">Already In Latvia</p>
+                  <p className="mt-2 text-sm text-slate-600">I already live in Latvia and want to use the platform without relocation checklist tasks.</p>
+                </button>
               </div>
               {isSavingProgram && (
-                <p className="mt-4 text-sm text-slate-500">Saving your setup and applying your default checklist...</p>
+                <p className="mt-4 text-sm text-slate-500">Saving your setup and updating your student workspace...</p>
               )}
             </div>
           </div>
@@ -455,10 +474,21 @@ export default function DashboardPage() {
         )}
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <StatCard label="Tasks Done" value={`${completedCount}/${tasks.length}`} icon={<CheckCircle2 className="h-4 w-4" />} color="text-emerald-600" bg="bg-emerald-50" />
-          <StatCard label="Tasks Pending" value={String(pendingCount)} icon={<Clock className="h-4 w-4" />} color="text-green-700" bg="bg-green-50" />
-          <StatCard label="Compliance" value={`${progressPercent}%`} icon={<TrendingUp className="h-4 w-4" />} color="text-violet-600" bg="bg-violet-50" />
-          <StatCard label="Modules Active" value={`${activeModules}/${totalModules || 0}`} icon={<Zap className="h-4 w-4" />} color="text-amber-600" bg="bg-amber-50" />
+          {alreadyInLatvia ? (
+            <>
+              <StatCard label="Location Status" value="Latvia" icon={<MapPin className="h-4 w-4" />} color="text-emerald-600" bg="bg-emerald-50" />
+              <StatCard label="Platform Access" value="Active" icon={<ShieldCheck className="h-4 w-4" />} color="text-green-700" bg="bg-green-50" />
+              <StatCard label="Available Modules" value="4" icon={<Zap className="h-4 w-4" />} color="text-violet-600" bg="bg-violet-50" />
+              <StatCard label="Trial Status" value={trialActive ? `${daysLeft}d` : (user.hasPaid ? "Paid" : "Expired")} icon={<Clock className="h-4 w-4" />} color="text-amber-600" bg="bg-amber-50" />
+            </>
+          ) : (
+            <>
+              <StatCard label="Tasks Done" value={`${completedCount}/${tasks.length}`} icon={<CheckCircle2 className="h-4 w-4" />} color="text-emerald-600" bg="bg-emerald-50" />
+              <StatCard label="Tasks Pending" value={String(pendingCount)} icon={<Clock className="h-4 w-4" />} color="text-green-700" bg="bg-green-50" />
+              <StatCard label="Compliance" value={`${progressPercent}%`} icon={<TrendingUp className="h-4 w-4" />} color="text-violet-600" bg="bg-violet-50" />
+              <StatCard label="Modules Active" value={`${activeModules}/${totalModules || 0}`} icon={<Zap className="h-4 w-4" />} color="text-amber-600" bg="bg-amber-50" />
+            </>
+          )}
         </div>
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
@@ -503,6 +533,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {!alreadyInLatvia && (
         <Card className="overflow-hidden rounded-2xl border-slate-100 bg-white shadow-sm">
           <CardHeader className="flex flex-col items-start justify-between gap-3 border-b border-slate-50 p-5 sm:flex-row sm:items-center">
             <div className="flex items-center gap-3">
@@ -560,6 +591,26 @@ export default function DashboardPage() {
               )}
             </CardContent>
           </Card>
+        )}
+
+        {alreadyInLatvia && (
+          <Card className="overflow-hidden rounded-2xl border-slate-100 bg-white shadow-sm">
+            <CardHeader className="flex flex-row items-center gap-3 border-b border-slate-50 p-5">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <MapPin className="h-4 w-4" />
+              </div>
+              <div>
+                <CardTitle className="text-sm font-black leading-none text-slate-900">Already In Latvia</CardTitle>
+                <p className="mt-1 text-[11px] text-slate-500">
+                  Your account is set for students who are already based in Latvia, so relocation checklist tasks are hidden.
+                </p>
+              </div>
+            </CardHeader>
+            <CardContent className="p-5 text-sm text-slate-600">
+              You can use EBENESAID to explore housing, documents, jobs, transport, community, and support services without onboarding relocation tasks.
+            </CardContent>
+          </Card>
+        )}
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <QuickLauncher title="Housing" sub="Find accommodation" icon={<Home className="h-5 w-5" />} href="/accommodation" />

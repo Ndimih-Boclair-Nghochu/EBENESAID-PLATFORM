@@ -157,11 +157,12 @@ export interface StudentDashboardData {
 }
 
 export interface StudentOnboardingProfile {
-  programDurationBand: 'under_3_months' | 'over_3_months' | null;
+  programDurationBand: 'under_3_months' | 'over_3_months' | 'already_in_latvia' | null;
   onboardingCompleted: boolean;
 }
 
-export type StudentTaskDurationBand = 'under_3_months' | 'over_3_months';
+export type StudentProgramDurationBand = 'under_3_months' | 'over_3_months' | 'already_in_latvia';
+export type StudentTaskDurationBand = Exclude<StudentProgramDurationBand, 'already_in_latvia'>;
 
 export interface StudentTaskTemplate {
   id: number;
@@ -826,10 +827,18 @@ function toStudentDashboardTask(row: {
   };
 }
 
-function buildStudentDashboardGuidance(user: SafeUser, tasks: StudentDashboardTask[]): string {
+function buildStudentDashboardGuidance(
+  user: SafeUser,
+  tasks: StudentDashboardTask[],
+  programDurationBand: StudentProgramDurationBand | null
+): string {
   const nextPendingTask = tasks.find(task => !task.done);
   const university = user.university || 'your university';
   const origin = user.countryOfOrigin || 'your home country';
+
+  if (programDurationBand === 'already_in_latvia') {
+    return `You are already in Latvia, ${user.firstName}. Use EBENESAID to explore housing, jobs, documents, community, transport, and support services that are available on the platform right now.`;
+  }
 
   if (!nextPendingTask) {
     if (!tasks.length) {
@@ -981,6 +990,15 @@ export async function syncStudentDashboardTasksForBand(programDurationBand: Stud
 
 export async function getStudentDashboardData(user: SafeUser): Promise<StudentDashboardData> {
   await ensurePlatformTables();
+  const onboarding = await getStudentOnboardingProfile(user.id);
+
+  if (onboarding.programDurationBand === 'already_in_latvia') {
+    await pool.query(`DELETE FROM student_dashboard_tasks WHERE user_id = $1`, [user.id]);
+    return {
+      tasks: [],
+      guidance: buildStudentDashboardGuidance(user, [], onboarding.programDurationBand),
+    };
+  }
 
   let result = await pool.query(
     `SELECT id, user_id, template_id, title, description, done, category, href, sort_order, created_at, updated_at
@@ -993,7 +1011,6 @@ export async function getStudentDashboardData(user: SafeUser): Promise<StudentDa
   let tasks = result.rows.map(toStudentDashboardTask);
 
   if (!tasks.length) {
-    const onboarding = await getStudentOnboardingProfile(user.id);
     if (onboarding.onboardingCompleted && onboarding.programDurationBand) {
       await syncStudentDashboardTasksForUser(user.id, onboarding.programDurationBand);
       result = await pool.query(
@@ -1009,7 +1026,7 @@ export async function getStudentDashboardData(user: SafeUser): Promise<StudentDa
 
   return {
     tasks,
-    guidance: buildStudentDashboardGuidance(user, tasks),
+    guidance: buildStudentDashboardGuidance(user, tasks, onboarding.programDurationBand),
   };
 }
 
@@ -1028,14 +1045,14 @@ export async function getStudentOnboardingProfile(userId: number): Promise<Stude
 
   return {
     programDurationBand:
-      band === 'under_3_months' || band === 'over_3_months' ? band : null,
+      band === 'under_3_months' || band === 'over_3_months' || band === 'already_in_latvia' ? band : null,
     onboardingCompleted: Boolean(row?.onboarding_completed ?? false),
   };
 }
 
 export async function saveStudentOnboardingSelection(
   userId: number,
-  programDurationBand: StudentTaskDurationBand
+  programDurationBand: StudentProgramDurationBand
 ): Promise<StudentDashboardData> {
   await ensurePlatformTables();
 
@@ -1050,7 +1067,11 @@ export async function saveStudentOnboardingSelection(
     [userId, programDurationBand]
   );
 
-  await assignStudentTaskTemplates(userId, programDurationBand);
+  if (programDurationBand === 'already_in_latvia') {
+    await pool.query(`DELETE FROM student_dashboard_tasks WHERE user_id = $1`, [userId]);
+  } else {
+    await assignStudentTaskTemplates(userId, programDurationBand);
+  }
 
   const dbUser = await getUserById(userId);
   if (!dbUser) {

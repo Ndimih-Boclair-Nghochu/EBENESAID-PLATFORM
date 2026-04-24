@@ -4,6 +4,7 @@ import {
   getStudentOnboardingProfile,
   getSessionByToken,
   getStudentDashboardData,
+  type StudentProgramDurationBand,
   getUserById,
   saveStudentOnboardingSelection,
   toSafeUser,
@@ -89,8 +90,11 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const programDurationBand =
-      String(body.programDurationBand) === 'under_3_months' ? 'under_3_months' : 'over_3_months';
+    const requestedBand = String(body.programDurationBand ?? '').trim();
+    const programDurationBand: StudentProgramDurationBand =
+      requestedBand === 'under_3_months' || requestedBand === 'over_3_months' || requestedBand === 'already_in_latvia'
+        ? requestedBand
+        : 'over_3_months';
 
     const dashboard = await saveStudentOnboardingSelection(user.id, programDurationBand);
     const onboarding = await getStudentOnboardingProfile(user.id);
