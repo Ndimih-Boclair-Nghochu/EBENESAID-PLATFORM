@@ -334,7 +334,7 @@ export default function DashboardPage() {
               <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">Program Setup</p>
               <h2 className="mt-3 text-2xl font-black text-slate-900">How long is your study journey?</h2>
               <p className="mt-2 text-sm text-slate-600">
-                Choose your program length so EBENESAID can build the right relocation checklist and required document flow for you.
+                Choose your program length so the admin-defined checklist for your stay period can be applied to your account automatically.
               </p>
               <div className="mt-6 grid gap-4 md:grid-cols-2">
                 <button
@@ -357,7 +357,7 @@ export default function DashboardPage() {
                 </button>
               </div>
               {isSavingProgram && (
-                <p className="mt-4 text-sm text-slate-500">Saving your setup and generating your checklist...</p>
+                <p className="mt-4 text-sm text-slate-500">Saving your setup and applying your default checklist...</p>
               )}
             </div>
           </div>
@@ -397,7 +397,7 @@ export default function DashboardPage() {
           actions={
             <>
               {trialActive && (
-                <div className="hidden items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-1.5 sm:flex">
+                <div className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-1.5">
                   <Clock className="h-3.5 w-3.5 text-amber-600" />
                   <span className="text-xs font-bold text-amber-700">{daysLeft} days left in trial</span>
                 </div>
@@ -434,7 +434,7 @@ export default function DashboardPage() {
         )}
 
         {trialActive && (
-          <div className="flex items-center justify-between gap-4 rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 p-4">
+          <div className="flex flex-col gap-4 rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex min-w-0 items-center gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
                 <CalendarDays className="h-5 w-5" />
@@ -509,14 +509,17 @@ export default function DashboardPage() {
                 <p className="mt-1 text-[11px] font-medium text-slate-400">
                   {completedCount} of {tasks.length} tasks completed
                 </p>
+                <p className="mt-1 text-[11px] text-slate-500">
+                  Default tasks are assigned by admin based on your selected stay period.
+                </p>
               </div>
             </div>
             <div className="flex w-full items-center gap-3 sm:w-auto">
-              <div className="text-right">
+              <div className="text-left sm:text-right">
                 <p className="text-xl font-black leading-none text-primary">{progressPercent}%</p>
                 <p className="mt-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-400">Complete</p>
               </div>
-              <Progress value={progressPercent} className="hidden h-2 w-28 rounded-full bg-slate-100 sm:block" />
+              <Progress value={progressPercent} className="h-2 flex-1 rounded-full bg-slate-100 sm:w-28 sm:flex-none" />
             </div>
           </CardHeader>
 
@@ -547,7 +550,7 @@ export default function DashboardPage() {
               )}
               {!pendingTasks.length && !doneTasks.length && (
                 <div className="p-8 text-center text-sm text-slate-500">
-                  No real dashboard tasks yet.
+                  No checklist items have been assigned to this account yet. Once an admin publishes defaults for your stay period, they will appear here automatically.
                 </div>
               )}
             </CardContent>
@@ -573,7 +576,7 @@ function TaskRow({
 }) {
   return (
     <div
-      className={`group flex cursor-pointer items-center gap-4 px-5 py-3.5 transition-all hover:bg-slate-50/60 ${task.done ? "opacity-60" : ""}`}
+      className={`group flex cursor-pointer flex-col items-start gap-3 px-4 py-3.5 transition-all hover:bg-slate-50/60 sm:flex-row sm:items-center sm:gap-4 sm:px-5 ${task.done ? "opacity-60" : ""}`}
       onClick={() => onToggle(task.id)}
     >
       <Checkbox
@@ -591,12 +594,12 @@ function TaskRow({
             {task.category}
           </span>
         </div>
-        <p className="mt-1 line-clamp-1 text-[11px] font-medium text-slate-400">{task.desc}</p>
+        <p className="mt-1 text-[11px] font-medium text-slate-400 sm:line-clamp-1">{task.desc}</p>
       </div>
       <Link
         href={task.href}
         onClick={e => e.stopPropagation()}
-        className="shrink-0 rounded-lg p-1.5 text-slate-300 transition-all hover:bg-primary/10 hover:text-primary"
+        className="self-end shrink-0 rounded-lg p-1.5 text-slate-300 transition-all hover:bg-primary/10 hover:text-primary sm:self-auto"
       >
         <ArrowUpRight className="h-3.5 w-3.5" />
       </Link>

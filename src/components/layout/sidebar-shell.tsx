@@ -4,8 +4,8 @@ import { MainNav } from "./main-nav";
 import { UserNav } from "./user-nav";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Menu, X } from "lucide-react";
-import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Menu } from "lucide-react";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { BrandLogo } from "@/components/brand-logo";
 
 /**
@@ -39,7 +39,7 @@ export function SidebarShell({ children }: { children: React.ReactNode }) {
       {/* Mobile Header - Compact Brand Alignment */}
       <header className="fixed top-0 left-0 right-0 z-50 flex h-14 items-center justify-between border-b border-slate-200 bg-white/80 px-4 lg:hidden shadow-sm backdrop-blur-xl">
         <div className="flex items-center gap-2">
-          <BrandLogo frameClassName="border border-slate-200 bg-white p-1 shadow-sm" imageClassName="w-10" />
+          <BrandLogo frameClassName="border border-slate-200 bg-white p-1 shadow-sm ring-4 ring-slate-100/80" imageClassName="w-10" />
         </div>
         
         {mounted && (
@@ -50,12 +50,7 @@ export function SidebarShell({ children }: { children: React.ReactNode }) {
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="p-0 w-64 border-none bg-green-900">
-              <SheetHeader className="p-6 border-b border-white/10 text-left shrink-0">
-                <SheetTitle className="text-white">
-                  <BrandLogo frameClassName="border border-white/10 bg-white p-1.5 shadow-lg shadow-black/15" imageClassName="w-12" />
-                </SheetTitle>
-              </SheetHeader>
-              <div className="flex h-[calc(100%-80px)] flex-col">
+              <div className="flex h-full flex-col">
                 <div className="flex-1 overflow-y-auto custom-scrollbar">
                   <MainNav />
                 </div>

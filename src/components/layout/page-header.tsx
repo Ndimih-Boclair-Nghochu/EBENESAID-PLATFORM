@@ -63,20 +63,20 @@ export function PageHeader({
   }
 
   return (
-    <div className="mb-6 flex items-center justify-between gap-4 border-b border-slate-100 pb-5">
+    <div className="mb-6 flex flex-col gap-4 border-b border-slate-100 pb-5 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0 flex-1">
         {subtitle ? (
-          <p className="mb-1 hidden text-[10px] font-bold uppercase tracking-widest text-slate-400 sm:block">
+          <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">
             {subtitle}
           </p>
         ) : null}
-        <h1 className="truncate text-xl font-black leading-none tracking-tight text-slate-900 sm:text-2xl">
+        <h1 className="text-xl font-black leading-none tracking-tight text-slate-900 sm:text-2xl">
           {title}
         </h1>
       </div>
 
-      <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-        {actions ? <div className="hidden items-center gap-2 sm:flex">{actions}</div> : null}
+      <div className="flex w-full flex-wrap items-center justify-between gap-2 sm:w-auto sm:flex-nowrap sm:justify-end">
+        {actions ? <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">{actions}</div> : null}
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

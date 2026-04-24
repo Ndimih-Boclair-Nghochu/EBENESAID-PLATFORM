@@ -36,8 +36,8 @@ interface SpecialistChatProps {
 export function SpecialistChat({ title, specialty, initialMessage, flow, icon }: SpecialistChatProps) {
   const { user } = useAuthContext();
   const personalizedInitialMessage = user?.firstName
-    ? `Hello ${user.firstName}, I am EBENESAID AI. ${initialMessage}`
-    : `Hello, I am EBENESAID AI. ${initialMessage}`;
+    ? `Hello ${user.firstName}. ${initialMessage}`
+    : `Hello. ${initialMessage}`;
   const [messages, setMessages] = useState<Message[]>([
     { role: 'assistant', content: personalizedInitialMessage }
   ]);
@@ -85,7 +85,7 @@ export function SpecialistChat({ title, specialty, initialMessage, flow, icon }:
       });
       setMessages(prev => [...prev, { role: 'assistant', content: result.response }]);
     } catch {
-      setMessages(prev => [...prev, { role: 'assistant', content: "EBENESAID AI is reconnecting. Please send your question again in a moment." }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: "I could not complete that reply just now. Please send your question again in a moment." }]);
     } finally {
       setIsLoading(false);
     }

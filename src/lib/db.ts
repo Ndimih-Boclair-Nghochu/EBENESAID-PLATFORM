@@ -154,6 +154,21 @@ export interface StudentOnboardingProfile {
   onboardingCompleted: boolean;
 }
 
+export type StudentTaskDurationBand = 'under_3_months' | 'over_3_months';
+
+export interface StudentTaskTemplate {
+  id: number;
+  title: string;
+  description: string;
+  category: string;
+  href: string;
+  sortOrder: number;
+  durationBand: StudentTaskDurationBand;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface PropertyListing {
   id: number;
   title: string;
@@ -256,6 +271,102 @@ export type PlatformIntelligenceSnapshot = {
 };
 
 export type PublicPageKey = 'home';
+
+const defaultStudentTaskTemplates: Record<StudentTaskDurationBand, Array<{
+  title: string;
+  description: string;
+  category: string;
+  href: string;
+}>> = {
+  under_3_months: [
+    {
+      title: 'Upload Passport Copy',
+      description: 'Add the identification page of your valid passport to your secure wallet.',
+      category: 'Legal',
+      href: '/docs',
+    },
+    {
+      title: 'Upload Admission Or Invitation Letter',
+      description: 'Store the letter that confirms your short course or exchange placement.',
+      category: 'Academic',
+      href: '/docs',
+    },
+    {
+      title: 'Upload Travel Insurance',
+      description: 'Keep proof of insurance that covers your stay in Latvia.',
+      category: 'Legal',
+      href: '/docs',
+    },
+    {
+      title: 'Upload Accommodation Proof',
+      description: 'Add your housing confirmation, hotel booking, or lease document.',
+      category: 'Housing',
+      href: '/docs',
+    },
+    {
+      title: 'Upload Proof Of Funds',
+      description: 'Store your bank statement or sponsor letter for immigration checks.',
+      category: 'Finance',
+      href: '/docs',
+    },
+    {
+      title: 'Plan Arrival In Riga',
+      description: 'Set your destination and pickup status for airport arrival support.',
+      category: 'Logistics',
+      href: '/arrival',
+    },
+  ],
+  over_3_months: [
+    {
+      title: 'Upload Passport Copy',
+      description: 'Add the identification page of your valid passport to your secure wallet.',
+      category: 'Legal',
+      href: '/docs',
+    },
+    {
+      title: 'Upload University Acceptance Letter',
+      description: 'Store the official admission letter for your full study program.',
+      category: 'Academic',
+      href: '/docs',
+    },
+    {
+      title: 'Upload Visa Or Residence Permit Documents',
+      description: 'Keep all long-stay visa or residence permit paperwork in one place.',
+      category: 'Legal',
+      href: '/docs',
+    },
+    {
+      title: 'Upload Health Insurance',
+      description: 'Add your health insurance certificate for the full study period.',
+      category: 'Legal',
+      href: '/docs',
+    },
+    {
+      title: 'Upload Accommodation Contract',
+      description: 'Store the signed lease or housing confirmation for your program.',
+      category: 'Housing',
+      href: '/docs',
+    },
+    {
+      title: 'Upload Proof Of Funds',
+      description: 'Keep your tuition or maintenance funds evidence ready for review.',
+      category: 'Finance',
+      href: '/docs',
+    },
+    {
+      title: 'Plan Arrival In Riga',
+      description: 'Set your destination and pickup status for airport arrival support.',
+      category: 'Logistics',
+      href: '/arrival',
+    },
+    {
+      title: 'Track Enrollment Originals',
+      description: 'Prepare your original academic documents for enrollment and registration.',
+      category: 'Academic',
+      href: '/docs',
+    },
+  ],
+};
 
 export async function ensureCoreTables(): Promise<void> {
   if (!coreSchemaReady) {
@@ -397,6 +508,21 @@ async function ensurePlatformTables(): Promise<void> {
       await ensureCoreTables();
 
       await pool.query(`
+        CREATE TABLE IF NOT EXISTS student_task_templates (
+          id SERIAL PRIMARY KEY,
+          duration_band TEXT NOT NULL,
+          title TEXT NOT NULL,
+          description TEXT NOT NULL,
+          category TEXT NOT NULL,
+          href TEXT NOT NULL,
+          sort_order INTEGER NOT NULL DEFAULT 0,
+          is_active BOOLEAN NOT NULL DEFAULT TRUE,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+      `);
+
+      await pool.query(`
         CREATE TABLE IF NOT EXISTS student_dashboard_tasks (
           id SERIAL PRIMARY KEY,
           user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -458,6 +584,8 @@ async function ensurePlatformTables(): Promise<void> {
           completed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         )
       `);
+
+      await seedStudentTaskTemplates();
     })().catch(error => {
       schemaReady = null;
       throw error;
@@ -465,6 +593,51 @@ async function ensurePlatformTables(): Promise<void> {
   }
 
   await schemaReady;
+}
+
+function toStudentTaskTemplate(row: {
+  id: number;
+  duration_band: string;
+  title: string;
+  description: string;
+  category: string;
+  href: string;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}): StudentTaskTemplate {
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    category: row.category,
+    href: row.href,
+    sortOrder: row.sort_order,
+    durationBand: row.duration_band === 'under_3_months' ? 'under_3_months' : 'over_3_months',
+    isActive: Boolean(row.is_active),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+async function seedStudentTaskTemplates() {
+  const existing = await pool.query(`SELECT COUNT(*)::int AS count FROM student_task_templates`);
+  if (Number(existing.rows[0]?.count ?? 0) > 0) {
+    return;
+  }
+
+  for (const band of Object.keys(defaultStudentTaskTemplates) as StudentTaskDurationBand[]) {
+    for (const [index, task] of defaultStudentTaskTemplates[band].entries()) {
+      await pool.query(
+        `INSERT INTO student_task_templates (
+          duration_band, title, description, category, href, sort_order, is_active, created_at, updated_at
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, TRUE, NOW(), NOW())`,
+        [band, task.title, task.description, task.category, task.href, index]
+      );
+    }
+  }
 }
 
 function toPropertyListing(row: {
@@ -641,110 +814,58 @@ function buildStudentDashboardGuidance(user: SafeUser, tasks: StudentDashboardTa
   const origin = user.countryOfOrigin || 'your home country';
 
   if (!nextPendingTask) {
+    if (!tasks.length) {
+      return `Your admin has not published a default checklist for ${university} yet. Once your stay period is configured, your assigned relocation tasks will appear here automatically.`;
+    }
+
     return `You have completed your current relocation checklist for ${university}. Keep your documents updated, monitor messages, and use the platform modules to stay ready for each next step.`;
   }
 
   return `Your next priority is "${nextPendingTask.title}" for ${university}. Since you are relocating from ${origin}, focus on one completed admin step at a time and use the linked module to keep your move organized.`;
 }
 
-const shortProgramTaskTemplates = [
-  {
-    title: 'Upload Passport Copy',
-    description: 'Add the identification page of your valid passport to your secure wallet.',
-    category: 'Legal',
-    href: '/docs',
-  },
-  {
-    title: 'Upload Admission Or Invitation Letter',
-    description: 'Store the letter that confirms your short course or exchange placement.',
-    category: 'Academic',
-    href: '/docs',
-  },
-  {
-    title: 'Upload Travel Insurance',
-    description: 'Keep proof of insurance that covers your stay in Latvia.',
-    category: 'Legal',
-    href: '/docs',
-  },
-  {
-    title: 'Upload Accommodation Proof',
-    description: 'Add your housing confirmation, hotel booking, or lease document.',
-    category: 'Housing',
-    href: '/docs',
-  },
-  {
-    title: 'Upload Proof Of Funds',
-    description: 'Store your bank statement or sponsor letter for immigration checks.',
-    category: 'Finance',
-    href: '/docs',
-  },
-  {
-    title: 'Plan Arrival In Riga',
-    description: 'Set your destination and pickup status for airport arrival support.',
-    category: 'Logistics',
-    href: '/arrival',
-  },
-];
+async function getStudentTaskTemplatesByBand(
+  programDurationBand: StudentTaskDurationBand,
+  options?: { includeInactive?: boolean }
+): Promise<StudentTaskTemplate[]> {
+  await ensurePlatformTables();
 
-const longProgramTaskTemplates = [
-  {
-    title: 'Upload Passport Copy',
-    description: 'Add the identification page of your valid passport to your secure wallet.',
-    category: 'Legal',
-    href: '/docs',
-  },
-  {
-    title: 'Upload University Acceptance Letter',
-    description: 'Store the official admission letter for your full study program.',
-    category: 'Academic',
-    href: '/docs',
-  },
-  {
-    title: 'Upload Visa Or Residence Permit Documents',
-    description: 'Keep all long-stay visa or residence permit paperwork in one place.',
-    category: 'Legal',
-    href: '/docs',
-  },
-  {
-    title: 'Upload Health Insurance',
-    description: 'Add your health insurance certificate for the full study period.',
-    category: 'Legal',
-    href: '/docs',
-  },
-  {
-    title: 'Upload Accommodation Contract',
-    description: 'Store the signed lease or housing confirmation for your program.',
-    category: 'Housing',
-    href: '/docs',
-  },
-  {
-    title: 'Upload Proof Of Funds',
-    description: 'Keep your tuition or maintenance funds evidence ready for review.',
-    category: 'Finance',
-    href: '/docs',
-  },
-  {
-    title: 'Plan Arrival In Riga',
-    description: 'Set your destination and pickup status for airport arrival support.',
-    category: 'Logistics',
-    href: '/arrival',
-  },
-  {
-    title: 'Track Enrollment Originals',
-    description: 'Prepare your original academic documents for enrollment and registration.',
-    category: 'Academic',
-    href: '/docs',
-  },
-];
+  const values: Array<string | boolean> = [programDurationBand];
+  const conditions = ['duration_band = $1'];
 
-function getProgramTaskTemplates(programDurationBand: 'under_3_months' | 'over_3_months') {
-  return programDurationBand === 'under_3_months' ? shortProgramTaskTemplates : longProgramTaskTemplates;
+  if (!options?.includeInactive) {
+    values.push(true);
+    conditions.push(`is_active = $${values.length}`);
+  }
+
+  const result = await pool.query(
+    `SELECT id, duration_band, title, description, category, href, sort_order, is_active, created_at, updated_at
+     FROM student_task_templates
+     WHERE ${conditions.join(' AND ')}
+     ORDER BY sort_order ASC, id ASC`,
+    values
+  );
+
+  return result.rows.map(toStudentTaskTemplate);
+}
+
+async function assignStudentTaskTemplates(userId: number, programDurationBand: StudentTaskDurationBand) {
+  await pool.query(`DELETE FROM student_dashboard_tasks WHERE user_id = $1`, [userId]);
+
+  const tasks = await getStudentTaskTemplatesByBand(programDurationBand);
+  for (const [index, task] of tasks.entries()) {
+    await pool.query(
+      `INSERT INTO student_dashboard_tasks (user_id, title, description, done, category, href, sort_order, created_at, updated_at)
+       VALUES ($1, $2, $3, FALSE, $4, $5, $6, NOW(), NOW())`,
+      [userId, task.title, task.description, task.category, task.href, task.sortOrder ?? index]
+    );
+  }
 }
 
 export async function getStudentDashboardData(user: SafeUser): Promise<StudentDashboardData> {
   await ensurePlatformTables();
 
-  const result = await pool.query(
+  let result = await pool.query(
     `SELECT id, user_id, title, description, done, category, href, sort_order, created_at, updated_at
      FROM student_dashboard_tasks
      WHERE user_id = $1
@@ -752,7 +873,22 @@ export async function getStudentDashboardData(user: SafeUser): Promise<StudentDa
     [user.id]
   );
 
-  const tasks = result.rows.map(toStudentDashboardTask);
+  let tasks = result.rows.map(toStudentDashboardTask);
+
+  if (!tasks.length) {
+    const onboarding = await getStudentOnboardingProfile(user.id);
+    if (onboarding.onboardingCompleted && onboarding.programDurationBand) {
+      await assignStudentTaskTemplates(user.id, onboarding.programDurationBand);
+      result = await pool.query(
+        `SELECT id, user_id, title, description, done, category, href, sort_order, created_at, updated_at
+         FROM student_dashboard_tasks
+         WHERE user_id = $1
+         ORDER BY sort_order ASC, id ASC`,
+        [user.id]
+      );
+      tasks = result.rows.map(toStudentDashboardTask);
+    }
+  }
 
   return {
     tasks,
@@ -782,7 +918,7 @@ export async function getStudentOnboardingProfile(userId: number): Promise<Stude
 
 export async function saveStudentOnboardingSelection(
   userId: number,
-  programDurationBand: 'under_3_months' | 'over_3_months'
+  programDurationBand: StudentTaskDurationBand
 ): Promise<StudentDashboardData> {
   await ensurePlatformTables();
 
@@ -797,16 +933,7 @@ export async function saveStudentOnboardingSelection(
     [userId, programDurationBand]
   );
 
-  await pool.query(`DELETE FROM student_dashboard_tasks WHERE user_id = $1`, [userId]);
-
-  const tasks = getProgramTaskTemplates(programDurationBand);
-  for (const [index, task] of tasks.entries()) {
-    await pool.query(
-      `INSERT INTO student_dashboard_tasks (user_id, title, description, done, category, href, sort_order, created_at, updated_at)
-       VALUES ($1, $2, $3, FALSE, $4, $5, $6, NOW(), NOW())`,
-      [userId, task.title, task.description, task.category, task.href, index]
-    );
-  }
+  await assignStudentTaskTemplates(userId, programDurationBand);
 
   const dbUser = await getUserById(userId);
   if (!dbUser) {
@@ -814,6 +941,104 @@ export async function saveStudentOnboardingSelection(
   }
 
   return getStudentDashboardData(toSafeUser(dbUser));
+}
+
+export async function listStudentTaskTemplates(): Promise<Record<StudentTaskDurationBand, StudentTaskTemplate[]>> {
+  await ensurePlatformTables();
+
+  const result = await pool.query(
+    `SELECT id, duration_band, title, description, category, href, sort_order, is_active, created_at, updated_at
+     FROM student_task_templates
+     ORDER BY duration_band ASC, sort_order ASC, id ASC`
+  );
+
+  return result.rows.reduce<Record<StudentTaskDurationBand, StudentTaskTemplate[]>>(
+    (accumulator, row) => {
+      const template = toStudentTaskTemplate(row);
+      accumulator[template.durationBand].push(template);
+      return accumulator;
+    },
+    { under_3_months: [], over_3_months: [] }
+  );
+}
+
+export async function createStudentTaskTemplate(data: {
+  durationBand: StudentTaskDurationBand;
+  title: string;
+  description: string;
+  category: string;
+  href: string;
+  sortOrder: number;
+  isActive?: boolean;
+}): Promise<StudentTaskTemplate> {
+  await ensurePlatformTables();
+
+  const result = await pool.query(
+    `INSERT INTO student_task_templates (
+      duration_band, title, description, category, href, sort_order, is_active, created_at, updated_at
+    )
+    VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+    RETURNING id, duration_band, title, description, category, href, sort_order, is_active, created_at, updated_at`,
+    [
+      data.durationBand,
+      data.title.trim(),
+      data.description.trim(),
+      data.category.trim(),
+      data.href.trim(),
+      data.sortOrder,
+      data.isActive !== false,
+    ]
+  );
+
+  return toStudentTaskTemplate(result.rows[0]);
+}
+
+export async function updateStudentTaskTemplate(
+  templateId: number,
+  data: {
+    durationBand: StudentTaskDurationBand;
+    title: string;
+    description: string;
+    category: string;
+    href: string;
+    sortOrder: number;
+    isActive: boolean;
+  }
+): Promise<StudentTaskTemplate | undefined> {
+  await ensurePlatformTables();
+
+  const result = await pool.query(
+    `UPDATE student_task_templates
+     SET duration_band = $2,
+         title = $3,
+         description = $4,
+         category = $5,
+         href = $6,
+         sort_order = $7,
+         is_active = $8,
+         updated_at = NOW()
+     WHERE id = $1
+     RETURNING id, duration_band, title, description, category, href, sort_order, is_active, created_at, updated_at`,
+    [
+      templateId,
+      data.durationBand,
+      data.title.trim(),
+      data.description.trim(),
+      data.category.trim(),
+      data.href.trim(),
+      data.sortOrder,
+      data.isActive,
+    ]
+  );
+
+  const row = result.rows[0];
+  return row ? toStudentTaskTemplate(row) : undefined;
+}
+
+export async function deleteStudentTaskTemplate(templateId: number): Promise<boolean> {
+  await ensurePlatformTables();
+  const result = await pool.query(`DELETE FROM student_task_templates WHERE id = $1`, [templateId]);
+  return (result.rowCount ?? 0) > 0;
 }
 
 export async function updateStudentDashboardTask(

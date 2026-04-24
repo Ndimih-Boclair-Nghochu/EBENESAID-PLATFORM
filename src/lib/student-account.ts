@@ -1,5 +1,6 @@
 import { ensureCoreTables, type SafeUser } from '@/lib/db';
 import { dbPool as pool } from '@/lib/postgres';
+import { runLocalSpecialist, type SpecialistKey } from '@/ai/local-brain';
 
 export type StudentDocument = {
   id: number;
@@ -182,6 +183,47 @@ export type CommunityApprovalRequest = {
 };
 
 let studentSchemaReady: Promise<void> | null = null;
+
+const defaultAiConversations: Array<{
+  name: string;
+  contactType: string;
+  icon: string;
+  specialist: SpecialistKey;
+  greeting: (user: SafeUser) => string;
+}> = [
+  {
+    name: 'EBENESAID AI Navigator',
+    contactType: 'ai_navigator',
+    icon: 'bot',
+    specialist: 'navigator',
+    greeting: (user) =>
+      `Good to see you, ${user.firstName}. I can guide you through the full platform and point you to the right specialist whenever you need a faster route.`,
+  },
+  {
+    name: 'EBENESAID AI Housing',
+    contactType: 'ai_housing',
+    icon: 'hotel',
+    specialist: 'housing',
+    greeting: (user) =>
+      `Hello ${user.firstName}. Ask me about verified housing, room suitability, commute fit, or what to check before contacting a housing partner.`,
+  },
+  {
+    name: 'EBENESAID AI Career',
+    contactType: 'ai_career',
+    icon: 'briefcase',
+    specialist: 'career',
+    greeting: (user) =>
+      `Hello ${user.firstName}. I can help you focus on jobs, work readiness, application choices, and student-friendly opportunities on the platform.`,
+  },
+  {
+    name: 'EBENESAID AI Documents',
+    contactType: 'ai_documents',
+    icon: 'file',
+    specialist: 'documents',
+    greeting: (user) =>
+      `Hello ${user.firstName}. I can help with passports, letters, uploads, visa or permit paperwork, and document readiness across your relocation flow.`,
+  },
+];
 
 async function ensureStudentTables() {
   if (!studentSchemaReady) {
@@ -472,6 +514,52 @@ function formatTimeLabel(value: string | Date) {
     hour: '2-digit',
     minute: '2-digit',
   });
+}
+
+async function ensureDefaultAiConversations(user: SafeUser) {
+  for (const conversation of defaultAiConversations) {
+    const result = await pool.query(
+      `INSERT INTO student_conversations (user_id, name, contact_type, icon, unread, created_at)
+       VALUES ($1, $2, $3, $4, 0, NOW())
+       ON CONFLICT (user_id, name, contact_type)
+       DO UPDATE SET icon = EXCLUDED.icon
+       RETURNING id`,
+      [user.id, conversation.name, conversation.contactType, conversation.icon]
+    );
+
+    const conversationId = result.rows[0]?.id;
+    if (!conversationId) {
+      continue;
+    }
+
+    const existingMessages = await pool.query(
+      `SELECT id FROM student_conversation_messages WHERE conversation_id = $1 LIMIT 1`,
+      [conversationId]
+    );
+
+    if (!existingMessages.rows[0]) {
+      await pool.query(
+        `INSERT INTO student_conversation_messages (conversation_id, role, sender_name, content)
+         VALUES ($1, 'other', $2, $3)`,
+        [conversationId, conversation.name, conversation.greeting(user)]
+      );
+    }
+  }
+}
+
+function getAiSpecialistForConversation(contactType: string): SpecialistKey | null {
+  switch (contactType) {
+    case 'ai_navigator':
+      return 'navigator';
+    case 'ai_housing':
+      return 'housing';
+    case 'ai_career':
+      return 'career';
+    case 'ai_documents':
+      return 'documents';
+    default:
+      return null;
+  }
 }
 
 export async function getStudentDocuments(user: SafeUser): Promise<StudentDocument[]> {
@@ -865,6 +953,7 @@ export async function reviewCommunityApprovalRequest(
 
 export async function getConversations(user: SafeUser) {
   await ensureStudentDataTables();
+  await ensureDefaultAiConversations(user);
 
   const conversations = await pool.query(
     `SELECT c.id, c.name, c.contact_type, c.icon, c.unread,
@@ -915,10 +1004,53 @@ export async function getConversations(user: SafeUser) {
 
 export async function sendConversationMessage(user: SafeUser, conversationId: number, content: string) {
   await ensureStudentDataTables();
+  await ensureDefaultAiConversations(user);
+
+  const trimmedContent = content.trim();
+  if (!trimmedContent) {
+    throw new Error('Message content is required.');
+  }
+
+  const conversationResult = await pool.query(
+    `SELECT id, name, contact_type
+     FROM student_conversations
+     WHERE id = $1 AND user_id = $2`,
+    [conversationId, user.id]
+  );
+
+  const conversation = conversationResult.rows[0];
+  if (!conversation) {
+    throw new Error('Conversation not found.');
+  }
+
   await pool.query(
     `INSERT INTO student_conversation_messages (conversation_id, role, sender_name, content)
      VALUES ($1, 'me', $2, $3)`,
-    [conversationId, `${user.firstName} ${user.lastName}`.trim(), content.trim()]
+    [conversationId, `${user.firstName} ${user.lastName}`.trim(), trimmedContent]
+  );
+
+  const specialist = getAiSpecialistForConversation(conversation.contact_type);
+  if (!specialist) {
+    return;
+  }
+
+  const result = await runLocalSpecialist({
+    specialist,
+    message: trimmedContent,
+    user: {
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      university: user.university,
+      countryOfOrigin: user.countryOfOrigin,
+      userType: user.userType,
+    },
+  });
+
+  await pool.query(
+    `INSERT INTO student_conversation_messages (conversation_id, role, sender_name, content)
+     VALUES ($1, 'other', $2, $3)`,
+    [conversationId, conversation.name, result.response]
   );
 }
 

@@ -22,8 +22,8 @@ type Message = {
 export function Chatbot() {
   const { user } = useAuthContext();
   const initialMessage = user?.firstName
-    ? `Hello ${user.firstName}, I am EBENESAID AI. I can guide you around the platform, point you to the right specialist, and surface the fastest route to the module you need.`
-    : "Hello, I am EBENESAID AI. I can guide you around the platform, point you to the right specialist, and surface the fastest route to the module you need.";
+    ? `Hello ${user.firstName}. I can guide you around the platform, point you to the right specialist, and surface the fastest route to the module you need.`
+    : "Hello. I can guide you around the platform, point you to the right specialist, and surface the fastest route to the module you need.";
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -79,7 +79,7 @@ export function Chatbot() {
         links: result.links
       }]);
     } catch {
-      setMessages(prev => [...prev, { role: 'assistant', content: "EBENESAID AI is reconnecting. Please try again, or continue in the module you were already using." }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: "I could not complete that reply just now. Please try again, or continue in the module you were already using." }]);
     } finally {
       setIsLoading(false);
     }

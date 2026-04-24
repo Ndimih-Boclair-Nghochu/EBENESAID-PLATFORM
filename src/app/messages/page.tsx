@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useState } from "react";
-import { Building2, ChevronLeft, Hotel, MessageSquare, Send, Soup, User } from "lucide-react";
+import Link from "next/link";
+import { Bot, Briefcase, Building2, ChevronLeft, FileText, Hotel, MessageSquare, Send, Soup, User } from "lucide-react";
 
 import { SidebarShell } from "@/components/layout/sidebar-shell";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +34,9 @@ const iconMap = {
   hotel: Hotel,
   soup: Soup,
   building: Building2,
+  bot: Bot,
+  briefcase: Briefcase,
+  file: FileText,
 } as const;
 
 export default function MessagesPage() {
@@ -89,7 +93,7 @@ export default function MessagesPage() {
 
   return (
     <SidebarShell>
-      <div className="mx-auto flex h-[calc(100vh-140px)] max-w-7xl flex-col gap-6 pb-10">
+      <div className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-7xl flex-col gap-6 pb-10">
         <div className="flex flex-col items-start justify-between gap-4 border-b border-slate-100 pb-5 md:flex-row md:items-end">
           <div className="space-y-1">
             <Badge variant="outline" className="border-primary/20 bg-primary/5 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest text-primary">
@@ -109,7 +113,7 @@ export default function MessagesPage() {
             <CardHeader>
               <CardTitle className="text-base font-black">Conversations</CardTitle>
             </CardHeader>
-            <CardContent className="max-h-[calc(100vh-280px)] space-y-3 overflow-y-auto">
+            <CardContent className="max-h-[60vh] space-y-3 overflow-y-auto lg:max-h-[calc(100vh-280px)]">
               {conversations.map(conversation => {
                 const Icon = iconMap[conversation.icon as keyof typeof iconMap] ?? User;
                 return (
@@ -160,7 +164,7 @@ export default function MessagesPage() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="flex h-[calc(100vh-320px)] flex-col gap-4">
+            <CardContent className="flex min-h-[60vh] flex-col gap-4 lg:h-[calc(100vh-320px)] lg:min-h-0">
               <div className="flex-1 space-y-3 overflow-y-auto pr-1">
                 {activeMessages.length > 0 ? activeMessages.map(message => (
                   <div
@@ -184,7 +188,7 @@ export default function MessagesPage() {
                 )}
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row">
                 <Input
                   value={chatInput}
                   onChange={event => setChatInput(event.target.value)}
@@ -192,15 +196,15 @@ export default function MessagesPage() {
                   disabled={!activeConversation}
                   className="h-11 rounded-xl bg-slate-50"
                 />
-                <Button className="rounded-xl bg-green-700 hover:bg-green-800" onClick={sendMessage} disabled={!activeConversation}>
+                <Button className="rounded-xl bg-green-700 hover:bg-green-800 sm:min-w-[120px]" onClick={sendMessage} disabled={!activeConversation}>
                   <Send className="mr-2 h-4 w-4" /> Send
                 </Button>
               </div>
 
               <Button variant="outline" className="rounded-xl" asChild>
-                <a href="/support">
+                <Link href="/support">
                   <MessageSquare className="mr-2 h-4 w-4" /> Contact Support
-                </a>
+                </Link>
               </Button>
             </CardContent>
           </Card>

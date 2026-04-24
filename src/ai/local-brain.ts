@@ -152,7 +152,7 @@ function buildSpecialistAnswer(
 
   if (referral) {
     return {
-      response: `EBENESAID AI here, ${firstName}. I can see your question is moving into ${referral.title.toLowerCase()} territory. Please open the ${referral.label} so the right EBENESAID AI specialist can guide you properly from there.`,
+      response: `${firstName}, that question is better handled in the ${referral.title.toLowerCase()} flow. Please open the ${referral.label} so the right specialist can guide you with the correct tools and records.`,
       links: [{ title: referral.title, path: referral.path }],
     };
   }
@@ -162,40 +162,40 @@ function buildSpecialistAnswer(
   switch (specialist) {
     case 'navigator':
       return {
-        response: `Hello ${firstName}, I am EBENESAID AI. Based on ${descriptor}, I can guide you through the platform and show you the most relevant modules. Right now the system is managing ${platformSignal}, so you can move directly into housing, jobs, documents, arrival support, food, or community depending on what you need next.`,
+        response: `${firstName}, based on ${descriptor}, the best next step depends on what you need to solve first. Right now the platform is managing ${platformSignal}, so you can move directly into housing, jobs, documents, arrival support, food, or community depending on your immediate priority.`,
         links: getNavigatorLinks(lower),
       };
     case 'housing':
       return {
-        response: `Hello ${firstName}, I am EBENESAID AI Housing Specialist. From your profile, I will keep your housing guidance aligned with ${descriptor}. We currently have ${snapshot.verifiedListings} verified housing records, so focus first on budget fit, commute to ${user?.university || 'your institution'}, and whether the listing status is verified before messaging the housing team.`,
+        response: `${firstName}, I’ll keep the housing guidance aligned with ${descriptor}. We currently have ${snapshot.verifiedListings} verified housing records, so focus first on budget fit, commute to ${user?.university || 'your institution'}, and verified status before you contact a housing partner.`,
       };
     case 'career':
       return {
-        response: `Hello ${firstName}, I am EBENESAID AI Career Specialist. I will keep your job guidance tied to your current profile and student context in Latvia. The platform currently has ${snapshot.openJobs} active job records, so the strongest next move is to target roles that match your availability, update your profile details, and apply only where the job type and location fit your study routine.`,
+        response: `${firstName}, I’ll keep the job guidance tied to your current profile and student context in Latvia. The platform currently has ${snapshot.openJobs} active job records, so the strongest next move is to target roles that match your availability, update your profile details, and apply only where the job type and location fit your study routine.`,
       };
     case 'documents':
       return {
-        response: `Hello ${firstName}, I am EBENESAID AI Compliance Specialist. I can guide you using the details already in your EBENESAID account, and I will stay focused on documents, privacy, and administrative readiness. For your next step, make sure your passport, admission record, visa or permit items, and any housing proof are uploaded clearly and named in a way your support team can review quickly.`,
+        response: `${firstName}, I’ll stay focused on documents, privacy, and administrative readiness using the details already in your account. For your next step, make sure your passport, admission record, visa or permit items, and any housing proof are uploaded clearly and named in a way your support team can review quickly.`,
       };
     case 'community':
       return {
-        response: `Hello ${firstName}, I am EBENESAID AI Social Specialist. I can see the platform currently supports ${snapshot.communityCircles} active community circles, so I will guide you toward the circles that fit your university and background. The best move is to join groups connected to your course, region, or relocation stage, then introduce yourself with a clear message about what support or connection you are looking for.`,
+        response: `${firstName}, the platform currently supports ${snapshot.communityCircles} active community circles. The best move is to join groups connected to your course, region, or relocation stage, then introduce yourself with a clear message about the support or connection you are looking for.`,
       };
     case 'transit':
       return {
-        response: `Hello ${firstName}, I am EBENESAID AI Transit Specialist. I will stay focused on arrival, pickup planning, and first-day movement around Riga. Based on your profile, the safest plan is to confirm your destination, save pickup notes early, and keep your arrival timing accurate so transport support can coordinate the handoff without confusion.`,
+        response: `${firstName}, I’ll stay focused on arrival, pickup planning, and first-day movement around Riga. The safest plan is to confirm your destination, save pickup notes early, and keep your arrival timing accurate so transport support can coordinate the handoff without confusion.`,
       };
     case 'kitchen':
       return {
-        response: `Hello ${firstName}, I am EBENESAID AI Kitchen Specialist. I will use your current platform profile to keep food and delivery guidance practical. The platform currently has ${snapshot.foodItems} food records available, so the smartest choice is to compare delivery against pickup, keep your saved address current, and choose meal options that match both your schedule and your weekly budget.`,
+        response: `${firstName}, I’ll use your current platform profile to keep food and delivery guidance practical. The platform currently has ${snapshot.foodItems} food records available, so the smartest choice is to compare delivery against pickup, keep your saved address current, and choose meal options that match both your schedule and your weekly budget.`,
       };
     case 'settings':
       return {
-        response: `Hello ${firstName}, I am EBENESAID AI Settings Specialist. I can guide you based on the account information already attached to your profile. To keep the whole EBENESAID system working properly for you, review your email, phone, university, country of origin, and billing details carefully because those fields affect support, jobs, delivery, and relocation guidance across the platform.`,
+        response: `${firstName}, I can guide you based on the account information already attached to your profile. To keep the whole system working properly for you, review your email, phone, university, country of origin, and billing details carefully because those fields affect support, jobs, delivery, and relocation guidance across the platform.`,
       };
     case 'ops':
       return {
-        response: `Hello ${firstName}, I am EBENESAID AI Operations Specialist. I can summarize the live platform situation using current system records: ${platformSignal}. For admin decisions, use these numbers to prioritize verification queues, partner supply gaps, and user response speed before making policy or pricing changes.`,
+        response: `${firstName}, here is the live platform picture from current system records: ${platformSignal}. For admin decisions, use these numbers to prioritize verification queues, partner supply gaps, and user response speed before making policy or pricing changes.`,
       };
   }
 }

@@ -68,6 +68,7 @@ const adminNavigation = [
   { name: "Statistics", href: "/admin/statistics", icon: PieChart },
   { name: "Financial Analysis", href: "/admin/finance", icon: Landmark },
   { name: "Public Content", href: "/admin/content", icon: FileText },
+  { name: "Student Tasks", href: "/admin/task-templates", icon: ClipboardList },
   { name: "Messages", href: "/messages", icon: MessagesSquare },
   { name: "Support Inbox", href: "/admin/support", icon: MessageSquare },
   { name: "Verification Queue", href: "/admin/verification", icon: ShieldAlert },
@@ -187,7 +188,7 @@ export function MainNav() {
     <nav className="flex flex-col h-full gap-4 px-4 py-8">
       <div className="flex items-center gap-3 pb-8 pt-2 px-2">
         <div className="flex flex-col">
-          <BrandLogo frameClassName="border border-white/10 bg-white p-1.5 shadow-lg shadow-black/15" imageClassName="w-12" />
+          <BrandLogo frameClassName="border border-white/15 bg-white p-1.5 shadow-[0_12px_28px_rgba(0,0,0,0.22)] ring-4 ring-white/5" imageClassName="w-12" />
           <span className="text-[8px] font-black text-green-200 uppercase tracking-[0.4em] mt-1">
             {roleLabel}
           </span>
