@@ -30,6 +30,10 @@ export function generateSessionToken(): string {
   return crypto.randomBytes(48).toString('hex');
 }
 
+function hashOpaqueToken(token: string): string {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
+
 
 export interface DbUser {
   id: number;
@@ -269,6 +273,11 @@ export type PlatformPricingSettings = {
   partnerDeductionPercent: number;
 };
 
+export type PasswordResetTokenIssuance = {
+  token: string;
+  expiresAt: string;
+};
+
 export type PlatformIntelligenceSnapshot = {
   students: number;
   users: number;
@@ -416,6 +425,21 @@ export async function ensureCoreTables(): Promise<void> {
 
       await pool.query(`
         CREATE INDEX IF NOT EXISTS sessions_token_idx ON sessions (token)
+      `);
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS password_reset_tokens (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          token_hash TEXT NOT NULL UNIQUE,
+          expires_at TIMESTAMPTZ NOT NULL,
+          used_at TIMESTAMPTZ,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+      `);
+
+      await pool.query(`
+        CREATE INDEX IF NOT EXISTS password_reset_tokens_user_id_idx ON password_reset_tokens (user_id)
       `);
 
       await pool.query(`
@@ -1503,6 +1527,85 @@ export async function deleteSession(token: string): Promise<void> {
 export async function deleteAllUserSessions(userId: number): Promise<void> {
   await ensureCoreTables();
   await pool.query('DELETE FROM sessions WHERE user_id = $1', [userId]);
+}
+
+export async function createPasswordResetToken(userId: number): Promise<PasswordResetTokenIssuance> {
+  await ensureCoreTables();
+
+  const token = crypto.randomBytes(32).toString('hex');
+  const tokenHash = hashOpaqueToken(token);
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+
+  await pool.query(
+    `DELETE FROM password_reset_tokens
+     WHERE user_id = $1 OR used_at IS NOT NULL OR expires_at <= NOW()`,
+    [userId]
+  );
+
+  await pool.query(
+    `INSERT INTO password_reset_tokens (user_id, token_hash, expires_at, created_at)
+     VALUES ($1, $2, $3, NOW())`,
+    [userId, tokenHash, expiresAt]
+  );
+
+  return { token, expiresAt };
+}
+
+export async function consumePasswordResetToken(token: string): Promise<DbUser | undefined> {
+  await ensureCoreTables();
+
+  const normalized = String(token ?? '').trim();
+  if (!normalized) {
+    return undefined;
+  }
+
+  const tokenHash = hashOpaqueToken(normalized);
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const result = await client.query(
+      `SELECT pr.id AS reset_id, pr.user_id, u.*
+       FROM password_reset_tokens pr
+       JOIN users u ON u.id = pr.user_id
+       WHERE pr.token_hash = $1
+         AND pr.used_at IS NULL
+         AND pr.expires_at > NOW()
+       LIMIT 1
+       FOR UPDATE`,
+      [tokenHash]
+    );
+
+    const row = result.rows[0];
+    if (!row) {
+      await client.query('ROLLBACK');
+      return undefined;
+    }
+
+    await client.query(
+      `UPDATE password_reset_tokens
+       SET used_at = NOW()
+       WHERE id = $1`,
+      [row.reset_id]
+    );
+
+    await client.query(
+      `DELETE FROM password_reset_tokens
+       WHERE user_id = $1 AND id <> $2`,
+      [row.user_id, row.reset_id]
+    );
+
+    await client.query('COMMIT');
+    delete row.reset_id;
+    delete row.user_id;
+    return row as DbUser;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 export async function getPlatformPricingSettings(): Promise<PlatformPricingSettings> {

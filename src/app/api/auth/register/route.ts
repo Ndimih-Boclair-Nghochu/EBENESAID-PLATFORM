@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createUser, getUserByEmail, createSession } from '@/lib/db';
+import { sendAdminAlertEmail, sendWelcomeEmail } from '@/lib/email';
+
+function getAdminAlertRecipient() {
+  return process.env.INITIAL_ADMIN_EMAIL?.trim() || process.env.BREVO_SENDER_EMAIL?.trim() || process.env.EMAIL_FROM?.trim() || '';
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -60,6 +65,31 @@ export async function POST(request: NextRequest) {
 
     // Create session
     const session = await createSession(user.id);
+
+    const adminAlertRecipient = getAdminAlertRecipient();
+    void Promise.allSettled([
+      sendWelcomeEmail({
+        toEmail: user.email,
+        firstName: user.firstName,
+        university: user.university,
+      }),
+      adminAlertRecipient
+        ? sendAdminAlertEmail({
+            toEmail: adminAlertRecipient,
+            title: 'New student registration',
+            intro: 'A new student account has been created on EBENESAID and is ready for onboarding follow-up.',
+            highlights: [
+              { label: 'Student', value: `${user.firstName} ${user.lastName}`.trim() || user.email },
+              { label: 'Email', value: user.email },
+              { label: 'University', value: user.university || 'Not provided' },
+            ],
+            action: {
+              label: 'Open Admin Users',
+              href: `${(process.env.NEXT_PUBLIC_APP_URL || 'https://ebenesaid.com').replace(/\/$/, '')}/admin/users`,
+            },
+          })
+        : Promise.resolve({ ok: false, provider: 'brevo' as const }),
+    ]);
 
     // Set session cookie
     const response = NextResponse.json(

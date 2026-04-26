@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { getAuthenticatedUserFromRequest } from '@/lib/auth';
-import { getUserById, updateUserPassword, verifyPassword } from '@/lib/db';
+import { createSession, deleteAllUserSessions, getUserById, updateUserPassword, verifyPassword } from '@/lib/db';
+import { sendPasswordChangedEmail } from '@/lib/email';
 
 export async function PATCH(request: NextRequest) {
   const user = await getAuthenticatedUserFromRequest(request);
@@ -38,7 +39,25 @@ export async function PATCH(request: NextRequest) {
     }
 
     await updateUserPassword(user.id, newPassword);
-    return NextResponse.json({ message: 'Password updated successfully.' }, { status: 200 });
+    await deleteAllUserSessions(user.id);
+    const session = await createSession(user.id);
+
+    void sendPasswordChangedEmail({
+      toEmail: dbUser.email,
+      firstName: dbUser.first_name,
+      changedAt: new Date().toISOString(),
+    });
+
+    const response = NextResponse.json({ message: 'Password updated successfully.' }, { status: 200 });
+    response.cookies.set('eb_session', session.token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      expires: new Date(session.expiresAt),
+    });
+
+    return response;
   } catch (error) {
     console.error('Password update error:', error);
     return NextResponse.json({ error: 'Failed to update password.' }, { status: 500 });

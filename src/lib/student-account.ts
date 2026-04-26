@@ -1,6 +1,12 @@
 import { ensureCoreTables, type SafeUser } from '@/lib/db';
 import { dbPool as pool } from '@/lib/postgres';
 import { runLocalSpecialist, type SpecialistKey } from '@/ai/local-brain';
+import {
+  sendAdminAlertEmail,
+  sendDirectMessageNotificationEmail,
+  sendPlatformAnnouncementEmail,
+  sendSupportReceivedEmail,
+} from '@/lib/email';
 
 export type StudentDocument = {
   id: number;
@@ -22,6 +28,10 @@ export type StudentJob = {
   description: string;
   applied: boolean;
 };
+
+function getAdminAlertRecipient() {
+  return process.env.INITIAL_ADMIN_EMAIL?.trim() || process.env.BREVO_SENDER_EMAIL?.trim() || process.env.EMAIL_FROM?.trim() || '';
+}
 
 export type JobPartnerListing = {
   id: number;
@@ -651,6 +661,22 @@ export async function applyToJob(user: SafeUser, jobId: number) {
      ON CONFLICT (user_id, job_id) DO NOTHING`,
     [user.id, jobId]
   );
+
+  const jobResult = await pool.query(
+    `SELECT title, company, created_by_user_id
+     FROM job_listings
+     WHERE id = $1`,
+    [jobId]
+  );
+
+  const job = jobResult.rows[0];
+  return job
+    ? {
+        title: String(job.title ?? ''),
+        company: String(job.company ?? ''),
+        partnerUserId: Number(job.created_by_user_id ?? 0) || null,
+      }
+    : null;
 }
 
 export async function getJobPartnerListings(user: SafeUser): Promise<JobPartnerListing[]> {
@@ -1146,6 +1172,23 @@ export async function sendConversationMessage(
        WHERE id = $1`,
       [mirrored.recipientConversationId]
     );
+
+    const counterpartResult = await pool.query(
+      `SELECT first_name, last_name, email
+       FROM users
+       WHERE id = $1`,
+      [conversation.counterpart_user_id]
+    );
+    const counterpart = counterpartResult.rows[0];
+    if (counterpart?.email) {
+      void sendDirectMessageNotificationEmail({
+        toEmail: counterpart.email,
+        recipientName: `${counterpart.first_name ?? ''} ${counterpart.last_name ?? ''}`.trim() || counterpart.email,
+        senderName: `${user.firstName} ${user.lastName}`.trim() || user.email,
+        messagePreview: trimmedContent,
+      });
+    }
+
     return;
   }
 
@@ -1238,6 +1281,13 @@ export async function createFoodOrder(
      VALUES ($1, $2, $3, $4, $5, $6, 'Initialized')`,
     [user.id, item.id, item.created_by_user_id ?? null, item.name, total, data.fulfillment.trim()]
   );
+
+  return {
+    itemName: String(item.name ?? ''),
+    total,
+    fulfillment: data.fulfillment.trim(),
+    supplierUserId: Number(item.created_by_user_id ?? 0) || null,
+  };
 }
 
 export async function getArrivalBooking(user: SafeUser): Promise<ArrivalBooking> {
@@ -1373,15 +1423,45 @@ export async function getSupportMessages(user: SafeUser): Promise<SupportMessage
 
 export async function createSupportMessage(user: SafeUser, content: string) {
   await ensureStudentDataTables();
+  const trimmedContent = content.trim();
+  if (!trimmedContent) {
+    throw new Error('Support message content is required.');
+  }
+
   await pool.query(
     `INSERT INTO student_support_messages (user_id, role, content)
      VALUES ($1, 'user', $2), ($1, 'admin', $3)`,
     [
       user.id,
-      content.trim(),
+      trimmedContent,
       'Thanks for contacting support. A team member will review your request and follow up shortly.',
     ]
   );
+
+  void sendSupportReceivedEmail({
+    toEmail: user.email,
+    firstName: user.firstName,
+    messagePreview: trimmedContent,
+  });
+
+  const adminRecipient = getAdminAlertRecipient();
+  if (adminRecipient) {
+    void sendAdminAlertEmail({
+      toEmail: adminRecipient,
+      title: 'New support request received',
+      intro: 'A new support request was submitted on EBENESAID and is waiting for team review.',
+      highlights: [
+        { label: 'User', value: `${user.firstName} ${user.lastName}`.trim() || user.email },
+        { label: 'Email', value: user.email },
+        { label: 'Account type', value: user.userType },
+      ],
+      body: [trimmedContent],
+      action: {
+        label: 'Open Support Inbox',
+        href: `${(process.env.NEXT_PUBLIC_APP_URL || 'https://ebenesaid.com').replace(/\/$/, '')}/admin/support`,
+      },
+    });
+  }
 }
 
 export async function getAdminSupportInbox() {
@@ -1439,11 +1519,42 @@ export async function getAdminSupportMessages(userId: number): Promise<SupportMe
 
 export async function sendAdminSupportReply(userId: number, content: string) {
   await ensureStudentDataTables();
+  const trimmedContent = content.trim();
+  if (!trimmedContent) {
+    throw new Error('Reply content is required.');
+  }
+
   await pool.query(
     `INSERT INTO student_support_messages (user_id, role, content)
      VALUES ($1, 'admin', $2)`,
-    [userId, content.trim()]
+    [userId, trimmedContent]
   );
+
+  const userResult = await pool.query(
+    `SELECT first_name, email
+     FROM users
+     WHERE id = $1`,
+    [userId]
+  );
+
+  const row = userResult.rows[0];
+  if (row?.email) {
+    void sendPlatformAnnouncementEmail({
+      toEmail: row.email,
+      firstName: row.first_name || 'there',
+      subject: 'New reply from EBENESAID support',
+      title: 'Support replied to your request',
+      intro: 'The EBENESAID support team has sent you a new reply in your support thread.',
+      body: [
+        trimmedContent,
+        'Open your support area in the platform to review the full conversation and continue the discussion if needed.',
+      ],
+      action: {
+        label: 'Open Support',
+        href: `${(process.env.NEXT_PUBLIC_APP_URL || 'https://ebenesaid.com').replace(/\/$/, '')}/support`,
+      },
+    });
+  }
 }
 
 function toBillingProfile(

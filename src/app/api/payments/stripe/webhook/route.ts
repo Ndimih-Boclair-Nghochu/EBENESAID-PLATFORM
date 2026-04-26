@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { completePlatformPayment } from '@/lib/db';
+import { completePlatformPayment, getUserById } from '@/lib/db';
+import { sendPlatformPaymentReceiptEmail } from '@/lib/email';
 
 type StripeCheckoutPayload = {
   type?: string;
@@ -32,5 +33,16 @@ export async function POST(request: NextRequest) {
   }
 
   const payment = await completePlatformPayment(userId, 'stripe');
+  const user = await getUserById(userId);
+  if (user) {
+    void sendPlatformPaymentReceiptEmail({
+      toEmail: user.email,
+      firstName: user.first_name,
+      amountEur: payment.amount,
+      provider: 'stripe',
+      reference: payment.reference,
+      paidAt: new Date().toISOString(),
+    });
+  }
   return NextResponse.json({ received: true, payment }, { status: 200 });
 }

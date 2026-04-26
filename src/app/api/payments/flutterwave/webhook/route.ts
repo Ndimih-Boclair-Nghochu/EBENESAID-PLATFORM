@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { completePlatformPayment } from '@/lib/db';
+import { completePlatformPayment, getUserById } from '@/lib/db';
+import { sendPlatformPaymentReceiptEmail } from '@/lib/email';
 
 type FlutterwavePayload = {
   event?: string;
@@ -35,5 +36,16 @@ export async function POST(request: NextRequest) {
   }
 
   const payment = await completePlatformPayment(userId, 'flutterwave');
+  const user = await getUserById(userId);
+  if (user) {
+    void sendPlatformPaymentReceiptEmail({
+      toEmail: user.email,
+      firstName: user.first_name,
+      amountEur: payment.amount,
+      provider: 'flutterwave',
+      reference: payment.reference,
+      paidAt: new Date().toISOString(),
+    });
+  }
   return NextResponse.json({ received: true, payment }, { status: 200 });
 }

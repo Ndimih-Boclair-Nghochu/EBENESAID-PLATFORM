@@ -10,7 +10,7 @@ function isPartnerRole(userType: string) {
 }
 
 function shouldSendCredentialsEmail(userType: string) {
-  return userType === 'staff' || userType === 'investor' || isPartnerRole(userType);
+  return userType === 'student' || userType === 'staff' || userType === 'investor' || userType === 'admin' || isPartnerRole(userType);
 }
 
 export async function GET(request: NextRequest) {

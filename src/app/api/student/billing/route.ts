@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { getAuthenticatedUserFromRequest } from '@/lib/auth';
+import { sendPlatformPaymentIssueEmail, sendPlatformPaymentReceiptEmail } from '@/lib/email';
 import { getPlatformPricingSettings } from '@/lib/db';
-import { normalizePaymentProvider, startStudentPlatformPayment } from '@/lib/payments';
+import { normalizePaymentProvider, startStudentPlatformPayment, type PaymentProvider } from '@/lib/payments';
 import { getStudentBillingProfile, updateStudentBillingProfile } from '@/lib/student-account';
 
 export async function GET(request: NextRequest) {
@@ -63,10 +64,24 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Not authenticated.' }, { status: 401 });
   }
 
+  let provider: PaymentProvider = 'stripe';
   try {
     const body = await request.json();
-    const provider = normalizePaymentProvider(body.providerPreference);
+    provider = normalizePaymentProvider(body.providerPreference);
     const payment = await startStudentPlatformPayment(user, provider);
+    const billing = await getStudentBillingProfile(user);
+    const recipientEmail = billing.invoiceEmail || billing.billingEmail || user.email;
+
+    if (payment.status === 'completed') {
+      void sendPlatformPaymentReceiptEmail({
+        toEmail: recipientEmail,
+        firstName: user.firstName,
+        amountEur: payment.amount,
+        provider: payment.provider,
+        reference: payment.reference,
+        paidAt: new Date().toISOString(),
+      });
+    }
 
     return NextResponse.json(
       {
@@ -78,6 +93,14 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.error('Billing payment error:', error);
+
+    void sendPlatformPaymentIssueEmail({
+      toEmail: user.email,
+      firstName: user.firstName,
+      provider,
+      issue: error instanceof Error ? error.message : 'The payment flow could not be completed.',
+    });
+
     return NextResponse.json({ error: 'Failed to complete platform payment.' }, { status: 500 });
   }
 }
