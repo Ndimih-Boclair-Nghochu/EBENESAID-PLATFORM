@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useMemo, useState } from "react";
-import { Activity, Mail, Search, ShieldCheck, UserCheck, UserPlus, UserX } from "lucide-react";
+import { Activity, Mail, Search, ShieldCheck, Trash2, UserCheck, UserPlus, UserX } from "lucide-react";
 
+import { ConfirmAction } from "@/components/confirm-action";
 import { SidebarShell } from "@/components/layout/sidebar-shell";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -79,6 +80,7 @@ export default function UserDirectoryPage() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [workingUserId, setWorkingUserId] = useState<number | null>(null);
   const [createForm, setCreateForm] = useState(emptyCreateForm);
 
   async function loadUsers() {
@@ -138,21 +140,49 @@ export default function UserDirectoryPage() {
   }
 
   async function toggleUser(userId: number, isActive: boolean) {
-    const res = await fetch("/api/admin/users", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ userId, isActive }),
-    });
-    const data: UserDirectoryResponse = await res.json();
+    setWorkingUserId(userId);
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ userId, isActive }),
+      });
+      const data: UserDirectoryResponse = await res.json();
 
-    if (!res.ok) {
-      setStatus(data.error || "Failed to update account status.");
-      return;
+      if (!res.ok) {
+        setStatus(data.error || "Failed to update account status.");
+        return;
+      }
+
+      setUsers(data.users ?? []);
+      setStatus(isActive ? "User activated." : "User deactivated.");
+    } finally {
+      setWorkingUserId(null);
     }
+  }
 
-    setUsers(data.users ?? []);
-    setStatus(isActive ? "User activated." : "User deactivated.");
+  async function deleteUser(userId: number) {
+    setWorkingUserId(userId);
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ userId }),
+      });
+      const data: UserDirectoryResponse = await res.json();
+
+      if (!res.ok) {
+        setStatus(data.error || "Failed to delete user.");
+        return;
+      }
+
+      setUsers(data.users ?? []);
+      setStatus("User deleted successfully.");
+    } finally {
+      setWorkingUserId(null);
+    }
   }
 
   return (
@@ -323,14 +353,44 @@ export default function UserDirectoryPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         {user.isActive ? (
-                          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl bg-slate-50 text-red-500 hover:bg-red-50" onClick={() => toggleUser(user.id, false)}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9 rounded-xl bg-slate-50 text-red-500 hover:bg-red-50"
+                            onClick={() => toggleUser(user.id, false)}
+                            disabled={workingUserId === user.id}
+                          >
                             <UserX className="h-4 w-4" />
                           </Button>
                         ) : (
-                          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl bg-slate-50 text-emerald-600 hover:bg-emerald-50" onClick={() => toggleUser(user.id, true)}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9 rounded-xl bg-slate-50 text-emerald-600 hover:bg-emerald-50"
+                            onClick={() => toggleUser(user.id, true)}
+                            disabled={workingUserId === user.id}
+                          >
                             <UserCheck className="h-4 w-4" />
                           </Button>
                         )}
+                        <ConfirmAction
+                          trigger={
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-9 w-9 rounded-xl bg-slate-50 text-red-600 hover:bg-red-50"
+                              disabled={workingUserId === user.id}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          }
+                          title="Delete this user?"
+                          description={`This will permanently remove ${fullName || user.email} from EBENESAID, including their active sessions and linked account records. This action cannot be undone.`}
+                          confirmLabel="Delete User"
+                          cancelLabel="Keep User"
+                          confirmVariant="destructive"
+                          onConfirm={() => deleteUser(user.id)}
+                        />
                         {user.isActive && <ShieldCheck className="h-4 w-4 text-primary" />}
                       </div>
                     </div>

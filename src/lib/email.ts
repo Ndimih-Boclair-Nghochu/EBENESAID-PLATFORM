@@ -76,6 +76,20 @@ export type PasswordChangedEmailInput = {
   loginUrl?: string;
 };
 
+export type AccountStatusChangedEmailInput = {
+  toEmail: string;
+  firstName: string;
+  accountType: string;
+  isActive: boolean;
+  loginUrl?: string;
+};
+
+export type AccountDeletedEmailInput = {
+  toEmail: string;
+  firstName: string;
+  accountType: string;
+};
+
 export type PlatformPaymentReceiptEmailInput = {
   toEmail: string;
   firstName: string;
@@ -517,6 +531,51 @@ export async function sendPasswordChangedEmail(input: PasswordChangedEmailInput)
       label: 'Sign in to EBENESAID',
       href: loginUrl,
     },
+  });
+
+  return sendStructuredEmail(input.toEmail, firstName, template);
+}
+
+export async function sendAccountStatusChangedEmail(input: AccountStatusChangedEmailInput): Promise<EmailSendResult> {
+  const firstName = input.firstName.trim() || 'there';
+  const loginUrl = getLoginUrl(input.loginUrl);
+  const template = buildEmailTemplate({
+    subject: input.isActive ? 'Your EBENESAID account has been activated' : 'Your EBENESAID account has been deactivated',
+    preheader: input.isActive ? 'Your platform access is active again.' : 'Your platform access is currently disabled.',
+    title: input.isActive ? 'Account activated' : 'Account deactivated',
+    greeting: `Hello ${firstName},`,
+    intro: input.isActive
+      ? `Your ${input.accountType} on EBENESAID has been activated by an administrator.`
+      : `Your ${input.accountType} on EBENESAID has been deactivated by an administrator.`,
+    body: input.isActive
+      ? [
+          'You can now sign in again and continue using the modules assigned to your account.',
+        ]
+      : [
+          'You will not be able to sign in while this status remains inactive. Please contact EBENESAID support or an administrator if you believe this was done in error.',
+        ],
+    action: input.isActive
+      ? {
+          label: 'Open Login',
+          href: loginUrl,
+        }
+      : undefined,
+  });
+
+  return sendStructuredEmail(input.toEmail, firstName, template);
+}
+
+export async function sendAccountDeletedEmail(input: AccountDeletedEmailInput): Promise<EmailSendResult> {
+  const firstName = input.firstName.trim() || 'there';
+  const template = buildEmailTemplate({
+    subject: 'Your EBENESAID account has been removed',
+    preheader: 'Your platform account has been removed by an administrator.',
+    title: 'Account removed',
+    greeting: `Hello ${firstName},`,
+    intro: `Your ${input.accountType} on EBENESAID has been removed by an administrator.`,
+    body: [
+      'If you believe this happened in error or you still need access to the platform, please contact EBENESAID support for clarification.',
+    ],
   });
 
   return sendStructuredEmail(input.toEmail, firstName, template);

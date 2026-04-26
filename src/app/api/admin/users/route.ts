@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { getAuthenticatedUserFromRequest } from '@/lib/auth';
-import { createUser, getUserByEmail, listUsersForAdmin, PLATFORM_ROLE_OPTIONS, setUserActiveState } from '@/lib/db';
-import { sendAccountCreatedEmail } from '@/lib/email';
+import { createUser, deleteUserById, getUserByEmail, getUserById, listUsersForAdmin, PLATFORM_ROLE_OPTIONS, setUserActiveState } from '@/lib/db';
+import { sendAccountCreatedEmail, sendAccountDeletedEmail, sendAccountStatusChangedEmail } from '@/lib/email';
 import { isAdminRole } from '@/lib/rbac';
 
 function isPartnerRole(userType: string) {
@@ -145,10 +145,83 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'User not found.' }, { status: 404 });
     }
 
+    void sendAccountStatusChangedEmail({
+      toEmail: updated.email,
+      firstName: updated.firstName,
+      accountType: formatAccountType(updated.userType),
+      isActive,
+      loginUrl: 'https://ebenesaid.com/login',
+    });
+
     const users = await listUsersForAdmin();
     return NextResponse.json({ users }, { status: 200 });
   } catch (error) {
     console.error('Admin user status update error:', error);
     return NextResponse.json({ error: 'Failed to update user status.' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  const adminUser = await getAuthenticatedUserFromRequest(request);
+  if (!adminUser || !isAdminRole(adminUser.userType)) {
+    return NextResponse.json({ error: 'Admin access required.' }, { status: 403 });
+  }
+
+  try {
+    const body = await request.json().catch(() => ({}));
+    const userId = Number(body.userId);
+
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return NextResponse.json({ error: 'Valid userId is required.' }, { status: 400 });
+    }
+
+    if (userId === adminUser.id) {
+      return NextResponse.json({ error: 'You cannot delete your own admin account while signed in.' }, { status: 400 });
+    }
+
+    const existingUser = await getUserById(userId);
+    if (!existingUser) {
+      return NextResponse.json({ error: 'User not found.' }, { status: 404 });
+    }
+
+    const deleted = await deleteUserById(userId);
+    if (!deleted) {
+      return NextResponse.json({ error: 'User could not be deleted.' }, { status: 500 });
+    }
+
+    void sendAccountDeletedEmail({
+      toEmail: existingUser.email,
+      firstName: existingUser.first_name,
+      accountType: formatAccountType(existingUser.user_type),
+    });
+
+    const users = await listUsersForAdmin();
+    return NextResponse.json({ users }, { status: 200 });
+  } catch (error) {
+    console.error('Admin user delete error:', error);
+    return NextResponse.json({ error: 'Failed to delete user.' }, { status: 500 });
+  }
+}
+
+function formatAccountType(userType: string) {
+  switch (userType) {
+    case 'job_partner':
+      return 'Job Supplier Account';
+    case 'agent':
+      return 'House Agent Account';
+    case 'supplier':
+      return 'Food Supplier Account';
+    case 'transport':
+      return 'Transport Partner Account';
+    case 'university':
+      return 'School Partner Account';
+    case 'investor':
+      return 'Investor Account';
+    case 'staff':
+      return 'Staff Account';
+    case 'admin':
+      return 'Admin Account';
+    default:
+      return 'Student Account';
   }
 }

@@ -1432,6 +1432,19 @@ export async function setUserActiveState(userId: number, isActive: boolean): Pro
   return row ? toSafeUser(row) : undefined;
 }
 
+export async function deleteUserById(userId: number): Promise<SafeUser | undefined> {
+  await ensureCoreTables();
+  const result = await pool.query(
+    `DELETE FROM users
+     WHERE id = $1
+     RETURNING *`,
+    [userId]
+  );
+
+  const row = result.rows[0];
+  return row ? toSafeUser(row) : undefined;
+}
+
 export async function getPartnerProfile(userId: number): Promise<PartnerProfileRecord | null> {
   await ensureCoreTables();
   const result = await pool.query(
