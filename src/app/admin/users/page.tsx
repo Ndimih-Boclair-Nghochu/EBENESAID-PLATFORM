@@ -42,6 +42,16 @@ type RoleOption = {
   label: string;
 };
 
+type UserDirectoryResponse = {
+  users?: DirectoryUser[];
+  roleOptions?: RoleOption[];
+  emailDelivery?: {
+    status: 'sent' | 'failed' | 'skipped';
+    message?: string;
+  };
+  error?: string;
+};
+
 const emptyCreateForm = {
   firstName: "",
   lastName: "",
@@ -73,7 +83,7 @@ export default function UserDirectoryPage() {
 
   async function loadUsers() {
     const res = await fetch("/api/admin/users", { credentials: "include" });
-    const data = await res.json();
+    const data: UserDirectoryResponse = await res.json();
     if (!res.ok) {
       throw new Error(data.error || "Failed to load user directory.");
     }
@@ -108,7 +118,7 @@ export default function UserDirectoryPage() {
       credentials: "include",
       body: JSON.stringify(createForm),
     });
-    const data = await res.json();
+    const data: UserDirectoryResponse = await res.json();
     setCreating(false);
 
     if (!res.ok) {
@@ -118,7 +128,13 @@ export default function UserDirectoryPage() {
 
     setUsers(data.users ?? []);
     setCreateForm(emptyCreateForm);
-    setStatus("Platform user created successfully.");
+    setStatus(
+      data.emailDelivery?.status === "failed"
+        ? `Platform user created successfully. ${data.emailDelivery.message ?? "Credential email could not be sent."}`
+        : data.emailDelivery?.status === "sent"
+          ? "Platform user created successfully. Credential email sent."
+          : "Platform user created successfully."
+    );
   }
 
   async function toggleUser(userId: number, isActive: boolean) {
@@ -128,7 +144,7 @@ export default function UserDirectoryPage() {
       credentials: "include",
       body: JSON.stringify({ userId, isActive }),
     });
-    const data = await res.json();
+    const data: UserDirectoryResponse = await res.json();
 
     if (!res.ok) {
       setStatus(data.error || "Failed to update account status.");

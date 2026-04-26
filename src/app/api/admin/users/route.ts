@@ -2,10 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { getAuthenticatedUserFromRequest } from '@/lib/auth';
 import { createUser, getUserByEmail, listUsersForAdmin, PLATFORM_ROLE_OPTIONS, setUserActiveState } from '@/lib/db';
+import { sendAccountCreatedEmail } from '@/lib/email';
 import { isAdminRole } from '@/lib/rbac';
 
 function isPartnerRole(userType: string) {
   return userType === 'university' || userType === 'agent' || userType === 'job_partner' || userType === 'supplier' || userType === 'transport';
+}
+
+function shouldSendCredentialsEmail(userType: string) {
+  return userType === 'staff' || userType === 'investor' || isPartnerRole(userType);
 }
 
 export async function GET(request: NextRequest) {
@@ -83,8 +88,34 @@ export async function POST(request: NextRequest) {
       partnerProfile,
     });
 
+    let emailDelivery: { status: 'sent' | 'failed' | 'skipped'; message?: string } = { status: 'skipped' };
+
+    if (shouldSendCredentialsEmail(userType)) {
+      try {
+        const result = await sendAccountCreatedEmail({
+          toEmail: email,
+          firstName,
+          lastName,
+          loginEmail: email,
+          temporaryPassword: password,
+          userType,
+          partnerType: partnerProfile?.partnerType,
+          loginUrl: 'https://ebenesaid.com/login',
+        });
+
+        emailDelivery = result.ok
+          ? { status: 'sent', message: 'Credential email sent successfully.' }
+          : { status: 'failed', message: result.error || 'Credential email could not be sent.' };
+      } catch {
+        emailDelivery = {
+          status: 'failed',
+          message: 'Credential email could not be sent.',
+        };
+      }
+    }
+
     const users = await listUsersForAdmin();
-    return NextResponse.json({ users }, { status: 201 });
+    return NextResponse.json({ users, emailDelivery }, { status: 201 });
   } catch (error) {
     console.error('Admin user creation error:', error);
     return NextResponse.json(
