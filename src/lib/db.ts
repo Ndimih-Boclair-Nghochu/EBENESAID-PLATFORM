@@ -20,8 +20,23 @@ export function hashPassword(password: string): { hash: string; salt: string } {
 }
 
 export function verifyPassword(password: string, hash: string, salt: string): boolean {
-  const testHash = crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex');
-  return crypto.timingSafeEqual(Buffer.from(hash), Buffer.from(testHash));
+  if (!password || !hash || !salt) {
+    return false;
+  }
+
+  try {
+    const testHash = crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex');
+    const expected = Buffer.from(hash, 'hex');
+    const actual = Buffer.from(testHash, 'hex');
+
+    if (expected.length === 0 || expected.length !== actual.length) {
+      return false;
+    }
+
+    return crypto.timingSafeEqual(expected, actual);
+  } catch {
+    return false;
+  }
 }
 
 // ─── Session Token ──────────────────────────────────────────────────────────────

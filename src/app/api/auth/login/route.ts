@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserByEmail, verifyPassword, createSession, updateLastLogin, toSafeUser } from '@/lib/db';
+import { createSession, getUserByEmail, getUserById, toSafeUser, updateLastLogin, verifyPassword } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { email, password } = body;
+    const body = await request.json().catch(() => ({}));
+    const email = String(body.email ?? '').trim().toLowerCase();
+    const password = String(body.password ?? '');
 
     // Validation
     if (!email || !password) {
@@ -47,7 +48,8 @@ export async function POST(request: NextRequest) {
     const session = await createSession(dbUser.id);
 
     // Build response
-    const safeUser = toSafeUser(dbUser);
+    const freshUser = await getUserById(dbUser.id);
+    const safeUser = toSafeUser(freshUser ?? dbUser);
     const response = NextResponse.json(
       { message: 'Login successful!', user: safeUser },
       { status: 200 }
