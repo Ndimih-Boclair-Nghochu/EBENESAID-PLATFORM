@@ -9,14 +9,20 @@ function getResetBaseUrl() {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const body = await request.json().catch(() => ({}));
     const email = String(body.email ?? '').trim().toLowerCase();
 
     if (!email) {
       return NextResponse.json({ error: 'Email address is required.' }, { status: 400 });
     }
 
-    const user = await getUserByEmail(email);
+    let user: Awaited<ReturnType<typeof getUserByEmail>> | undefined;
+    try {
+      user = await getUserByEmail(email);
+    } catch (error) {
+      console.error('Forgot password lookup error:', error);
+      user = undefined;
+    }
 
     if (user?.is_active) {
       try {
@@ -42,6 +48,11 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.error('Forgot password request error:', error);
-    return NextResponse.json({ error: 'Failed to process password reset request.' }, { status: 500 });
+    return NextResponse.json(
+      {
+        message: 'If an account exists for that email, a password reset link has been sent.',
+      },
+      { status: 200 }
+    );
   }
 }
